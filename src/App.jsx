@@ -15,6 +15,7 @@ import Leaderboard from './pages/Leaderboard';
 import Winners from './pages/Winners';
 import Tasks from './pages/Tasks';
 import Contact from './pages/Contact';
+import Careers from './pages/Careers';
 import Admin from './pages/Admin';
 import Auth from './pages/Auth';
 import Signup from './pages/Signup';
@@ -110,6 +111,7 @@ export default function App() {
             <Route path="/quiz" element={<ProtectedRoute><Quiz user={user} /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard user={user} /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks user={user} /></ProtectedRoute>} />
+            <Route path="/careers" element={<ProtectedRoute><Careers /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute roleRequired="admin"><Admin user={user} /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

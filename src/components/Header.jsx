@@ -61,6 +61,7 @@ export default function Header({ user }) {
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/quiz', label: 'Quiz', icon: 'fa-brain' },
+    { to: '/careers', label: 'Careers', icon: 'fa-diagram-project' },
     { to: '/leaderboard', label: 'Leaderboard', icon: 'fa-ranking-star' },
     { to: '/tasks', label: 'Tasks', icon: 'fa-square-check' },
     { to: '/winners', label: 'Winners', icon: 'fa-trophy' },
