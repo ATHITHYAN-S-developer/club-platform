@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import db, { supabaseServiceClient } from '../db';
+import QuizManagement from './admin/QuizManagement';
+import LeaderboardAdmin from './admin/LeaderboardAdmin';
+import StudentManagement from './admin/StudentManagement';
+import AnalyticsTab from './admin/AnalyticsTab';
+import SecuritySettings from './admin/SecuritySettings';
 
 const SIDEBAR_SECTIONS = [
   {
     label: 'MAIN',
     items: [
       { id: 'dashboard',   label: 'Dashboard',     icon: 'fa-chart-pie' },
+      { id: 'analytics',   label: 'Analytics',     icon: 'fa-chart-line' },
       { id: 'winners',     label: 'Winners',       icon: 'fa-trophy' },
       { id: 'leaderboard', label: 'Leaderboard',   icon: 'fa-ranking-star' },
       { id: 'settings',    label: 'Settings',      icon: 'fa-gear' },
@@ -19,6 +25,8 @@ const SIDEBAR_SECTIONS = [
       { id: 'events',      label: 'Events',        icon: 'fa-calendar' },
       { id: 'messages',    label: 'Messages',      icon: 'fa-envelope' },
       { id: 'quizzes',     label: 'Quizzes',       icon: 'fa-question-circle' },
+      { id: 'students',    label: 'Students',      icon: 'fa-graduation-cap' },
+      { id: 'security',    label: 'Security',      icon: 'fa-shield-halved' },
     ]
   }
 ];
@@ -953,6 +961,7 @@ function MessagesTab() {
 function LeaderboardTab() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [filterQuiz, setFilterQuiz] = useState('all');
   const [sortBy, setSortBy] = useState('score'); // 'score' | 'time'
 
@@ -976,6 +985,33 @@ function LeaderboardTab() {
   });
 
   const ranked = sorted.map((r, i) => ({ rank: i + 1, ...r }));
+
+  const handleDeleteResult = async (id, userName) => {
+    if (!window.confirm(`Delete result for "${userName}"?`)) return;
+    try {
+      await db.delete('QuizResults', id);
+      setResults(prev => prev.filter(r => r.id !== id));
+      window.showToast('Deleted', `Result for ${userName} removed.`, 'success');
+    } catch (err) {
+      window.showToast('Error', err.message, 'error');
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm('Delete ALL quiz results? This cannot be undone.')) return;
+    setDeleting(true);
+    try {
+      for (const r of results) {
+        await db.delete('QuizResults', r.id);
+      }
+      setResults([]);
+      window.showToast('Cleared', 'All quiz results have been deleted.', 'success');
+    } catch (err) {
+      window.showToast('Error', err.message, 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) return <div className="loading-spinner" />;
 
@@ -1005,6 +1041,11 @@ function LeaderboardTab() {
           </button>
         </div>
         <Badge color="blue">{ranked.length} entries</Badge>
+        {ranked.length > 0 && (
+          <button className="btn btn-danger btn-sm" onClick={handleClearAll} disabled={deleting} style={{ marginLeft: 'auto', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {deleting ? <><i className="fa-solid fa-spinner fa-spin" /> Clearing…</> : <><i className="fa-solid fa-trash-can" /> Clear All</>}
+          </button>
+        )}
       </div>
 
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
@@ -1018,11 +1059,12 @@ function LeaderboardTab() {
                 <th>Score</th>
                 <th>Time</th>
                 <th>Date</th>
+                <th style={{ textAlign: 'center', width: 60 }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {ranked.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No results yet</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No results yet</td></tr>
               ) : ranked.map(r => (
                 <tr key={r.id}>
                   <td style={{ textAlign: 'center' }}>
@@ -1048,6 +1090,11 @@ function LeaderboardTab() {
                   </td>
                   <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{r.timeSpent ? `${r.timeSpent}s` : '—'}</td>
                   <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{r.date ? new Date(r.date).toLocaleDateString() : '—'}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button onClick={() => handleDeleteResult(r.id, r.userName)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#dc2626', fontSize: '0.74rem' }} title="Delete result">
+                      <i className="fa-solid fa-trash" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1706,14 +1753,17 @@ export default function Admin({ user }) {
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {tab === 'dashboard'    && <DashboardTab />}
+          {tab === 'analytics'    && <AnalyticsTab />}
           {tab === 'winners'      && <WinnersTab />}
-          {tab === 'leaderboard'  && <LeaderboardTab />}
+          {tab === 'leaderboard'  && <LeaderboardAdmin />}
           {tab === 'settings'     && <SettingsTab />}
           {tab === 'members'      && <MembersTab />}
           {tab === 'core'         && <CoreBoardTab allMembers={members} />}
           {tab === 'events'       && <EventsTab />}
           {tab === 'messages'     && <MessagesTab />}
-          {tab === 'quizzes'      && <QuizzesTab />}
+          {tab === 'quizzes'      && <QuizManagement />}
+          {tab === 'students'     && <StudentManagement />}
+          {tab === 'security'     && <SecuritySettings />}
         </div>
       </div>
     </div>

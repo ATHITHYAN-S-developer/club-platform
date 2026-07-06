@@ -10,7 +10,8 @@ import Members from './pages/Members';
 import Resources from './pages/Resources';
 import Gallery from './pages/Gallery';
 import Events from './pages/Events';
-import Quiz from './pages/Quiz';
+import Quiz from './pages/QuizPage';
+import Leaderboard from './pages/Leaderboard';
 import Winners from './pages/Winners';
 import Tasks from './pages/Tasks';
 import Contact from './pages/Contact';
@@ -107,6 +108,7 @@ export default function App() {
             <Route path="/auth" element={<Auth user={user} />} />
             <Route path="/signup" element={<Signup user={user} />} />
             <Route path="/quiz" element={<ProtectedRoute><Quiz user={user} /></ProtectedRoute>} />
+            <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard user={user} /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute><Tasks user={user} /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute roleRequired="admin"><Admin user={user} /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -76,21 +76,50 @@ const initialCollections = {
     { id: 'res_4', title: 'Machine Learning Basics Workshop Recording', category: 'Videos', description: 'Full video walkthrough covering linear regression, gradient descent, and PyTorch.', link: 'https://youtube.com', size: 'Video Stream' },
   ],
   Quiz: [
-    { id: 'qz_1', title: 'Weekly JavaScript Quiz: Scopes & Closures', description: 'Test your understanding of lexical scoping, hoisting, closures, and the event loop.', timeLimit: 60, published: true, questions: [
-      { question: 'What will be logged: console.log(typeof NaN)?', options: ['"number"', '"nan"', '"undefined"', '"object"'], answerIndex: 0, timeLimit: 30 },
-      { question: 'Which keyword creates a block-scoped variable?', options: ['var', 'let', 'function', 'define'], answerIndex: 1, timeLimit: 20 },
-      { question: 'What is the output: (function(){ var a = b = 3; })(); console.log(typeof a, typeof b);?', options: ['"undefined" "number"', '"number" "undefined"', '"number" "number"', '"undefined" "undefined"'], answerIndex: 0, timeLimit: 35 },
-    ]},
-    { id: 'qz_2', title: 'Weekly CSS Grid & Layout Masterclass', description: 'Evaluate your layout strategies, centering techniques, and grid constraints.', timeLimit: 90, published: true, questions: [
-      { question: 'Which value of justify-content aligns items with equal space around them, but half-spaces on edges?', options: ['space-between', 'space-around', 'space-evenly', 'stretch'], answerIndex: 1, timeLimit: 25 },
-      { question: 'How do you define a grid column to take twice the space of another?', options: ['width: 2fr', 'grid-template-columns: 2fr 1fr', 'flex: 2', 'column-span: 2'], answerIndex: 1, timeLimit: 20 },
-    ]},
+    {
+      id: 'qz_1', title: 'Weekly JavaScript Quiz: Scopes & Closures',
+      description: 'Test your understanding of lexical scoping, hoisting, closures, and the event loop.',
+      category: 'Programming', difficulty: 'medium',
+      timeLimit: 10, passMarks: 2, totalMarks: 3, maxAttempts: 2,
+      shuffleQuestions: false, shuffleOptions: false,
+      showResult: true, leaderboardVisibility: true,
+      allowReview: true, allowBackNavigation: true,
+      autoSubmit: true, negativeMarking: 0,
+      scheduledAt: null, archived: false, published: true,
+      security: { fullscreenRequired: true, tabSwitchDetection: true, copyPasteBlock: true, rightClickBlock: true, devToolsDetection: true, violationLimit: 3 },
+      createdAt: '2026-06-20T08:00:00Z', updatedAt: '2026-06-20T08:00:00Z',
+      questions: [
+        { id: 'q1_1', type: 'mcq', questionText: 'What will be logged: console.log(typeof NaN)?', options: [{ id: 'a', text: '"number"', isCorrect: true }, { id: 'b', text: '"nan"', isCorrect: false }, { id: 'c', text: '"undefined"', isCorrect: false }, { id: 'd', text: '"object"', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 30, order: 1 },
+        { id: 'q1_2', type: 'mcq', questionText: 'Which keyword creates a block-scoped variable?', options: [{ id: 'a', text: 'var', isCorrect: false }, { id: 'b', text: 'let', isCorrect: true }, { id: 'c', text: 'function', isCorrect: false }, { id: 'd', text: 'define', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 20, order: 2 },
+        { id: 'q1_3', type: 'mcq', questionText: 'What is the output: (function(){ var a = b = 3; })(); console.log(typeof a, typeof b);', options: [{ id: 'a', text: '"undefined" "number"', isCorrect: true }, { id: 'b', text: '"number" "undefined"', isCorrect: false }, { id: 'c', text: '"number" "number"', isCorrect: false }, { id: 'd', text: '"undefined" "undefined"', isCorrect: false }], difficulty: 'hard', marks: 1, negativeMarks: 0, timeLimit: 35, order: 3 },
+      ]
+    },
+    {
+      id: 'qz_2', title: 'Weekly CSS Grid & Layout Masterclass',
+      description: 'Evaluate your layout strategies, centering techniques, and grid constraints.',
+      category: 'CSS', difficulty: 'medium',
+      timeLimit: 5, passMarks: 1, totalMarks: 2, maxAttempts: 3,
+      shuffleQuestions: false, shuffleOptions: false,
+      showResult: true, leaderboardVisibility: true,
+      allowReview: true, allowBackNavigation: true,
+      autoSubmit: true, negativeMarking: 0,
+      scheduledAt: null, archived: false, published: true,
+      security: { fullscreenRequired: true, tabSwitchDetection: true, copyPasteBlock: true, rightClickBlock: true, devToolsDetection: true, violationLimit: 3 },
+      createdAt: '2026-06-21T10:00:00Z', updatedAt: '2026-06-21T10:00:00Z',
+      questions: [
+        { id: 'q2_1', type: 'mcq', questionText: 'Which value of justify-content aligns items with equal space around them, but half-spaces on edges?', options: [{ id: 'a', text: 'space-between', isCorrect: false }, { id: 'b', text: 'space-around', isCorrect: true }, { id: 'c', text: 'space-evenly', isCorrect: false }, { id: 'd', text: 'stretch', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 25, order: 1 },
+        { id: 'q2_2', type: 'mcq', questionText: 'How do you define a grid column to take twice the space of another?', options: [{ id: 'a', text: 'width: 2fr', isCorrect: false }, { id: 'b', text: 'grid-template-columns: 2fr 1fr', isCorrect: true }, { id: 'c', text: 'flex: 2', isCorrect: false }, { id: 'd', text: 'column-span: 2', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 20, order: 2 },
+      ]
+    },
   ],
   QuizResults: [
     { id: 'qr_1', userId: 'usr_2', userName: 'Jane Doe', quizId: 'qz_1', quizTitle: 'Weekly JavaScript Quiz', score: 3, total: 3, timeSpent: 22, date: '2026-06-25T10:00:00Z' },
     { id: 'qr_2', userId: 'usr_3', userName: 'Alice Johnson', quizId: 'qz_1', quizTitle: 'Weekly JavaScript Quiz', score: 2, total: 3, timeSpent: 38, date: '2026-06-25T11:15:00Z' },
     { id: 'qr_3', userId: 'usr_2', userName: 'Jane Doe', quizId: 'qz_2', quizTitle: 'Weekly CSS Grid Masterclass', score: 2, total: 2, timeSpent: 15, date: '2026-06-26T08:00:00Z' },
   ],
+  QuizAttempt: [],
+  Violations: [],
+  Notifications: [],
   WeeklyTasks: [
     { id: 'tsk_1', title: 'Glassmorphic Card Re-creation', description: 'Design and build a gorgeous glassmorphic product card using custom CSS shadows, dynamic HSL colors, and blur backdrops. Submit a single HTML file containing styles.', deadline: '2026-07-02T23:59:00Z', active: true },
     { id: 'tsk_2', title: 'Algorithm Optimization: Array Deduplication', description: 'Write an optimized JavaScript algorithm to deduplicate arrays with over 10,000 coordinates. Measure execution time and document benchmarks.', deadline: '2026-06-20T23:59:00Z', active: false },
