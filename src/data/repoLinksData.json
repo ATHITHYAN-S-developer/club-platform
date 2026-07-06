@@ -682,14 +682,5 @@
     "technologies": ["Python", "BeautifulSoup", "NLTK"],
     "shortDescription": "Web scraping with NLTK text processing",
     "githubUrl": "https://github.com/mindcraftaiclub-crypto/WebScraping_NLTK"
-  },
-  {
-    "id": "res_70",
-    "title": "Club Platform",
-    "category": "Web App",
-    "difficulty": "Intermediate",
-    "technologies": ["JavaScript", "React", "Vite", "CSS"],
-    "shortDescription": "Mindcraft AI Club official website - club management platform with admin panel, quizzes, tasks, and member hub",
-    "githubUrl": "https://github.com/ATHITHYAN-S-developer/club-platform"
   }
 ]

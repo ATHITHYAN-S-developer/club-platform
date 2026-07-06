@@ -517,7 +517,6 @@ class FirebaseDatabase {
   }
 
   async uploadFile(file, bucket = 'uploads') {
-    console.log(`Uploading to bucket: ${bucket}`);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;

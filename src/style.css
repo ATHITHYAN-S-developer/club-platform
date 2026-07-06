@@ -1756,6 +1756,17 @@ tr:hover td { background: rgba(255,255,255,0.025); color: var(--text); }
 /* Quiz Page Wrapper */
 .quiz-page { min-height: 50vh; }
 
+/* Form Validation */
+.input-error { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.12) !important; }
+.field-error { display: flex; align-items: center; gap: 0.3rem; margin-top: 0.3rem; font-size: 0.78rem; color: #ef4444; font-weight: 500; }
+.form-error-banner {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.65rem 1rem; margin-bottom: 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+  color: #dc2626; font-size: 0.84rem; font-weight: 600;
+}
+
 /* Responsive - Quiz Player */
 @media (max-width: 768px) {
   .question-palette { display: none; }

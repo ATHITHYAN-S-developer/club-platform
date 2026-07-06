@@ -76,7 +76,18 @@ export default function Leaderboard({ user }) {
       return true;
     });
 
-    return data.map((r, i) => ({ ...r, rank: i + 1 }));
+    const ranked = data.map((r, i) => ({ ...r, rank: i + 1 }));
+
+    const userResultsMap = {};
+    ranked.forEach(r => {
+      if (!userResultsMap[r.userId]) userResultsMap[r.userId] = [];
+      userResultsMap[r.userId].push(r);
+    });
+
+    return ranked.map(r => ({
+      ...r,
+      badges: computeBadges(r, userResultsMap[r.userId] || []),
+    }));
   }, [results, quizFilter, timeFilter]);
 
   const topThree = filteredResults.slice(0, 3);
