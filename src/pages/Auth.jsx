@@ -197,11 +197,11 @@ export default function Auth({ user }) {
         }}>
 
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', fontFamily: 'var(--font-display)' }}>
+            <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', fontFamily: "'Dancing Script', cursive" }}>
               Sign in
             </h1>
             <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '2rem' }}>
-              Lorem ipsum dolor sit amet, consectetuer adipiscing elit
+              One community. Endless innovation.
             </p>
 
             <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -310,6 +310,7 @@ export default function Auth({ user }) {
 
       {/* ── global styles ── */}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .auth-spinner {
           display: inline-block;
