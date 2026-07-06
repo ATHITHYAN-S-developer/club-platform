@@ -112,11 +112,7 @@ const initialCollections = {
       ]
     },
   ],
-  QuizResults: [
-    { id: 'qr_1', userId: 'usr_2', userName: 'Jane Doe', quizId: 'qz_1', quizTitle: 'Weekly JavaScript Quiz', score: 3, total: 3, timeSpent: 22, date: '2026-06-25T10:00:00Z' },
-    { id: 'qr_2', userId: 'usr_3', userName: 'Alice Johnson', quizId: 'qz_1', quizTitle: 'Weekly JavaScript Quiz', score: 2, total: 3, timeSpent: 38, date: '2026-06-25T11:15:00Z' },
-    { id: 'qr_3', userId: 'usr_2', userName: 'Jane Doe', quizId: 'qz_2', quizTitle: 'Weekly CSS Grid Masterclass', score: 2, total: 2, timeSpent: 15, date: '2026-06-26T08:00:00Z' },
-  ],
+  QuizResults: [],
   QuizAttempt: [],
   Violations: [],
   Notifications: [],
@@ -211,7 +207,7 @@ const addDeletedEmail = (email) => {
   } catch { /* ignore */ }
 };
 
-const DB_PREFIX = 'mindcraft_fb_fallback_v4_';
+const DB_PREFIX = 'mindcraft_fb_fallback_v5_';
 
 const getLocalStorageCollection = (collectionName) => {
   try {
@@ -367,6 +363,10 @@ class FirebaseDatabase {
         }
         return true;
       });
+      if (collectionName === 'QuizResults') {
+        const dummyIds = ['qr_1', 'qr_2', 'qr_3'];
+        return deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)));
+      }
       return deduplicateUsers(filtered);
     } catch (error) {
       console.warn(`find(${collectionName}) failed, using fallback:`, error.message);
@@ -380,6 +380,10 @@ class FirebaseDatabase {
         }
         return true;
       });
+      if (collectionName === 'QuizResults') {
+        const dummyIds = ['qr_1', 'qr_2', 'qr_3'];
+        return deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)));
+      }
       return deduplicateUsers(filtered);
     }
   }
@@ -629,17 +633,8 @@ class FirebaseDatabase {
             setLocalStorageCollection('Users', filtered);
           }
         } else {
-          userProfile = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            email: firebaseUser.email,
-            role: isAdminEmail(firebaseUser.email) ? 'admin' : 'member',
-            department: 'Computer Science', year: '1', position: 'Member',
-            skills: [], linkedin: '', github: '',
-            photo: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || firebaseUser.email.split('@')[0])}&background=ff5500&color=fff`,
-            verified: true
-          };
-          await this.insert('Users', userProfile);
+          await signOut(auth);
+          throw new Error('NOT_REGISTERED');
         }
       }
       localStorage.setItem('aether_user_session', JSON.stringify(userProfile));
