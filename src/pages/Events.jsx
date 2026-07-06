@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import db from '../db';
@@ -23,26 +23,21 @@ function EventCountdown({ targetStr }) {
     return () => clearInterval(interval);
   }, [targetStr]);
 
-  if (!timeLeft) return <span style={{ color: '#22c55e', fontWeight: 700, fontSize: '0.82rem' }}>Started ✓</span>;
+  if (!timeLeft) return <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.82rem' }}>Started ✓</span>;
 
   return (
     <div style={{ display: 'flex', gap: '0.3rem', fontSize: '0.78rem', fontWeight: 700 }}>
-      {timeLeft.days > 0 && <span style={{ background: 'rgba(255,255,255,0.15)', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#fff' }}>{timeLeft.days}d</span>}
-      <span style={{ background: timeLeft.isCritical ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.15)', padding: '0.15rem 0.4rem', borderRadius: 4, color: timeLeft.isCritical ? '#f87171' : '#fff' }}>{timeLeft.hours}h</span>
-      <span style={{ background: 'rgba(255,255,255,0.15)', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#fff' }}>{timeLeft.minutes}m</span>
-      <span style={{ background: 'rgba(255,255,255,0.15)', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#fff' }}>{timeLeft.seconds}s</span>
+      {timeLeft.days > 0 && <span style={{ background: '#f3f4f6', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#0f1117' }}>{timeLeft.days}d</span>}
+      <span style={{ background: timeLeft.isCritical ? '#fef2f2' : '#f3f4f6', padding: '0.15rem 0.4rem', borderRadius: 4, color: timeLeft.isCritical ? '#dc2626' : '#0f1117' }}>{timeLeft.hours}h</span>
+      <span style={{ background: '#f3f4f6', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#0f1117' }}>{timeLeft.minutes}m</span>
+      <span style={{ background: '#f3f4f6', padding: '0.15rem 0.4rem', borderRadius: 4, color: '#0f1117' }}>{timeLeft.seconds}s</span>
     </div>
   );
 }
 
 const CATEGORY_MAP = {
-  'evt_1': 'Seminars',
-  'evt_2': 'Seminars',
-  'evt_3': 'Workshops',
-  'evt_4': 'Events',
-  'evt_5': 'Coding Sprints',
-  'evt_6': 'Workshops',
-  'evt_7': 'Seminars'
+  'evt_1': 'Seminars', 'evt_2': 'Seminars', 'evt_3': 'Workshops',
+  'evt_4': 'Events', 'evt_5': 'Coding Sprints', 'evt_6': 'Workshops', 'evt_7': 'Seminars'
 };
 
 const CATEGORIES = ['All', 'Seminars', 'Workshops', 'Events', 'Coding Sprints'];
@@ -52,6 +47,16 @@ export default function Events({ user }) {
   const [allEvents, setAllEvents] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+  const heroRef = useRef(null);
+  const [heroVisible, setHeroVisible] = useState(false);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setHeroVisible(true); obs.disconnect(); }
+    }, { threshold: 0.05 });
+    if (heroRef.current) obs.observe(heroRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -70,7 +75,6 @@ export default function Events({ user }) {
 
   const today = new Date().toISOString().split('T')[0];
   const sortedEvents = [...allEvents].sort((a, b) => new Date(b.date) - new Date(a.date));
-
   const filteredEvents = activeCategory === 'All'
     ? sortedEvents
     : sortedEvents.filter(evt => evt.category === activeCategory);
@@ -93,270 +97,168 @@ export default function Events({ user }) {
     }
   };
 
+  const reveal = (vis) => ({
+    opacity: vis ? 1 : 0,
+    transform: vis ? 'none' : 'translateY(40px)',
+    transition: 'opacity 0.75s cubic-bezier(0.16,1,0.3,1), transform 0.75s cubic-bezier(0.16,1,0.3,1)',
+  });
+
   return (
-    <div className="animated-entrance" style={{ position: 'relative', minHeight: '80vh' }}>
-      <div className="page-header">
-        <span className="page-tag"><i className="fa-solid fa-calendar-days"></i> Calendar</span>
-        <h2 className="page-title">Events & Workshops</h2>
-        <p className="page-subtitle">Stay updated with our workshops, seminars, coding sprints, and challenges throughout the year.</p>
-      </div>
-
-      {/* Category Pills (Pills style matching Gallery) */}
-      <div className="filter-tabs">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`filter-tab-pill ${activeCategory === cat ? 'active' : ''}`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="loading-spinner" style={{ margin: '4rem auto' }} />
-      ) : (
-        <motion.div 
-          className="gallery-grid"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: {},
-            visible: { transition: { staggerChildren: 0.04 } }
-          }}
-        >
-          <AnimatePresence>
-            {filteredEvents.map((evt) => {
-              const isUpcoming = evt.date >= today;
-              const isRegistered = evt.registeredUsers?.includes(user?.id);
-
-              return (
-                <motion.div
-                  key={evt.id}
-                  className="gallery-card"
-                  variants={{
-                    hidden: { opacity: 0, y: 35, scale: 0.97 },
-                    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }
-                  }}
-                  whileInView="visible"
-                  viewport={{ once: true, margin: "-40px" }}
-                >
-                  {/* Event Poster Image */}
-                  <img 
-                    src={evt.poster} 
-                    alt={evt.title} 
-                    className="gallery-card-img"
-                  />
-
-                  {/* Glassmorphic Hover Overlay */}
-                  <div className="gallery-card-overlay">
-                    <span className="glass-badge">
-                      {evt.category}
-                    </span>
-
-                    <h3 className="gallery-card-title">
-                      {evt.title}
-                    </h3>
-
-                    <p style={{
-                      fontSize: '0.78rem',
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      margin: '0 0 1rem 0',
-                      lineHeight: 1.5,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}>
-                      {evt.description}
-                    </p>
-
-                    <div className="gallery-card-info" style={{ marginBottom: '1rem' }}>
-                      <span>📍 {evt.venue.split('(')[0].trim()}</span>
-                      <span>🕐 {evt.date}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                      {isUpcoming ? (
-                        <>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Starts in:</span>
-                            <EventCountdown targetStr={`${evt.date}T${evt.time || '00:00'}`} />
-                          </div>
-
-                          <button 
-                            onClick={(e) => handleRegister(e, evt.id)}
-                            className="gallery-view-btn"
-                          >
-                            <i className={isRegistered ? "fa-solid fa-circle-check" : "fa-solid fa-user-plus"}></i> {isRegistered ? 'Registered ✓' : 'Register Now'}
-                          </button>
-                        </>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>Past event</span>
-                          <button disabled className="gallery-view-btn" style={{ width: 'auto', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', cursor: 'not-allowed', boxShadow: 'none' }}>
-                            Completed
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
-      )}
-
-      {!loading && filteredEvents.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '5rem 3rem', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>📅</div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 0.25rem' }}>No Events Scheduled</h3>
-          <p style={{ fontSize: '0.88rem' }}>There are currently no scheduled events in this category.</p>
-        </div>
-      )}
-
-      {/* Local styles inherited from Gallery page */}
+    <div style={{ background: '#ffffff', color: '#0f1117', minHeight: '100vh', overflowX: 'hidden', position: 'relative', margin: '-2.5rem -3.5rem', padding: 0 }}>
       <style>{`
-        .gallery-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-          gap: 2rem;
-          margin-top: 2.5rem;
-          padding-bottom: 4rem;
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+        @keyframes marquee-ltr {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
         }
-        .gallery-card {
-          position: relative;
-          aspect-ratio: 3/4;
-          border-radius: var(--radius-lg);
-          overflow: hidden;
-          box-shadow: var(--shadow-sm);
-          border: 1px solid var(--border-light);
-          cursor: pointer;
-          background: var(--card);
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        .sphere {
+          position: absolute; border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, #ffaa66 0%, var(--orange) 60%, var(--orange-dark) 100%);
+          box-shadow: inset -12px -12px 30px rgba(0,0,0,0.35), inset 8px 8px 20px rgba(255,255,255,0.25), 0 25px 50px rgba(204,68,0,0.2);
+          z-index: 0; pointer-events: none;
         }
-        .gallery-card:hover {
-          transform: translateY(-6px) scale(1.01);
-          box-shadow: var(--shadow-xl);
-          border-color: var(--orange);
+        .sphere-tr { top: -40px; right: -40px; width: clamp(120px,18vw,260px); height: clamp(120px,18vw,260px); animation: float-tr 12s ease-in-out infinite; }
+        .sphere-br { bottom: 60px; right: 3%; width: clamp(80px,10vw,150px); height: clamp(80px,10vw,150px); animation: float-br 10s ease-in-out infinite; animation-delay: 1.5s; }
+        .sphere-bl { bottom: -50px; left: -40px; width: clamp(100px,14vw,200px); height: clamp(100px,14vw,200px); animation: float-bl 11s ease-in-out infinite; animation-delay: 3s; }
+        @keyframes float-tr { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-10px,15px) rotate(3deg); } }
+        @keyframes float-br { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-15px,-10px) rotate(-3deg); } }
+        @keyframes float-bl { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(15px,-15px) rotate(2deg); } }
+        .rs-hero-section {
+          position: relative; min-height: 70vh; display: flex; align-items: center; justify-content: center;
+          padding: 7rem 3.5rem 4rem 3.5rem; overflow: hidden; background: #ffffff;
         }
-        .gallery-card-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        .shard-tl {
+          position: absolute; top: 0; left: 0; width: 320px; height: 320px;
+          background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%);
+          clip-path: polygon(0 0, 100% 0, 0 100%); z-index: 0;
         }
-        .gallery-card:hover .gallery-card-img {
-          transform: scale(1.05);
+        .shard-br {
+          position: absolute; bottom: 0; right: 0; width: 450px; height: 450px;
+          background: linear-gradient(315deg, var(--orange) 0%, var(--orange-light) 100%);
+          clip-path: polygon(100% 100%, 100% 0, 0 100%); z-index: 0;
         }
-        .gallery-card-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to top, rgba(15, 17, 23, 0.95) 0%, rgba(15, 17, 23, 0.4) 60%, rgba(15, 17, 23, 0) 100%);
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 2.5rem 1.5rem 1.5rem;
-          opacity: 0;
-          transform: translateY(20px);
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          pointer-events: none;
+        .rs-pill {
+          padding: 0.4rem 0.85rem; border-radius: 50px; font-size: 0.78rem; font-weight: 600;
+          cursor: pointer; background: #f3f4f6; border: 1px solid #e5e7eb; color: #6b7280;
+          transition: all 0.2s ease; white-space: nowrap;
         }
-        .gallery-card:hover .gallery-card-overlay {
-          opacity: 1;
-          transform: translateY(0);
-          pointer-events: auto;
+        .rs-pill:hover { background: rgba(255,85,0,0.08); border-color: rgba(255,85,0,0.2); color: var(--orange); }
+        .rs-pill.active { background: var(--orange); border-color: var(--orange); color: #ffffff; box-shadow: 0 4px 12px rgba(255,85,0,0.3); }
+        .rs-card {
+          background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;
+          transition: all 0.35s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+          position: relative; cursor: pointer; aspect-ratio: 3/4;
         }
-        .glass-badge {
-          background: rgba(255, 255, 255, 0.15);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          color: #fff;
-          font-weight: 700;
-          font-size: 0.7rem;
-          padding: 0.25rem 0.6rem;
-          border-radius: 50px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          align-self: flex-start;
-          margin-bottom: 0.75rem;
+        .rs-card:hover { transform: translateY(-6px) scale(1.01); box-shadow: 0 12px 32px rgba(255,85,0,0.1); border-color: rgba(255,85,0,0.15); }
+        .rs-card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s cubic-bezier(0.16,1,0.3,1); }
+        .rs-card:hover .rs-card-img { transform: scale(1.05); }
+        .rs-card-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0) 100%);
+          display: flex; flex-direction: column; justify-content: flex-end;
+          padding: 2.5rem 1.5rem 1.5rem; opacity: 0; transform: translateY(20px);
+          transition: all 0.4s cubic-bezier(0.16,1,0.3,1); pointer-events: none;
         }
-        .gallery-card-title {
-          font-size: 1.25rem;
-          font-weight: 800;
-          color: #fff;
-          line-height: 1.25;
-          margin-bottom: 0.4rem;
-          letter-spacing: -0.01em;
+        .rs-card:hover .rs-card-overlay { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .rs-badge {
+          display: inline-flex; align-items: center; padding: 0.25rem 0.6rem; border-radius: 50px;
+          font-size: 0.65rem; font-weight: 600;
+          background: rgba(255,85,0,0.06); border: 1px solid rgba(255,85,0,0.12); color: var(--orange);
+          align-self: flex-start; margin-bottom: 0.75rem;
         }
-        .gallery-card-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.7);
-          margin-bottom: 1.25rem;
-          font-weight: 500;
+        .rs-btn {
+          display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+          padding: 0.5rem 1.1rem; border-radius: 10px; font-size: 0.82rem; font-weight: 600;
+          transition: all 0.2s ease; cursor: pointer; text-decoration: none; border: none;
         }
-        .gallery-card-info span {
-          display: flex;
-          align-items: center;
-          gap: 0.35rem;
+        .rs-btn-primary { background: var(--orange); color: #ffffff; box-shadow: 0 4px 12px rgba(255,85,0,0.3); }
+        .rs-btn-primary:hover { background: var(--orange-dark); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,85,0,0.4); }
+        .rs-btn-outline { background: transparent; color: #0f1117; border: 1px solid #e5e7eb; }
+        .rs-btn-outline:hover { background: #f9fafb; border-color: var(--orange); color: var(--orange); }
+        .rs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 2rem; margin-top: 2.5rem; }
+        .rs-pills { display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; margin: 3rem auto 1rem; max-width: 800px; padding: 0 1rem; }
+        @media (max-width: 900px) {
+          .rs-hero-section { padding: 6rem 1.5rem 3rem 1.5rem !important; }
+          .rs-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
         }
-        .gallery-view-btn {
-          width: 100%;
-          background: var(--orange);
-          color: #fff;
-          padding: 0.65rem 1rem;
-          border-radius: var(--radius-sm);
-          font-weight: 700;
-          font-size: 0.82rem;
-          text-align: center;
-          transition: all 0.2s ease;
-          border: none;
-          box-shadow: var(--shadow-sm);
-          cursor: pointer;
-        }
-        .gallery-view-btn:hover {
-          background: var(--orange-light);
-          transform: translateY(-1px);
-        }
-        .filter-tabs {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-          margin: 3rem auto 1rem;
-          max-width: 800px;
-          padding: 0 1rem;
-        }
-        .filter-tab-pill {
-          padding: 0.5rem 1.25rem;
-          border-radius: 50px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--text-secondary);
-          border: 1px solid var(--border-light);
-          background: var(--card);
-          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-          cursor: pointer;
-        }
-        .filter-tab-pill:hover {
-          color: var(--orange);
-          border-color: var(--orange);
-          transform: translateY(-1px);
-        }
-        .filter-tab-pill.active {
-          color: #fff;
-          background: var(--orange);
-          border-color: var(--orange);
-          box-shadow: var(--shadow-brand);
+        @media (max-width: 600px) {
+          .rs-hero-section { padding: 5rem 1.2rem 2.5rem 1.2rem !important; min-height: auto !important; }
+          .shard-tl { width: 180px !important; height: 180px !important; }
+          .shard-br { width: 220px !important; height: 220px !important; }
+          .rs-grid { grid-template-columns: 1fr; }
         }
       `}</style>
+
+      <section className="rs-hero-section">
+        <div className="shard-tl" /><div className="shard-br" />
+        <div className="sphere sphere-tr" /><div className="sphere sphere-br" /><div className="sphere sphere-bl" />
+        <div ref={heroRef} style={{ maxWidth: '1000px', width: '100%', textAlign: 'center', position: 'relative', zIndex: 1, ...reveal(heroVisible) }}>
+          <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: '2.4rem', color: 'var(--orange)', margin: '0 0 0.2rem 0', lineHeight: 1.1, textShadow: '0 0 15px rgba(255,85,0,0.15)' }}>Stay Updated</p>
+          <h1 style={{ fontSize: 'clamp(2.2rem,5vw,4rem)', fontFamily: 'var(--font-display)', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.02em', margin: '0 0 0.8rem 0', lineHeight: 1.05, color: '#0f1117' }}>Events & Workshops</h1>
+          <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.8, maxWidth: '640px', margin: '0 auto 1.75rem' }}>Stay updated with our workshops, seminars, coding sprints, and challenges throughout the year.</p>
+        </div>
+      </section>
+
+      <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem 4rem', position: 'relative', zIndex: 2 }}>
+        <div className="rs-pills">
+          {CATEGORIES.map(cat => (
+            <button key={cat} className={`rs-pill ${activeCategory === cat ? 'active' : ''}`} onClick={() => setActiveCategory(cat)}>{cat}</button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><div className="loading-spinner" /></div>
+        ) : filteredEvents.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '5rem 3rem', color: '#6b7280' }}>
+            <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>📅</div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f1117', margin: '0 0 0.25rem' }}>No Events Scheduled</h3>
+            <p style={{ fontSize: '0.88rem' }}>There are currently no scheduled events in this category.</p>
+          </div>
+        ) : (
+          <motion.div className="rs-grid" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}>
+            <AnimatePresence>
+              {filteredEvents.map((evt) => {
+                const isUpcoming = evt.date >= today;
+                const isRegistered = evt.registeredUsers?.includes(user?.id);
+                return (
+                  <motion.div key={evt.id} className="rs-card"
+                    variants={{ hidden: { opacity: 0, y: 35, scale: 0.97 }, visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: [0.16,1,0.3,1] } } }}
+                    whileInView="visible" viewport={{ once: true, margin: "-40px" }}>
+                    <img src={evt.poster} alt={evt.title} className="rs-card-img" />
+                    <div className="rs-card-overlay">
+                      <span className="rs-badge">{evt.category}</span>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.25, marginBottom: '0.4rem', letterSpacing: '-0.01em' }}>{evt.title}</h3>
+                      <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.8)', marginBottom: '1rem', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{evt.description}</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginBottom: '1rem', fontWeight: 500 }}>
+                        <span>📍 {evt.venue.split('(')[0].trim()}</span>
+                        <span>🕐 {evt.date}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        {isUpcoming ? (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Starts in:</span>
+                              <EventCountdown targetStr={`${evt.date}T${evt.time || '00:00'}`} />
+                            </div>
+                            <button onClick={(e) => handleRegister(e, evt.id)} className="rs-btn rs-btn-primary" style={{ width: '100%' }}>
+                              <i className={isRegistered ? "fa-solid fa-circle-check" : "fa-solid fa-user-plus"}></i> {isRegistered ? 'Registered ✓' : 'Register Now'}
+                            </button>
+                          </>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>Past event</span>
+                            <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', padding: '0.4rem 0.8rem', borderRadius: 10 }}>Completed</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </section>
     </div>
   );
 }

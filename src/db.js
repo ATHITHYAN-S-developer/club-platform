@@ -77,13 +77,13 @@ const initialCollections = {
   ],
   Quiz: [
     { id: 'qz_1', title: 'Weekly JavaScript Quiz: Scopes & Closures', description: 'Test your understanding of lexical scoping, hoisting, closures, and the event loop.', timeLimit: 60, published: true, questions: [
-      { question: 'What will be logged: console.log(typeof NaN)?', options: ['"number"', '"nan"', '"undefined"', '"object"'], answerIndex: 0 },
-      { question: 'Which keyword creates a block-scoped variable?', options: ['var', 'let', 'function', 'define'], answerIndex: 1 },
-      { question: 'What is the output: (function(){ var a = b = 3; })(); console.log(typeof a, typeof b);?', options: ['"undefined" "number"', '"number" "undefined"', '"number" "number"', '"undefined" "undefined"'], answerIndex: 0 },
+      { question: 'What will be logged: console.log(typeof NaN)?', options: ['"number"', '"nan"', '"undefined"', '"object"'], answerIndex: 0, timeLimit: 30 },
+      { question: 'Which keyword creates a block-scoped variable?', options: ['var', 'let', 'function', 'define'], answerIndex: 1, timeLimit: 20 },
+      { question: 'What is the output: (function(){ var a = b = 3; })(); console.log(typeof a, typeof b);?', options: ['"undefined" "number"', '"number" "undefined"', '"number" "number"', '"undefined" "undefined"'], answerIndex: 0, timeLimit: 35 },
     ]},
     { id: 'qz_2', title: 'Weekly CSS Grid & Layout Masterclass', description: 'Evaluate your layout strategies, centering techniques, and grid constraints.', timeLimit: 90, published: true, questions: [
-      { question: 'Which value of justify-content aligns items with equal space around them, but half-spaces on edges?', options: ['space-between', 'space-around', 'space-evenly', 'stretch'], answerIndex: 1 },
-      { question: 'How do you define a grid column to take twice the space of another?', options: ['width: 2fr', 'grid-template-columns: 2fr 1fr', 'flex: 2', 'column-span: 2'], answerIndex: 1 },
+      { question: 'Which value of justify-content aligns items with equal space around them, but half-spaces on edges?', options: ['space-between', 'space-around', 'space-evenly', 'stretch'], answerIndex: 1, timeLimit: 25 },
+      { question: 'How do you define a grid column to take twice the space of another?', options: ['width: 2fr', 'grid-template-columns: 2fr 1fr', 'flex: 2', 'column-span: 2'], answerIndex: 1, timeLimit: 20 },
     ]},
   ],
   QuizResults: [
@@ -111,6 +111,7 @@ const initialCollections = {
     { id: 'win_1', name: 'Jane Doe', department: 'Computer Science', achievement: 'Winner of Glassmorphic Card Layout challenge (Task #1)', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', certificate: 'https://example.com/cert/glassmorphic-challenge' },
     { id: 'win_2', name: 'Alice Johnson', department: 'Computer Science', achievement: 'Fastest Deduplication Algorithm optimization (Task #2)', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', certificate: 'https://example.com/cert/deduplication-opt' },
   ],
+  ContactMessages: [],
   CoreMembers: [
     { id: 'core_1', name: 'Athi', role: 'President', department: 'Computer Science', year: '4', email: 'Athi9080@.com', github: 'https://github.com', linkedin: 'https://www.linkedin.com/company/mindcraft-ai-vcet', photo: 'https://ui-avatars.com/api/?name=Athi&background=ff5500&color=fff' },
   ],

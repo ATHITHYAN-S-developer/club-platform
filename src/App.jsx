@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import db from './db';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import Toast from './components/Toast';
 
 import Home from './pages/Home';
 import Members from './pages/Members';
-import Projects from './pages/Projects';
 import Resources from './pages/Resources';
 import Gallery from './pages/Gallery';
 import Events from './pages/Events';
@@ -75,6 +75,7 @@ export default function App() {
             </Routes>
           )}
         </div>
+        <Footer />
         <div id="toast-container" className="toast-container">
           {toasts.map((toast) => (
             <Toast key={toast.id} id={toast.id} title={toast.title} message={toast.message} type={toast.type} onClose={removeToast} />
@@ -98,7 +99,6 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/members" element={<Members />} />
-            <Route path="/projects" element={<Projects />} />
             <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/events" element={<Events user={user} />} />
@@ -114,6 +114,7 @@ export default function App() {
         )}
       </div>
 
+      <Footer />
       <div id="toast-container" className="toast-container">
         {toasts.map((toast) => (
           <Toast key={toast.id} id={toast.id} title={toast.title} message={toast.message} type={toast.type} onClose={removeToast} />

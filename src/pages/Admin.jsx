@@ -1,12 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import db, { supabaseServiceClient } from '../db';
 
-const TABS = [
-  { id: 'members',      label: 'Members',       icon: 'fa-users' },
-  { id: 'core',         label: 'Core Board',    icon: 'fa-star' },
-  { id: 'events',       label: 'Events',        icon: 'fa-calendar' },
-  { id: 'dashboard',    label: 'Dashboard',     icon: 'fa-chart-pie' },
-  { id: 'winners',      label: 'Winners',       icon: 'fa-trophy' },
+const SIDEBAR_SECTIONS = [
+  {
+    label: 'MAIN',
+    items: [
+      { id: 'dashboard',   label: 'Dashboard',     icon: 'fa-chart-pie' },
+      { id: 'winners',     label: 'Winners',       icon: 'fa-trophy' },
+      { id: 'leaderboard', label: 'Leaderboard',   icon: 'fa-ranking-star' },
+      { id: 'settings',    label: 'Settings',      icon: 'fa-gear' },
+    ]
+  },
+  {
+    label: 'MANAGEMENT',
+    items: [
+      { id: 'members',     label: 'Members',       icon: 'fa-users' },
+      { id: 'core',        label: 'Core Board',    icon: 'fa-star' },
+      { id: 'events',      label: 'Events',        icon: 'fa-calendar' },
+      { id: 'messages',    label: 'Messages',      icon: 'fa-envelope' },
+      { id: 'quizzes',     label: 'Quizzes',       icon: 'fa-question-circle' },
+    ]
+  }
 ];
 
 /* ── helpers ── */
@@ -845,6 +859,205 @@ function RequestsTab() {
   );
 }
 
+/* ═══════════════════════════════════ MESSAGES TAB ═══════════════════════════════════ */
+function MessagesTab() {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  const load = async () => {
+    try { setMessages(await db.find('ContactMessages')); }
+    catch { window.showToast('Error', 'Could not load messages.', 'error'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleMarkRead = async (id) => {
+    try {
+      await db.update('ContactMessages', id, { status: 'read' });
+      setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'read' } : m));
+    } catch (err) { window.showToast('Error', err.message, 'error'); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this message?')) return;
+    try {
+      await db.delete('ContactMessages', id);
+      setMessages(prev => prev.filter(m => m.id !== id));
+      window.showToast('Deleted', 'Message removed.', 'success');
+    } catch (err) { window.showToast('Error', err.message, 'error'); }
+  };
+
+  const filtered = messages.filter(m =>
+    (m.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (m.email || '').toLowerCase().includes(search.toLowerCase()) ||
+    (m.message || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '0.45rem 0.9rem', flex: 1, maxWidth: 320 }}>
+          <i className="fa-solid fa-magnifying-glass" style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search messages…" style={{ border: 'none', background: 'none', fontSize: '0.88rem', color: 'var(--text)', width: '100%' }} />
+        </div>
+        <Badge color="blue">{filtered.length} total</Badge>
+      </div>
+
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+        {loading ? (
+          <div className="loading-spinner" />
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th><th>Email</th><th>Message</th><th>Date</th><th>Status</th><th style={{ textAlign: 'center' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No messages found</td></tr>
+                ) : filtered.map(m => (
+                  <tr key={m.id}>
+                    <td><span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.88rem' }}>{m.name}</span></td>
+                    <td style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>{m.email}</td>
+                    <td style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.message}</td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '—'}</td>
+                    <td><Badge color={m.status === 'unread' ? 'orange' : 'green'}>{m.status || 'unread'}</Badge></td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                        {m.status === 'unread' && (
+                          <button onClick={() => handleMarkRead(m.id)} style={{ background: '#dbeafe', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#1d4ed8', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>
+                            Mark Read
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(m.id)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#dc2626', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════ LEADERBOARD TAB ═══════════════════════════════════ */
+function LeaderboardTab() {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterQuiz, setFilterQuiz] = useState('all');
+  const [sortBy, setSortBy] = useState('score'); // 'score' | 'time'
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await db.find('QuizResults');
+        setResults(data);
+      } catch { window.showToast('Error', 'Could not load leaderboard.', 'error'); }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  const quizTitles = [...new Set(results.map(r => r.quizTitle))];
+  const filtered = filterQuiz === 'all' ? results : results.filter(r => r.quizTitle === filterQuiz);
+
+  const sorted = [...filtered].sort((a, b) => {
+    const aPct = a.total > 0 ? a.score / a.total : 0;
+    const bPct = b.total > 0 ? b.score / b.total : 0;
+    return sortBy === 'score' ? bPct - aPct : (a.timeSpent || 999) - (b.timeSpent || 999);
+  });
+
+  const ranked = sorted.map((r, i) => ({ rank: i + 1, ...r }));
+
+  if (loading) return <div className="loading-spinner" />;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '0.35rem 0.75rem' }}>
+          <i className="fa-solid fa-filter" style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }} />
+          <select value={filterQuiz} onChange={e => setFilterQuiz(e.target.value)}
+            style={{ border: 'none', background: 'none', fontSize: '0.84rem', color: 'var(--text)', padding: '0.25rem 0', outline: 'none', fontWeight: 600 }}>
+            <option value="all">All Quizzes</option>
+            {quizTitles.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '0.25rem' }}>
+          <button onClick={() => setSortBy('score')}
+            style={{ padding: '0.3rem 0.7rem', borderRadius: 7, fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+              background: sortBy === 'score' ? 'var(--orange)' : 'transparent',
+              color: sortBy === 'score' ? '#fff' : 'var(--text-secondary)' }}>
+            <i className="fa-solid fa-percentage" /> Score %
+          </button>
+          <button onClick={() => setSortBy('time')}
+            style={{ padding: '0.3rem 0.7rem', borderRadius: 7, fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer',
+              background: sortBy === 'time' ? 'var(--orange)' : 'transparent',
+              color: sortBy === 'time' ? '#fff' : 'var(--text-secondary)' }}>
+            <i className="fa-solid fa-clock" /> Fastest
+          </button>
+        </div>
+        <Badge color="blue">{ranked.length} entries</Badge>
+      </div>
+
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: 50, textAlign: 'center' }}>#</th>
+                <th>Name</th>
+                <th>Quiz</th>
+                <th>Score</th>
+                <th>Time</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranked.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No results yet</td></tr>
+              ) : ranked.map(r => (
+                <tr key={r.id}>
+                  <td style={{ textAlign: 'center' }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 30, height: 30, borderRadius: '50%',
+                      background: r.rank <= 3 ? 'rgba(255,85,0,0.12)' : 'var(--surface)',
+                      color: r.rank <= 3 ? 'var(--orange)' : 'var(--text-secondary)',
+                      fontWeight: 800, fontSize: '0.82rem'
+                    }}>{r.rank}</span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text)' }}>{r.userName}</div>
+                  </td>
+                  <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{r.quizTitle}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>{r.score}/{r.total}</span>
+                      <Badge color={r.total > 0 && r.score / r.total >= 0.8 ? 'green' : r.total > 0 && r.score / r.total >= 0.5 ? 'orange' : 'grey'}>
+                        {r.total > 0 ? Math.round((r.score / r.total) * 100) : 0}%
+                      </Badge>
+                    </div>
+                  </td>
+                  <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{r.timeSpent ? `${r.timeSpent}s` : '—'}</td>
+                  <td style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{r.date ? new Date(r.date).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════ WINNERS TAB ═══════════════════════════════════ */
 function WinnersTab() {
   const [winners, setWinners] = useState([]);
@@ -852,13 +1065,12 @@ function WinnersTab() {
   const [uploading, setUploading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
-  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', department: '', achievement: '', certificate: '' });
   const fileRef = useRef();
 
   const load = async () => {
     try { setWinners(await db.find('WeeklyWinners')); }
-    catch { window.showToast('Error', 'Could not load weekly winners.', 'error'); }
+    catch { window.showToast('Error', 'Could not load winners.', 'error'); }
     finally { setLoading(false); }
   };
 
@@ -871,27 +1083,7 @@ function WinnersTab() {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  const handleStartEdit = w => {
-    setEditingId(w.id);
-    setForm({
-      name: w.name || '',
-      department: w.department || '',
-      achievement: w.achievement || '',
-      certificate: w.certificate || ''
-    });
-    setImagePreview(w.photo || '');
-    setImageFile(null);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setForm({ name: '', department: '', achievement: '', certificate: '' });
-    setImagePreview('');
-    setImageFile(null);
-    if (fileRef.current) fileRef.current.value = '';
-  };
-
-  const handleAddOrEdit = async () => {
+  const handleSubmit = async () => {
     if (!form.name || !form.achievement || !form.department) {
       window.showToast('Missing Fields', 'Name, Department and Achievement are required.', 'error');
       return;
@@ -899,63 +1091,52 @@ function WinnersTab() {
     setUploading(true);
     try {
       let photoUrl = imagePreview;
-
       if (imageFile) {
-        // Upload image to Supabase
         const ext = imageFile.name.split('.').pop();
         const path = `winners/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabaseServiceClient.storage.from('member_photos').upload(path, imageFile, { upsert: true });
         if (uploadError) throw new Error(uploadError.message);
         const { data: { publicUrl } } = supabaseServiceClient.storage.from('member_photos').getPublicUrl(path);
         photoUrl = publicUrl;
-      } else if (!photoUrl && !editingId) {
+      } else {
         photoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(form.name)}&background=ff5500&color=fff&size=150`;
       }
-
-      if (editingId) {
-        await db.update('WeeklyWinners', editingId, { ...form, photo: photoUrl });
-        window.showToast('Updated!', `${form.name} updated successfully.`, 'success');
-      } else {
-        await db.insert('WeeklyWinners', { ...form, photo: photoUrl, createdAt: new Date().toISOString() });
-        window.showToast('Added!', `${form.name} added as a Weekly Winner.`, 'success');
-      }
-      handleCancelEdit();
+      await db.insert('WeeklyWinners', { ...form, photo: photoUrl, createdAt: new Date().toISOString() });
+      window.showToast('Added!', `${form.name} added as a Winner.`, 'success');
+      setForm({ name: '', department: '', achievement: '', certificate: '' });
+      setImagePreview('');
+      setImageFile(null);
+      if (fileRef.current) fileRef.current.value = '';
       load();
-    } catch (err) {
-      window.showToast('Operation Failed', err.message, 'error');
-    } finally {
-      setUploading(false);
-    }
+    } catch (err) { window.showToast('Error', err.message, 'error'); }
+    finally { setUploading(false); }
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete ${name} from Weekly Winners?`)) return;
+    if (!window.confirm(`Delete ${name}?`)) return;
     try {
       await db.delete('WeeklyWinners', id);
-      window.showToast('Deleted', `${name} removed.`, 'success');
       setWinners(prev => prev.filter(w => w.id !== id));
-    } catch (err) {
-      window.showToast('Error', err.message, 'error');
-    }
+      window.showToast('Deleted', `${name} removed.`, 'success');
+    } catch (err) { window.showToast('Error', err.message, 'error'); }
   };
+
+  if (loading) return <div className="loading-spinner" />;
 
   return (
     <div className="admin-grid-layout">
-      {/* ADD/EDIT FORM */}
       <div>
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', color: 'var(--text)' }}>
-            <i className={editingId ? "fa-solid fa-user-pen" : "fa-solid fa-user-plus"} style={{ color: 'var(--orange)', marginRight: '0.5rem' }} />
-            {editingId ? 'Edit Winner' : 'Add Weekly Winner'}
+            <i className="fa-solid fa-user-plus" style={{ color: 'var(--orange)', marginRight: '0.5rem' }} /> Add Weekly Winner
           </h3>
 
-          {/* Photo Upload */}
           <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-            <div onClick={() => fileRef.current?.click()} style={{ width: 90, height: 90, borderRadius: '50%', margin: '0 auto 0.75rem', background: 'var(--surface)', border: `2px dashed ${imagePreview ? 'var(--orange)' : 'var(--border)'}`, overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.25s' }}>
-              {imagePreview ? <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="fa-solid fa-camera" style={{ color: 'var(--text-muted)', fontSize: '1.4rem' }} />}
+            <div onClick={() => fileRef.current?.click()} style={{ width: 90, height: 90, borderRadius: '50%', margin: '0 auto 0.75rem', background: 'var(--surface)', border: `2px dashed ${imagePreview ? 'var(--orange)' : 'var(--border)'}`, overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {imagePreview ? <img src={imagePreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="fa-solid fa-camera" style={{ color: 'var(--text-muted)', fontSize: '1.4rem' }} />}
             </div>
             <button className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()}>
-              <i className="fa-solid fa-upload" /> {imageFile ? 'Change Photo' : 'Upload Photo'}
+              <i className="fa-solid fa-upload" /> {imageFile ? 'Change' : 'Upload Photo'}
             </button>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
           </div>
@@ -965,52 +1146,37 @@ function WinnersTab() {
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Winner Name</label>
               <input className="form-input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. John Doe" style={{ width: '100%' }} />
             </div>
-
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Department</label>
               <input className="form-input" value={form.department} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="e.g. Computer Science" style={{ width: '100%' }} />
             </div>
-
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Achievement Details</label>
-              <textarea className="form-input" value={form.achievement} onChange={e => setForm(p => ({ ...p, achievement: e.target.value }))} placeholder="e.g. Winner of Weekly JS Quiz (Task #1)" style={{ width: '100%', minHeight: 60, fontFamily: 'inherit' }} />
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Achievement</label>
+              <textarea className="form-input" value={form.achievement} onChange={e => setForm(p => ({ ...p, achievement: e.target.value }))} placeholder="e.g. Winner of Weekly JS Quiz" style={{ width: '100%', minHeight: 60, fontFamily: 'inherit' }} />
             </div>
-
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Certificate Link (Optional)</label>
-              <input className="form-input" value={form.certificate} onChange={e => setForm(p => ({ ...p, certificate: e.target.value }))} placeholder="e.g. https://example.com/cert" style={{ width: '100%' }} />
+              <input className="form-input" value={form.certificate} onChange={e => setForm(p => ({ ...p, certificate: e.target.value }))} placeholder="https://example.com/cert" style={{ width: '100%' }} />
             </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <button className="btn btn-primary" onClick={handleAddOrEdit} disabled={uploading} style={{ flex: 1 }}>
-                {uploading ? 'Processing...' : editingId ? 'Save Changes' : 'Add Winner'}
-              </button>
-              {editingId && (
-                <button className="btn btn-outline" onClick={handleCancelEdit} style={{ flex: 0.5 }}>
-                  Cancel
-                </button>
-              )}
-            </div>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={uploading} style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
+              {uploading ? 'Adding...' : <><i className="fa-solid fa-plus" /> Add Winner</>}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* LIST OF WINNERS */}
       <div>
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
           <div style={{ padding: '0.9rem 1.2rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)' }}>Quiz & Challenge Winners</span>
-            <Badge color="green">{winners.length} winners</Badge>
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)' }}>All Winners</span>
+            <Badge color="green">{winners.length} total</Badge>
           </div>
-          
-          {loading ? (
-            <div className="loading-spinner" />
+          {winners.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No winners added yet.</div>
           ) : (
             <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: 600, overflowY: 'auto' }}>
-              {winners.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No winners added yet.</div>
-              ) : winners.map(w => (
-                <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', border: '1px solid var(--border-light)', borderRadius: 10, gap: '1rem' }}>
+              {winners.map(w => (
+                <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', border: '1px solid var(--border-light)', borderRadius: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <img src={w.photo} alt={w.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)' }} />
                     <div>
@@ -1019,12 +1185,380 @@ function WinnersTab() {
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>{w.achievement}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                    <button onClick={() => handleStartEdit(w)} style={{ background: 'var(--surface)', border: 'none', borderRadius: 6, padding: '4px 8px', color: 'var(--text-secondary)', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>
-                      Edit
+                  <button onClick={() => handleDelete(w.id, w.name)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#dc2626', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════ SETTINGS TAB ═══════════════════════════════════ */
+function SettingsTab() {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await db.getSettings();
+        setSettings(data);
+      } catch { window.showToast('Error', 'Could not load settings.', 'error'); }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  const handleChange = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await db.updateSettings(settings);
+      window.showToast('Saved', 'Settings updated successfully.', 'success');
+    } catch (err) {
+      window.showToast('Error', err.message || 'Failed to save settings.', 'error');
+    } finally { setSaving(false); }
+  };
+
+  if (loading) return <div className="loading-spinner" />;
+  if (!settings) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No settings available.</div>;
+
+  const fields = [
+    { key: 'siteName', label: 'Site Name', type: 'text' },
+    { key: 'academicYear', label: 'Academic Year', type: 'text' },
+    { key: 'registrationStatus', label: 'Registration Status', type: 'select', options: ['Open', 'Closed'] },
+    { key: 'adminEmail', label: 'Admin Email', type: 'email' },
+    { key: 'announcementBanner', label: 'Announcement Banner', type: 'textarea' },
+    { key: 'projectsCount', label: 'Projects Count', type: 'number' },
+    { key: 'eventsCount', label: 'Events Count', type: 'number' },
+    { key: 'awardsCount', label: 'Awards Count', type: 'number' },
+  ];
+
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.75rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <i className="fa-solid fa-sliders" style={{ color: 'var(--orange)' }} /> Site Settings
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {fields.map(f => (
+            <div key={f.key}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>{f.label}</label>
+              {f.type === 'select' ? (
+                <select className="form-input" value={settings[f.key] || ''} onChange={e => handleChange(f.key, e.target.value)} style={{ width: '100%' }}>
+                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : f.type === 'textarea' ? (
+                <textarea className="form-input" value={settings[f.key] || ''} onChange={e => handleChange(f.key, e.target.value)} style={{ width: '100%', minHeight: 80, fontFamily: 'inherit' }} />
+              ) : (
+                <input className="form-input" type={f.type || 'text'} value={settings[f.key] || ''} onChange={e => handleChange(f.key, e.target.value)} style={{ width: '100%' }} />
+              )}
+            </div>
+          ))}
+        </div>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ marginTop: '1.5rem', width: '100%', justifyContent: 'center' }}>
+          {saving ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Settings</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════ QUIZZES TAB ═══════════════════════════════════ */
+function QuizzesTab() {
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ title: '', description: '', timeLimit: 10, published: false, questions: [] });
+
+  const load = async () => {
+    try { setQuizzes(await db.find('Quiz')); }
+    catch { window.showToast('Error', 'Could not load quizzes.', 'error'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm({ title: '', description: '', timeLimit: 10, published: false, questions: [] });
+  };
+
+  const handleStartEdit = (q) => {
+    setEditingId(q.id);
+    setForm({
+      title: q.title || '',
+      description: q.description || '',
+      timeLimit: q.timeLimit || 10,
+      published: q.published || false,
+      questions: (q.questions || []).map(qu => ({ ...qu }))
+    });
+  };
+
+  const handleCancelEdit = () => resetForm();
+
+  const addQuestion = () => {
+    const idx = form.questions.length;
+    setForm(p => ({
+      ...p,
+      questions: [...p.questions, { question: '', options: ['', '', '', ''], answerIndex: 0, timeLimit: 30 }]
+    }));
+    setTimeout(() => {
+      const el = document.getElementById(`q-text-${idx}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  };
+
+  const removeQuestion = (idx) => {
+    if (form.questions.length <= 1) {
+      window.showToast('Minimum', 'A quiz must have at least one question.', 'error');
+      return;
+    }
+    setForm(p => ({ ...p, questions: p.questions.filter((_, i) => i !== idx) }));
+  };
+
+  const updateQuestion = (idx, field, value) => {
+    setForm(p => {
+      const qs = [...p.questions];
+      qs[idx] = { ...qs[idx], [field]: value };
+      return { ...p, questions: qs };
+    });
+  };
+
+  const updateOption = (qIdx, oIdx, value) => {
+    setForm(p => {
+      const qs = [...p.questions];
+      const opts = [...qs[qIdx].options];
+      opts[oIdx] = value;
+      qs[qIdx] = { ...qs[qIdx], options: opts };
+      return { ...p, questions: qs };
+    });
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim()) {
+      window.showToast('Missing Field', 'Quiz title is required.', 'error');
+      return;
+    }
+    for (let i = 0; i < form.questions.length; i++) {
+      const q = form.questions[i];
+      if (!q.question.trim()) {
+        window.showToast('Missing Question', `Question ${i + 1} text is empty.`, 'error');
+        return;
+      }
+      const filled = q.options.filter(o => o.trim()).length;
+      if (filled < 2) {
+        window.showToast('Missing Options', `Question ${i + 1} needs at least 2 options.`, 'error');
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        timeLimit: Number(form.timeLimit) || 10,
+        published: form.published,
+        questions: form.questions.map(q => ({
+          question: q.question.trim(),
+          options: q.options.map(o => o.trim()),
+          answerIndex: q.answerIndex,
+          timeLimit: Math.max(5, Number(q.timeLimit) || 30)
+        })),
+        updatedAt: new Date().toISOString()
+      };
+
+      if (editingId) {
+        await db.update('Quiz', editingId, payload);
+        window.showToast('Updated!', `"${payload.title}" updated.`, 'success');
+      } else {
+        await db.insert('Quiz', payload);
+        window.showToast('Created!', `"${payload.title}" created.`, 'success');
+      }
+      resetForm();
+      load();
+    } catch (err) {
+      window.showToast('Error', err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id, title) => {
+    if (!window.confirm(`Delete quiz "${title}"? This action cannot be undone.`)) return;
+    try {
+      await db.delete('Quiz', id);
+      setQuizzes(prev => prev.filter(q => q.id !== id));
+      if (editingId === id) resetForm();
+      window.showToast('Deleted', `"${title}" removed.`, 'success');
+    } catch (err) {
+      window.showToast('Error', err.message, 'error');
+    }
+  };
+
+  const togglePublish = async (q) => {
+    try {
+      await db.update('Quiz', q.id, { published: !q.published });
+      setQuizzes(prev => prev.map(x => x.id === q.id ? { ...x, published: !q.published } : x));
+      window.showToast(q.published ? 'Unpublished' : 'Published', `"${q.title}" is now ${q.published ? 'hidden' : 'live'}.`, 'success');
+    } catch (err) {
+      window.showToast('Error', err.message, 'error');
+    }
+  };
+
+  if (loading) return <div className="loading-spinner" />;
+
+  return (
+    <div className="admin-grid-layout">
+      {/* FORM PANEL */}
+      <div>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', color: 'var(--text)' }}>
+            <i className={`fa-solid ${editingId ? 'fa-pen-to-square' : 'fa-circle-plus'}`} style={{ color: 'var(--orange)', marginRight: '0.5rem' }} />
+            {editingId ? 'Edit Quiz' : 'Create Quiz'}
+          </h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Title *</label>
+              <input className="form-input" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="e.g. Weekly JS Quiz" style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Description</label>
+              <textarea className="form-input" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe the quiz…" rows={2} style={{ width: '100%', fontFamily: 'inherit', resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Time Limit (minutes)</label>
+                <input className="form-input" type="number" min={1} value={form.timeLimit} onChange={e => setForm(p => ({ ...p, timeLimit: e.target.value }))} style={{ width: '100%' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Published</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.35rem 0', userSelect: 'none' }}>
+                  <input type="checkbox" checked={form.published} onChange={e => setForm(p => ({ ...p, published: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--orange)', cursor: 'pointer' }} />
+                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: form.published ? 'var(--orange)' : 'var(--text-muted)' }}>{form.published ? 'Live' : 'Draft'}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Questions */}
+          <div style={{ marginTop: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)' }}>Questions ({form.questions.length})</span>
+              <button className="btn btn-outline btn-sm" onClick={addQuestion}>
+                <i className="fa-solid fa-plus" /> Add
+              </button>
+            </div>
+
+            {form.questions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.84rem', border: '1px dashed var(--border)', borderRadius: 10 }}>
+                No questions yet. Click "Add" to create one.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: 420, overflowY: 'auto', paddingRight: '4px' }}>
+                {form.questions.map((q, qi) => (
+                  <div key={qi} id={`q-text-${qi}`} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '0.85rem', background: 'var(--surface)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--orange)' }}>Q{qi + 1}</span>
+                      <button onClick={() => removeQuestion(qi)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.78rem', padding: '2px 6px', borderRadius: 4 }} title="Remove question">
+                        <i className="fa-solid fa-xmark" />
+                      </button>
+                    </div>
+                    <input className="form-input" value={q.question} onChange={e => updateQuestion(qi, 'question', e.target.value)} placeholder="Enter question…" style={{ width: '100%', marginBottom: '0.4rem' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                      <i className="fa-solid fa-hourglass-half" style={{ color: 'var(--text-muted)', fontSize: '0.72rem', width: 14 }} />
+                      <input className="form-input" type="number" min={5} value={q.timeLimit ?? 30} onChange={e => updateQuestion(qi, 'timeLimit', e.target.value)} placeholder="Time (s)" style={{ width: 80, fontSize: '0.82rem' }} />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>seconds per question</span>
+                    </div>
+                    {q.options.map((opt, oi) => (
+                      <div key={oi} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}>
+                        <input type="radio" name={`correct-${qi}`} checked={q.answerIndex === oi} onChange={() => updateQuestion(qi, 'answerIndex', oi)} style={{ accentColor: 'var(--orange)', cursor: 'pointer', flexShrink: 0 }} title="Mark as correct answer" />
+                        <input className="form-input" value={opt} onChange={e => updateOption(qi, oi, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + oi)}`} style={{ width: '100%', fontSize: '0.82rem' }} />
+                        {q.answerIndex === oi && <i className="fa-solid fa-check-circle" style={{ color: '#15803d', fontSize: '0.82rem', flexShrink: 0 }} title="Correct answer" />}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleSave} disabled={saving}>
+              {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Saving…</> : <><i className="fa-solid fa-check" /> {editingId ? 'Save Changes' : 'Create Quiz'}</>}
+            </button>
+            {editingId && (
+              <button className="btn btn-secondary" onClick={handleCancelEdit}>
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* LIST PANEL */}
+      <div>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ padding: '0.9rem 1.2rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)' }}>All Quizzes</span>
+            <Badge color="blue">{quizzes.length} total</Badge>
+          </div>
+          {quizzes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+              <i className="fa-solid fa-question" style={{ fontSize: '2rem', marginBottom: '0.75rem', opacity: 0.3 }} />
+              <p style={{ fontSize: '0.88rem' }}>No quizzes created yet.</p>
+            </div>
+          ) : (
+            <div style={{ padding: '0.75rem', maxHeight: 600, overflowY: 'auto' }}>
+              {quizzes.map(q => (
+                <div key={q.id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem', borderRadius: 10, borderBottom: '1px solid var(--border-light)', transition: 'background 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: q.published ? 'rgba(22,163,74,0.1)' : 'rgba(156,163,175,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <i className="fa-solid fa-question" style={{ color: q.published ? '#16a34a' : '#9ca3af', fontSize: '0.9rem' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>{q.title}</span>
+                      <Badge color={q.published ? 'green' : 'grey'}>{q.published ? 'Published' : 'Draft'}</Badge>
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      {(q.questions || []).length} questions · {(q.questions || [])[0]?.timeLimit || 30}s each
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                    <button onClick={() => togglePublish(q)} style={{ background: 'var(--surface)', border: 'none', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: q.published ? '#16a34a' : '#9ca3af', fontSize: '0.78rem', transition: 'all 0.2s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; }}
+                      title={q.published ? 'Unpublish' : 'Publish'}
+                    >
+                      <i className={`fa-solid ${q.published ? 'fa-eye' : 'fa-eye-slash'}`} />
                     </button>
-                    <button onClick={() => handleDelete(w.id, w.name)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#dc2626', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>
-                      Delete
+                    <button onClick={() => handleStartEdit(q)} style={{ background: 'var(--surface)', border: 'none', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.78rem', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+                      title="Edit"
+                    >
+                      <i className="fa-solid fa-pen" />
+                    </button>
+                    <button onClick={() => handleDelete(q.id, q.title)} style={{ background: '#fee2e2', border: 'none', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#dc2626', fontSize: '0.78rem', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#fecaca'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fee2e2'}
+                      title="Delete"
+                    >
+                      <i className="fa-solid fa-trash" />
                     </button>
                   </div>
                 </div>
@@ -1039,9 +1573,10 @@ function WinnersTab() {
 
 /* ═══════════════════════════════════ MAIN ADMIN PAGE ═══════════════════════════════════ */
 export default function Admin({ user }) {
-  const [tab, setTab] = useState('members');
+  const [tab, setTab] = useState('dashboard');
   const [members, setMembers] = useState([]);
   const [stats, setStats] = useState({ members: 0, core: 0, events: 0 });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -1061,6 +1596,8 @@ export default function Admin({ user }) {
     { label: 'Events',        value: stats.events,  icon: 'fa-calendar',   color: '#10b981' },
   ];
 
+  const sidebarWidth = sidebarCollapsed ? 60 : 220;
+
   return (
     <div>
       <style>{`
@@ -1074,9 +1611,31 @@ export default function Admin({ user }) {
             grid-template-columns: 1fr !important;
           }
         }
+        .admin-sidebar { width: ${sidebarWidth}px; min-width: ${sidebarWidth}px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0.75rem 0; display: flex; flex-direction: column; transition: width 0.3s ease, min-width 0.3s ease; overflow: hidden; height: fit-content; position: sticky; top: 1.5rem; }
+        .admin-sidebar-btn { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.6rem 1rem; border: none; background: none; cursor: pointer; font-size: 0.84rem; font-weight: 600; color: var(--text-secondary); transition: all 0.18s ease; text-align: left; white-space: nowrap; }
+        .admin-sidebar-btn:hover { background: rgba(255,85,0,0.06); color: var(--text); }
+        .admin-sidebar-btn.active { background: var(--orange); color: #fff; box-shadow: 0 2px 8px rgba(255,85,0,0.25); }
+        .admin-sidebar-btn i { width: 20px; text-align: center; font-size: 0.9rem; flex-shrink: 0; }
+        .admin-sidebar-section { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.08em; padding: 0.75rem 1rem 0.35rem; text-transform: uppercase; white-space: nowrap; }
+        .admin-sidebar-divider { height: 1px; background: var(--border); margin: 0.35rem 1rem; }
+        .admin-sidebar-user { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); margin-top: auto; white-space: nowrap; }
+        .admin-sidebar-user img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .admin-sidebar-user-info { flex: 1; min-width: 0; }
+        .admin-sidebar-user-name { font-size: 0.8rem; font-weight: 700; color: var(--text); display: block; }
+        .admin-sidebar-user-role { font-size: 0.68rem; color: var(--text-muted); text-transform: capitalize; }
+        .admin-sidebar-user-logout { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 6px; flex-shrink: 0; }
+        .admin-sidebar-user-logout:hover { color: #dc2626; background: rgba(220,38,38,0.08); }
+        .admin-sidebar-toggle { display: flex; align-items: center; justify-content: center; padding: 0.5rem; border: none; background: none; cursor: pointer; color: var(--text-muted); width: 100%; }
+        .admin-sidebar-toggle:hover { color: var(--orange); }
+        @media (max-width: 900px) {
+          .admin-page-row { flex-direction: column !important; }
+          .admin-sidebar { width: 100% !important; min-width: unset !important; flex-direction: row !important; flex-wrap: wrap !important; padding: 0.4rem 0.5rem !important; position: static !important; height: auto !important; }
+          .admin-sidebar-section, .admin-sidebar-divider, .admin-sidebar-user, .admin-sidebar-toggle { display: none !important; }
+          .admin-sidebar-btn { padding: 0.4rem 0.6rem !important; font-size: 0.75rem !important; width: auto !important; border-radius: 8px !important; }
+        }
       `}</style>
       {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
           <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(255,85,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <i className="fa-solid fa-crown" style={{ color: 'var(--orange)', fontSize: '1rem' }} />
@@ -1089,7 +1648,7 @@ export default function Admin({ user }) {
       </div>
 
       {/* Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {statCards.map(s => (
           <div key={s.label} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.25rem', transition: 'transform 0.2s, box-shadow 0.2s' }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
@@ -1106,28 +1665,57 @@ export default function Admin({ user }) {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.5rem', background: 'var(--surface)', padding: '0.3rem', borderRadius: 12, border: '1px solid var(--border)', width: 'fit-content', flexWrap: 'wrap' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ padding: '0.5rem 1.1rem', borderRadius: 9, fontSize: '0.84rem', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.22s', display: 'flex', alignItems: 'center', gap: '0.4rem',
-              background: tab === t.id ? 'var(--orange)' : 'transparent',
-              color: tab === t.id ? '#fff' : 'var(--text-secondary)',
-              boxShadow: tab === t.id ? '0 2px 8px rgba(255,85,0,0.25)' : 'none',
-            }}
-          >
-            <i className={`fa-solid ${t.icon}`} style={{ fontSize: '0.82rem' }} />
-            {t.label}
+      {/* Sidebar + Content Row */}
+      <div className="admin-page-row" style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+        {/* Sidebar */}
+        <div className="admin-sidebar">
+          <button className="admin-sidebar-toggle" onClick={() => setSidebarCollapsed(p => !p)} title={sidebarCollapsed ? 'Expand' : 'Collapse'}>
+            <i className={`fa-solid ${sidebarCollapsed ? 'fa-angles-right' : 'fa-angles-left'}`} />
           </button>
-        ))}
-      </div>
 
-      {/* Tab Content */}
-      {tab === 'members'       && <MembersTab />}
-      {tab === 'core'          && <CoreBoardTab allMembers={members} />}
-      {tab === 'events'        && <EventsTab />}
-      {tab === 'dashboard'     && <DashboardTab />}
-      {tab === 'winners'       && <WinnersTab />}
+          {SIDEBAR_SECTIONS.map((section, si) => (
+            <div key={si} style={{ width: '100%' }}>
+              {!sidebarCollapsed && <div className="admin-sidebar-section">{section.label}</div>}
+              {section.items.map(item => (
+                <button key={item.id} className={`admin-sidebar-btn ${tab === item.id ? 'active' : ''}`} onClick={() => setTab(item.id)}>
+                  <i className={`fa-solid ${item.icon}`} />
+                  {!sidebarCollapsed && <span>{item.label}</span>}
+                </button>
+              ))}
+              {si < SIDEBAR_SECTIONS.length - 1 && !sidebarCollapsed && <div className="admin-sidebar-divider" />}
+            </div>
+          ))}
+
+          {!sidebarCollapsed && <div className="admin-sidebar-divider" />}
+          <div className="admin-sidebar-user">
+            <img src={user?.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=ff5500&color=fff`} alt="" />
+            {!sidebarCollapsed && (
+              <>
+                <div className="admin-sidebar-user-info">
+                  <span className="admin-sidebar-user-name">{user?.name || 'User'}</span>
+                  <span className="admin-sidebar-user-role">{user?.role || 'member'}</span>
+                </div>
+                <button className="admin-sidebar-user-logout" onClick={async () => { try { await db.logout(); window.showToast('Logged Out', 'See you soon!', 'info'); } catch {} }} title="Logout">
+                  <i className="fa-solid fa-right-from-bracket" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {tab === 'dashboard'    && <DashboardTab />}
+          {tab === 'winners'      && <WinnersTab />}
+          {tab === 'leaderboard'  && <LeaderboardTab />}
+          {tab === 'settings'     && <SettingsTab />}
+          {tab === 'members'      && <MembersTab />}
+          {tab === 'core'         && <CoreBoardTab allMembers={members} />}
+          {tab === 'events'       && <EventsTab />}
+          {tab === 'messages'     && <MessagesTab />}
+          {tab === 'quizzes'      && <QuizzesTab />}
+        </div>
+      </div>
     </div>
   );
 }

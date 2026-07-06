@@ -23,7 +23,7 @@ export default function RobotCompanion() {
     if (path === '/') message = 'Explore our creative engineering hub!';
     else if (path === '/auth') message = 'Entering secure portal...';
     else if (path.startsWith('/admin')) message = 'Core systems operational, admin!';
-    else if (path === '/projects') message = 'Behold our algorithmic crafts!';
+    else if (path === '/resources') message = 'Behold our algorithmic crafts!';
     else if (path === '/quiz') message = 'Unleash your computational brain!';
     else if (path === '/join') message = 'Join the core team list!';
     else if (path === '/events') message = 'Syncing upcoming challenges...';

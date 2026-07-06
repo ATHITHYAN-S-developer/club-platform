@@ -37,9 +37,9 @@ export default function TopBar({ theme, toggleTheme }) {
     if (e.key === 'Enter') {
       const query = searchValue.trim();
       if (query) {
-        navigate(`/projects?search=${encodeURIComponent(query)}`);
+        navigate(`/resources?search=${encodeURIComponent(query)}`);
       } else {
-        navigate('/projects');
+        navigate('/resources');
       }
     }
   };
