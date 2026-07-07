@@ -274,15 +274,40 @@ export default function AnnouncementDetails({ user }) {
 
   return (
     <div className="main-content">
+      <style>{`
+        .details-grid-layout {
+          display: grid;
+          grid-template-columns: 1fr 340px;
+          gap: 2rem;
+        }
+        @media (max-width: 900px) {
+          .details-grid-layout {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+          }
+        }
+      `}</style>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         
-        {/* Back Link */}
-        <Link to="/announcements" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', fontSize: '0.82rem', textDecoration: 'none', marginBottom: '1.25rem' }} className="hover-orange">
-          <i className="fas fa-arrow-left" /> Back to Announcements
-        </Link>
+        {/* Back & Share actions */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <Link to="/announcements" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', fontSize: '0.82rem', textDecoration: 'none' }} className="hover-orange">
+            <i className="fas fa-arrow-left" /> Back to Announcements
+          </Link>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              window.showToast('Copied', 'Event link copied to clipboard!', 'success');
+            }}
+            className="btn btn-outline btn-sm"
+            style={{ borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.85rem' }}
+          >
+            <i className="fa-solid fa-share-nodes" style={{ color: 'var(--orange)' }} /> Share Event
+          </button>
+        </div>
 
         {/* Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
+        <div className="details-grid-layout">
           
           {/* Details Column */}
           <div>

@@ -147,34 +147,62 @@ export default function Announcements({ user }) {
       <style>{`
         .announcements-grid-layout {
           display: grid;
-          grid-template-columns: 1fr 300px;
-          gap: 2rem;
+          grid-template-columns: 1fr 320px;
+          gap: 2.5rem;
         }
         .announcement-card-item {
-          background: var(--card);
-          border: 1px solid var(--border);
-          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.65);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          border-radius: 20px;
           overflow: hidden;
-          box-shadow: var(--shadow-sm);
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
           display: flex;
           flex-direction: column;
           position: relative;
-          transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .announcement-card-item:hover {
-          transform: translateY(-2px);
-          box-shadow: var(--shadow-md);
-          border-color: var(--orange);
+          transform: translateY(-5px);
+          box-shadow: 0 20px 40px rgba(255, 85, 0, 0.08);
+          border-color: rgba(255, 85, 0, 0.3);
+          background: rgba(255, 255, 255, 0.85);
+        }
+        .announcement-card-item::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 20px;
+          padding: 1px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 85, 0, 0));
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+        }
+        .announcement-card-item:hover::after {
+          background: linear-gradient(135deg, var(--orange), rgba(255, 85, 0, 0.2));
         }
         .announcement-filter-grid {
           display: grid;
           grid-template-columns: 1fr auto auto auto;
           gap: 0.75rem;
-          margin-bottom: 2rem;
-          background: var(--card);
-          border: 1px solid var(--border);
-          border-radius: 16px;
+          margin-bottom: 2.5rem;
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          border-radius: 18px;
           padding: 1rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        }
+        .search-container-input {
+          position: relative;
+          transition: all 0.2s ease;
+        }
+        .search-container-input:focus-within {
+          transform: scale(1.01);
         }
         @media (max-width: 900px) {
           .announcements-grid-layout {
@@ -198,7 +226,7 @@ export default function Announcements({ user }) {
 
         {/* Filter Bar */}
         <div className="announcement-filter-grid">
-          <div style={{ position: 'relative' }}>
+          <div className="search-container-input">
             <i className="fas fa-search" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               className="form-input"
