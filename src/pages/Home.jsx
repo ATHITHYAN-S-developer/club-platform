@@ -539,7 +539,7 @@ export default function Home() {
             {/* Left Column: Spotlight and Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               {/* Featured Spotlight Card */}
-              {announcements.filter(a => a.pinned && a.status === 'published').slice(0, 1).map(fa => {
+              {announcements.filter(a => a.pinned && a.status !== 'draft' && a.eventStatus !== 'Draft').slice(0, 1).map(fa => {
                 const count = registrations.filter(r => r.announcementId === fa.id && r.status !== 'Cancelled').length;
                 const limit = fa.seatsLimit || 100;
                 const remaining = Math.max(0, limit - count);
@@ -584,7 +584,7 @@ export default function Home() {
                   📢 Latest Notices
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem' }}>
-                  {announcements.filter(a => a.status === 'published' && !a.pinned).slice(0, 3).map(a => {
+                  {announcements.filter(a => a.status !== 'draft' && a.eventStatus !== 'Draft' && !a.pinned).slice(0, 3).map(a => {
                     const count = registrations.filter(r => r.announcementId === a.id && r.status !== 'Cancelled').length;
                     const limit = a.seatsLimit || 100;
                     const remaining = Math.max(0, limit - count);
@@ -668,12 +668,12 @@ export default function Home() {
                   <i className="fa-regular fa-calendar-days" style={{ color: 'var(--orange)' }} /> Upcoming Calendar
                 </h4>
 
-                {announcements.filter(a => a.date && new Date(a.date) > new Date() && a.status === 'published').length === 0 ? (
+                {announcements.filter(a => a.date && new Date(a.date) > new Date() && a.status !== 'draft' && a.eventStatus !== 'Draft').length === 0 ? (
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No upcoming events scheduled.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                     {announcements
-                      .filter(a => a.date && new Date(a.date) > new Date() && a.status === 'published')
+                      .filter(a => a.date && new Date(a.date) > new Date() && a.status !== 'draft' && a.eventStatus !== 'Draft')
                       .slice(0, 3)
                       .map(a => (
                         <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>

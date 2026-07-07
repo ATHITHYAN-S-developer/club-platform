@@ -55,7 +55,8 @@ export default function Announcements({ user }) {
   const filtered = useMemo(() => {
     return announcements.filter(a => {
       // Hide drafts for non-admins
-      if (a.status === 'draft' && user?.role !== 'admin') return false;
+      const isDraft = a.status === 'draft' || a.eventStatus === 'Draft';
+      if (isDraft && user?.role !== 'admin') return false;
 
       const matchesSearch = (a.title || '').toLowerCase().includes(search.toLowerCase()) ||
                             (a.organizer || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -74,13 +75,13 @@ export default function Announcements({ user }) {
     });
   }, [announcements, search, categoryFilter, priorityFilter, statusFilter, user]);
 
-  const pinned = useMemo(() => filtered.filter(a => a.pinned && a.status !== 'draft'), [filtered]);
-  const unpinned = useMemo(() => filtered.filter(a => !a.pinned || a.status === 'draft'), [filtered]);
+  const pinned = useMemo(() => filtered.filter(a => a.pinned && a.status !== 'draft' && a.eventStatus !== 'Draft'), [filtered]);
+  const unpinned = useMemo(() => filtered.filter(a => !a.pinned), [filtered]);
 
   const upcomingEvents = useMemo(() => {
     const now = new Date();
     return announcements
-      .filter(a => a.date && new Date(`${a.date}T${a.eventTime || '00:00:00'}`) > now && a.status === 'published')
+      .filter(a => a.date && new Date(`${a.date}T${a.eventTime || '00:00:00'}`) > now && a.status !== 'draft' && a.eventStatus !== 'Draft')
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(0, 3);
   }, [announcements]);

@@ -85,32 +85,38 @@ export default function AnnouncementAdmin() {
     if (!form.title) return;
 
     try {
+      const isDraft = form.eventStatus === 'Draft';
+      const updatedStatus = isDraft ? 'draft' : 'published';
+      const payload = {
+        ...form,
+        status: updatedStatus,
+        faqs: JSON.stringify(form.faqs) // stringify to prevent complex object issues in simple dbs
+      };
+
       if (editingId) {
         // Update
-        await db.update('Announcements', editingId, {
-          ...form,
-          faqs: JSON.stringify(form.faqs) // stringify to prevent complex object issues in simple dbs
-        });
+        await db.update('Announcements', editingId, payload);
         window.showToast('Updated', 'Announcement updated successfully.', 'success');
       } else {
         // Insert
         const newId = 'ann_' + Date.now();
         await db.insert('Announcements', {
-          ...form,
+          ...payload,
           id: newId,
           createdAt: new Date().toISOString(),
-          faqs: JSON.stringify(form.faqs)
         });
 
-        // Notify all users about new announcement
-        await db.insert('Notifications', {
-          id: 'nt_' + Date.now(),
-          userId: 'all', // Broadcast to everyone
-          title: `New announcement: ${form.title}`,
-          message: form.shortDescription,
-          read: false,
-          createdAt: new Date().toISOString()
-        });
+        // Notify all users about new announcement only if not draft
+        if (!isDraft) {
+          await db.insert('Notifications', {
+            id: 'nt_' + Date.now(),
+            userId: 'all', // Broadcast to everyone
+            title: `New announcement: ${form.title}`,
+            message: form.shortDescription,
+            read: false,
+            createdAt: new Date().toISOString()
+          });
+        }
 
         window.showToast('Created', 'New announcement published.', 'success');
       }
