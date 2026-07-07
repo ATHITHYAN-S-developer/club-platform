@@ -80,6 +80,15 @@ export default function useSecurity({ onViolation } = {}) {
     e.returnValue = '';
   }, [trigger]);
 
+  const handleResize = useCallback(() => {
+    const threshold = 160;
+    const widthDev = window.outerWidth - window.innerWidth > threshold;
+    const heightDev = window.outerHeight - window.innerHeight > threshold;
+    if (widthDev || heightDev) {
+      trigger('devtools');
+    }
+  }, [trigger]);
+
   const start = useCallback(() => {
     wasFullscreenRef.current = !!document.fullscreenElement;
     violationsRef.current = 0;
@@ -95,7 +104,8 @@ export default function useSecurity({ onViolation } = {}) {
     document.addEventListener('cut', handleCut, true);
     document.addEventListener('selectstart', handleSelectStart, true);
     window.addEventListener('beforeunload', handleBeforeUnload);
-  }, [handleVisibility, handleFullscreenChange, handleKeyDown, handleContextMenu, handleCopy, handlePaste, handleCut, handleSelectStart, handleBeforeUnload]);
+    window.addEventListener('resize', handleResize);
+  }, [handleVisibility, handleFullscreenChange, handleKeyDown, handleContextMenu, handleCopy, handlePaste, handleCut, handleSelectStart, handleBeforeUnload, handleResize]);
 
   const stop = useCallback(() => {
     document.removeEventListener('visibilitychange', handleVisibility);
@@ -108,8 +118,9 @@ export default function useSecurity({ onViolation } = {}) {
     document.removeEventListener('cut', handleCut, true);
     document.removeEventListener('selectstart', handleSelectStart, true);
     window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.removeEventListener('resize', handleResize);
     wasFullscreenRef.current = false;
-  }, [handleVisibility, handleFullscreenChange, handleKeyDown, handleContextMenu, handleCopy, handlePaste, handleCut, handleSelectStart, handleBeforeUnload]);
+  }, [handleVisibility, handleFullscreenChange, handleKeyDown, handleContextMenu, handleCopy, handlePaste, handleCut, handleSelectStart, handleBeforeUnload, handleResize]);
 
   const requestFullscreen = useCallback(async () => {
     try {

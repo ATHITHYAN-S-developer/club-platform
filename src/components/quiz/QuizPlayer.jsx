@@ -16,6 +16,7 @@ import QuestionPalette from './QuestionPalette';
 import ProgressHeader from './ProgressHeader';
 import ResultView from './ResultView';
 import ConfirmationDialog from './ConfirmationDialog';
+import ViolationDialog from './ViolationDialog';
 
 export default function QuizPlayer({ quiz, user, onFinish, badgeRules: propBadgeRules }) {
   const ctx = useQuiz();
@@ -28,6 +29,8 @@ export default function QuizPlayer({ quiz, user, onFinish, badgeRules: propBadge
   const [showConfirm, setShowConfirm] = useState(false);
   const [badgeRules, setBadgeRules] = useState(propBadgeRules || []);
   const [savedSession, setSavedSession] = useState(null);
+  const [violationCount, setViolationCount] = useState(0);
+  const [activeViolation, setActiveViolation] = useState(null);
   const submitTriggeredRef = useRef(false);
   const lastAnswerRef = useRef({});
 
@@ -114,12 +117,34 @@ export default function QuizPlayer({ quiz, user, onFinish, badgeRules: propBadge
   }, [phase]);
 
   // ─── Security ───
+  const violationLimit = quiz?.security?.violationLimit || 3;
+
   const handleViolation = useCallback((reason) => {
     if (submitTriggeredRef.current) return;
-    handleAutoSubmit(reason);
-  }, []);
+
+    setViolationCount((prev) => {
+      const nextCount = prev + 1;
+      if (nextCount >= violationLimit) {
+        handleAutoSubmit(reason);
+      } else {
+        overallTimer.pause();
+        questionTimer.stop();
+        setActiveViolation(reason);
+      }
+      return nextCount;
+    });
+  }, [violationLimit, overallTimer, questionTimer, handleAutoSubmit]);
 
   const security = useSecurity({ onViolation: handleViolation });
+
+  const handleResumeSecurity = useCallback(() => {
+    setActiveViolation(null);
+    security.requestFullscreen();
+    overallTimer.start();
+    if (phase === 'active' && currentQuestion && !isLocked) {
+      questionTimer.start(questionTimer.timeLeft || timePerQuestion, handleQuestionTimeUp);
+    }
+  }, [security, overallTimer, phase, currentQuestion, isLocked, questionTimer, timePerQuestion, handleQuestionTimeUp]);
 
   useEffect(() => {
     if (phase === 'active') {
@@ -327,6 +352,14 @@ export default function QuizPlayer({ quiz, user, onFinish, badgeRules: propBadge
           onConfirm={handleManualSubmit}
           onCancel={() => setShowConfirm(false)}
           submitting={submitTriggeredRef.current}
+        />
+
+        <ViolationDialog
+          open={!!activeViolation}
+          reason={activeViolation}
+          count={violationCount}
+          limit={violationLimit}
+          onResume={handleResumeSecurity}
         />
       </div>
     );
