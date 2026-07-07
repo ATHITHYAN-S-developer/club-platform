@@ -4,13 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function ConfirmationDialog({ open, onConfirm, onCancel, submitting }) {
   const [text, setText] = useState('');
 
+  const isMatched = text.trim().toUpperCase() === 'FINISH';
+
   const handleClose = () => {
     setText('');
     onCancel();
   };
 
   const handleConfirm = () => {
-    if (text === 'FINISH') {
+    if (isMatched) {
       setText('');
       onConfirm();
     }
@@ -41,14 +43,29 @@ export default function ConfirmationDialog({ open, onConfirm, onCancel, submitti
             onClick={e => e.stopPropagation()}
           >
             <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: 'rgba(255,85,0,0.1)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 0.75rem',
-              }}>
-                <i className="fas fa-check-circle" style={{ color: 'var(--orange)', fontSize: '1.6rem' }} />
-              </div>
+              <motion.div
+                animate={isMatched ? {
+                  scale: [1, 1.25, 1],
+                  rotate: [0, 15, -15, 0],
+                } : {}}
+                transition={{ duration: 0.45, ease: "easeInOut" }}
+                style={{
+                  width: 56, height: 56, borderRadius: '50%',
+                  background: isMatched ? 'rgba(34,197,94,0.1)' : 'rgba(255,85,0,0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 0.75rem',
+                  transition: 'background-color 0.3s ease',
+                }}
+              >
+                <i
+                  className={isMatched ? "fas fa-check-circle" : "fas fa-question-circle"}
+                  style={{
+                    color: isMatched ? '#22c55e' : 'var(--orange)',
+                    fontSize: '1.6rem',
+                    transition: 'color 0.3s ease',
+                  }}
+                />
+              </motion.div>
               <h2 style={{ fontSize: '1.15rem', marginBottom: '0.35rem' }}>Submit Quiz?</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 You have unanswered questions. Type <strong>FINISH</strong> below to confirm submission.
@@ -63,11 +80,14 @@ export default function ConfirmationDialog({ open, onConfirm, onCancel, submitti
               onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape') handleClose(); }}
               placeholder='Type "FINISH" to confirm...'
               style={{
-                width: '100%', padding: '0.7rem 1rem', border: `2px solid ${text === 'FINISH' ? 'var(--orange)' : 'var(--border)'}`,
+                width: '100%', padding: '0.7rem 1rem',
+                border: isMatched ? '2px solid #22c55e' : '2px solid var(--border)',
+                boxShadow: isMatched ? '0 0 10px rgba(34, 197, 94, 0.25)' : 'none',
                 borderRadius: 10, fontSize: '0.95rem', fontWeight: 700,
                 textAlign: 'center', letterSpacing: '0.08em',
                 background: 'var(--surface)', color: 'var(--text)',
                 outline: 'none', marginBottom: '1rem',
+                transition: 'all 0.3s ease',
               }}
             />
 
@@ -82,9 +102,17 @@ export default function ConfirmationDialog({ open, onConfirm, onCancel, submitti
               </button>
               <button
                 className="btn btn-primary"
-                style={{ flex: 1, justifyContent: 'center' }}
+                style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  background: isMatched ? '#22c55e' : 'var(--orange)',
+                  borderColor: isMatched ? '#22c55e' : 'var(--orange)',
+                  transform: isMatched ? 'scale(1.02)' : 'scale(1)',
+                  boxShadow: isMatched ? '0 4px 12px rgba(34, 197, 94, 0.25)' : '0 2px 12px rgba(255,85,0,0.25)',
+                  transition: 'all 0.3s ease',
+                }}
                 onClick={handleConfirm}
-                disabled={text !== 'FINISH' || submitting}
+                disabled={!isMatched || submitting}
               >
                 {submitting ? 'Submitting...' : 'Submit'}
               </button>
