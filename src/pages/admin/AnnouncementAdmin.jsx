@@ -184,6 +184,23 @@ export default function AnnouncementAdmin() {
     }));
   };
 
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const handleUploadImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploadingImage(true);
+    try {
+      const publicUrl = await db.uploadFile(file, 'uploads');
+      setForm(p => ({ ...p, bannerUrl: publicUrl }));
+      window.showToast('Uploaded', 'Banner image uploaded successfully!', 'success');
+    } catch (err) {
+      window.showToast('Error', 'Image upload failed: ' + err.message, 'error');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleDownloadCSV = async (ann) => {
     try {
       const regs = await db.find('EventRegistrations');
@@ -398,8 +415,42 @@ export default function AnnouncementAdmin() {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Banner Image URL</label>
-              <input className="form-input" value={form.bannerUrl || ''} onChange={e => setForm(p => ({ ...p, bannerUrl: e.target.value }))} placeholder="https://images.unsplash.com/photo-..." style={{ width: '100%' }} />
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Banner Image</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadImage}
+                  disabled={uploadingImage}
+                  style={{ display: 'none' }}
+                  id="banner-file-input"
+                />
+                <label
+                  htmlFor="banner-file-input"
+                  className="btn btn-secondary btn-sm"
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 1rem' }}
+                >
+                  <i className="fa-solid fa-cloud-arrow-up" />
+                  {uploadingImage ? 'Uploading image...' : 'Upload Banner Image'}
+                </label>
+                
+                {form.bannerUrl && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <img
+                      src={form.bannerUrl}
+                      alt="Banner Preview"
+                      style={{ width: '80px', height: '45px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border)' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm(p => ({ ...p, bannerUrl: '' }))}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 650 }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
