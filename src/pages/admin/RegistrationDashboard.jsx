@@ -129,17 +129,20 @@ export default function RegistrationDashboard({ announcement }) {
       const ddata = r.submittedData || {};
       const customRowData = announcement.formFields?.map(f => ddata[f.id] ?? '—') || [];
       return [
-        r.id,
-        r.userEmail,
-        new Date(r.registeredAt).toLocaleDateString(),
-        r.status,
+        r.id || '—',
+        r.userEmail || '—',
+        r.registeredAt ? new Date(r.registeredAt).toLocaleDateString() : '—',
+        r.status || '—',
         ddata.fullName || '—',
         ddata.phone || '—',
         ddata.registerNumber || '—',
         ddata.year || '—',
         ddata.className || '—',
         ...customRowData
-      ].map(val => `"${val.toString().replace(/"/g, '""')}"`);
+      ].map(val => {
+        const safeVal = val === null || val === undefined ? '—' : val;
+        return `"${safeVal.toString().replace(/"/g, '""')}"`;
+      });
     });
 
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
