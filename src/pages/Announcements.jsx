@@ -26,6 +26,10 @@ export default function Announcements({ user }) {
         const now = new Date();
         const updatedAnns = anns.map(a => {
           let eventStatus = a.eventStatus || 'Published';
+          let status = a.status || 'published';
+          if (eventStatus !== 'Draft' && status === 'draft') {
+            status = 'published';
+          }
           
           if (a.date) {
             const eventDate = new Date(`${a.date}T${a.eventTime || '00:00:00'}`);
@@ -33,7 +37,7 @@ export default function Announcements({ user }) {
               eventStatus = 'Completed';
             }
           }
-          return { ...a, eventStatus };
+          return { ...a, eventStatus, status };
         });
 
         setAnnouncements(updatedAnns);

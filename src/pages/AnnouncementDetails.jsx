@@ -93,6 +93,9 @@ export default function AnnouncementDetails({ user }) {
           try { item.faqs = JSON.parse(item.faqs); } catch { item.faqs = []; }
         }
 
+        if (item.eventStatus !== 'Draft' && item.status === 'draft') {
+          item.status = 'published';
+        }
         setAnn(item);
 
         const regs = await db.find('EventRegistrations');
