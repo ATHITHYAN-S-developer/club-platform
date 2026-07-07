@@ -116,69 +116,13 @@ export default function QuizPlayer({ quiz, user, onFinish, badgeRules: propBadge
     return () => document.body.classList.remove('quiz-active');
   }, [phase]);
 
-  // ─── Security ───
-  const violationLimit = quiz?.security?.violationLimit || 3;
-
-  const handleViolation = useCallback((reason) => {
-    if (submitTriggeredRef.current) return;
-
-    setViolationCount((prev) => {
-      const nextCount = prev + 1;
-      if (nextCount >= violationLimit) {
-        handleAutoSubmit(reason);
-      } else {
-        overallTimer.pause();
-        questionTimer.stop();
-        setActiveViolation(reason);
-      }
-      return nextCount;
-    });
-  }, [violationLimit, overallTimer, questionTimer, handleAutoSubmit]);
-
-  const security = useSecurity({ onViolation: handleViolation });
-
-  const handleResumeSecurity = useCallback(() => {
-    setActiveViolation(null);
-    security.requestFullscreen();
-    overallTimer.start();
-    if (phase === 'active' && currentQuestion && !isLocked) {
-      questionTimer.start(questionTimer.timeLeft || timePerQuestion, handleQuestionTimeUp);
-    }
-  }, [security, overallTimer, phase, currentQuestion, isLocked, questionTimer, timePerQuestion, handleQuestionTimeUp]);
-
-  useEffect(() => {
-    if (phase === 'active') {
-      security.start();
-      security.requestFullscreen();
-      overallTimer.start();
-    }
-    return () => security.stop();
-  }, [phase]);
-
-  // ─── Question Time Up Handler ───
-  const handleQuestionTimeUp = useCallback(() => {
-    const qid = currentQuestion?.id;
-    if (!qid || lockedQuestions.includes(qid)) return;
-
-    lockQuestion(qid);
-    if (!answers[qid]) {
-      answerQuestion(qid, '');
-    }
-
-    if (currentIndex < questions.length - 1) {
-      goToQuestion(currentIndex + 1);
-    } else {
-      handleAutoSubmit('last_question');
-    }
-  }, [currentQuestion, currentIndex, questions.length, lockedQuestions, answers]);
-
   // ─── Submission Pipeline ───
   const handleAutoSubmit = useCallback(async (reason) => {
     if (submitTriggeredRef.current) return;
     submitTriggeredRef.current = true;
     overallTimer.pause();
     questionTimer.stop();
-    security.stop();
+    security?.stop();
 
     try {
       const scored = calcScore(answers, questions);
@@ -225,6 +169,62 @@ export default function QuizPlayer({ quiz, user, onFinish, badgeRules: propBadge
       submitTriggeredRef.current = false;
     }
   }, [answers, questions, overallTime, overallTimer.timeLeft, quiz, user, badgeRules]);
+
+  // ─── Question Time Up Handler ───
+  const handleQuestionTimeUp = useCallback(() => {
+    const qid = currentQuestion?.id;
+    if (!qid || lockedQuestions.includes(qid)) return;
+
+    lockQuestion(qid);
+    if (!answers[qid]) {
+      answerQuestion(qid, '');
+    }
+
+    if (currentIndex < questions.length - 1) {
+      goToQuestion(currentIndex + 1);
+    } else {
+      handleAutoSubmit('last_question');
+    }
+  }, [currentQuestion, currentIndex, questions.length, lockedQuestions, answers, handleAutoSubmit]);
+
+  // ─── Security ───
+  const violationLimit = quiz?.security?.violationLimit || 3;
+
+  const handleViolation = useCallback((reason) => {
+    if (submitTriggeredRef.current) return;
+
+    setViolationCount((prev) => {
+      const nextCount = prev + 1;
+      if (nextCount >= violationLimit) {
+        handleAutoSubmit(reason);
+      } else {
+        overallTimer.pause();
+        questionTimer.stop();
+        setActiveViolation(reason);
+      }
+      return nextCount;
+    });
+  }, [violationLimit, overallTimer, questionTimer, handleAutoSubmit]);
+
+  const security = useSecurity({ onViolation: handleViolation });
+
+  const handleResumeSecurity = useCallback(() => {
+    setActiveViolation(null);
+    security.requestFullscreen();
+    overallTimer.start();
+    if (phase === 'active' && currentQuestion && !isLocked) {
+      questionTimer.start(questionTimer.timeLeft || timePerQuestion, handleQuestionTimeUp);
+    }
+  }, [security, overallTimer, phase, currentQuestion, isLocked, questionTimer, timePerQuestion, handleQuestionTimeUp]);
+
+  useEffect(() => {
+    if (phase === 'active') {
+      security.start();
+      security.requestFullscreen();
+      overallTimer.start();
+    }
+    return () => security.stop();
+  }, [phase]);
 
   // ─── Answer Handler ───
   const handleAnswer = useCallback((value) => {
