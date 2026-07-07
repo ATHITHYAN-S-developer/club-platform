@@ -19,9 +19,7 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where,
-  onSnapshot,
-  writeBatch
+  where
 } from "firebase/firestore";
 import { createClient } from "@supabase/supabase-js";
 
@@ -333,24 +331,25 @@ class FirebaseDatabase {
     } catch { return null; }
   }
 
-  _deduplicateUsers(list, collectionName) {
-    if (collectionName !== 'Users') return list;
-    const unique = {};
-    list.forEach(u => {
-      const email = (u.email || '').toLowerCase().trim();
-      if (!email) {
-        unique[u.id] = u;
-      } else {
-        const existing = unique[email];
-        if (!existing || u.role === 'admin' || (existing.role !== 'admin' && u.id.length > existing.id.length)) {
-          unique[email] = u;
-        }
-      }
-    });
-    return Object.values(unique);
-  }
-
   async find(collectionName) {
+    const deduplicateUsers = (list) => {
+      if (collectionName !== 'Users') return list;
+      const unique = {};
+      list.forEach(u => {
+        const email = (u.email || '').toLowerCase().trim();
+        if (!email) {
+          unique[u.id] = u;
+        } else {
+          const existing = unique[email];
+          // Keep admin role, or keep whichever has the longer/valid UID structure
+          if (!existing || u.role === 'admin' || (existing.role !== 'admin' && u.id.length > existing.id.length)) {
+            unique[email] = u;
+          }
+        }
+      });
+      return Object.values(unique);
+    };
+
     try {
       const colRef = collection(firestore, collectionName);
       const snapshot = await getDocs(colRef);
@@ -366,9 +365,9 @@ class FirebaseDatabase {
       });
       if (collectionName === 'QuizResults') {
         const dummyIds = ['qr_1', 'qr_2', 'qr_3'];
-        return this._deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)), collectionName);
+        return deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)));
       }
-      return this._deduplicateUsers(filtered, collectionName);
+      return deduplicateUsers(filtered);
     } catch (error) {
       console.warn(`find(${collectionName}) failed, using fallback:`, error.message);
       const localData = getLocalStorageCollection(collectionName);
@@ -383,64 +382,10 @@ class FirebaseDatabase {
       });
       if (collectionName === 'QuizResults') {
         const dummyIds = ['qr_1', 'qr_2', 'qr_3'];
-        return this._deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)), collectionName);
+        return deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)));
       }
-      return this._deduplicateUsers(filtered, collectionName);
+      return deduplicateUsers(filtered);
     }
-  }
-
-  subscribeCollection(collectionName, onData, onError) {
-    const deletedIds = getDeletedIds();
-    const localKey = DB_PREFIX + collectionName;
-
-    try {
-      const colRef = collection(firestore, collectionName);
-      const unsub = onSnapshot(colRef, (snapshot) => {
-        const items = snapshot.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter(item => !deletedIds.includes(item.id) && item.isDeleted !== true);
-
-        if (collectionName === 'Users') {
-          const deletedEmails = getDeletedEmails();
-          const cleaned = items.filter(item => {
-            if (item.email && deletedEmails.includes(item.email.toLowerCase().trim())) return false;
-            return true;
-          });
-          onData(this._deduplicateUsers(cleaned));
-        } else {
-          onData(items);
-        }
-
-        // Sync to localStorage for offline fallback
-        try { localStorage.setItem(localKey, JSON.stringify(items)); } catch {}
-      }, (error) => {
-        console.warn(`onSnapshot(${collectionName}) failed, polling fallback:`, error.message);
-        // Fallback: poll via getDocs every 10s
-        const interval = setInterval(async () => {
-          try {
-            const snap = await getDocs(colRef);
-            const items = snap.docs
-              .map(d => ({ id: d.id, ...d.data() }))
-              .filter(item => !deletedIds.includes(item.id) && item.isDeleted !== true);
-            onData(items);
-          } catch (e) {
-            console.warn(`poll(${collectionName}) fallback error:`, e.message);
-            if (onError) onError(e);
-          }
-        }, 10000);
-        return () => clearInterval(interval);
-      });
-      return unsub;
-    } catch (error) {
-      console.warn(`subscribeCollection(${collectionName}) setup failed:`, error.message);
-      if (onError) onError(error);
-      // Return noop
-      return () => {};
-    }
-  }
-
-  async batch() {
-    return writeBatch(firestore);
   }
 
   async findOne(collectionName, queryObj) {

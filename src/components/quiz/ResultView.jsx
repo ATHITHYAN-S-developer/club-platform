@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuiz } from '../../contexts/QuizContext';
-import { getUserRank } from '../../services/leaderboardService';
+import { getQuizResults } from '../../services/resultService';
 import ReviewPanel from './ReviewPanel';
 
 export default function ResultView() {
@@ -10,12 +10,22 @@ export default function ResultView() {
   const [totalParticipants, setTotalParticipants] = useState(0);
 
   useEffect(() => {
-    if (!result?.quizId || !result?.userId) return;
-    getUserRank(result.userId, result.quizId).then(data => {
-      if (data) {
-        setRank(data.rank);
-        setTotalParticipants(data.total);
-      }
+    if (!result?.quizId) return;
+    getQuizResults(result.quizId).then(all => {
+      const sorted = all
+        .filter(r => r.userId)
+        .sort((a, b) => {
+          const aPct = (a.score || 0) / (a.total || 1);
+          const bPct = (b.score || 0) / (b.total || 1);
+          if (bPct !== aPct) return bPct - aPct;
+          const aAcc = a.accuracy || Math.round(aPct * 100);
+          const bAcc = b.accuracy || Math.round(bPct * 100);
+          if (bAcc !== aAcc) return bAcc - aAcc;
+          return (a.timeTaken || a.timeSpent || 0) - (b.timeTaken || b.timeSpent || 0);
+        });
+      setTotalParticipants(sorted.length);
+      const idx = sorted.findIndex(r => r.userId === result.userId);
+      if (idx >= 0) setRank(idx + 1);
     }).catch(() => {});
   }, [result]);
 
@@ -26,6 +36,7 @@ export default function ResultView() {
 
   return (
     <div style={{ maxWidth: 560, margin: '2rem auto', padding: '1rem' }}>
+      {/* Confetti-like effect for passes */}
       {passed && (
         <div style={{ textAlign: 'center', fontSize: '3rem', marginBottom: '0.5rem' }}>
           🎉
@@ -62,6 +73,7 @@ export default function ResultView() {
         </div>
 
         <div style={{ padding: '1.25rem' }}>
+          {/* Score circle */}
           <div style={{
             width: 120, height: 120, borderRadius: '50%', margin: '0 auto 1rem',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -78,6 +90,7 @@ export default function ResultView() {
             </div>
           </div>
 
+          {/* Rank */}
           {rank !== null && totalParticipants > 0 && (
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
@@ -101,6 +114,7 @@ export default function ResultView() {
             </div>
           )}
 
+          {/* Stats grid */}
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '1rem',
           }}>
@@ -129,6 +143,7 @@ export default function ResultView() {
             ))}
           </div>
 
+          {/* Badge earned */}
           {badge && (
             <div style={{
               textAlign: 'center', padding: '0.75rem', marginBottom: '0.75rem',
@@ -146,6 +161,7 @@ export default function ResultView() {
           )}
         </div>
 
+        {/* Actions */}
         <div style={{ padding: '0 1.25rem 1.25rem', display: 'flex', gap: '0.5rem' }}>
           <button onClick={() => setShowReview(!showReview)} style={{
             flex: 1, padding: '0.6rem', borderRadius: 10, border: '1px solid var(--border)',
