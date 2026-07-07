@@ -14,7 +14,6 @@ const SIDEBAR_SECTIONS = [
       { id: 'analytics',   label: 'Analytics',     icon: 'fa-chart-line' },
       { id: 'winners',     label: 'Winners',       icon: 'fa-trophy' },
       { id: 'leaderboard', label: 'Leaderboard',   icon: 'fa-ranking-star' },
-      { id: 'settings',    label: 'Settings',      icon: 'fa-gear' },
     ]
   },
   {
@@ -1247,79 +1246,6 @@ function WinnersTab() {
 }
 
 /* ═══════════════════════════════════ SETTINGS TAB ═══════════════════════════════════ */
-function SettingsTab() {
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await db.getSettings();
-        setSettings(data);
-      } catch { window.showToast('Error', 'Could not load settings.', 'error'); }
-      finally { setLoading(false); }
-    })();
-  }, []);
-
-  const handleChange = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await db.updateSettings(settings);
-      window.showToast('Saved', 'Settings updated successfully.', 'success');
-    } catch (err) {
-      window.showToast('Error', err.message || 'Failed to save settings.', 'error');
-    } finally { setSaving(false); }
-  };
-
-  if (loading) return <div className="loading-spinner" />;
-  if (!settings) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No settings available.</div>;
-
-  const fields = [
-    { key: 'siteName', label: 'Site Name', type: 'text' },
-    { key: 'academicYear', label: 'Academic Year', type: 'text' },
-    { key: 'registrationStatus', label: 'Registration Status', type: 'select', options: ['Open', 'Closed'] },
-    { key: 'adminEmail', label: 'Admin Email', type: 'email' },
-    { key: 'announcementBanner', label: 'Announcement Banner', type: 'textarea' },
-    { key: 'projectsCount', label: 'Projects Count', type: 'number' },
-    { key: 'eventsCount', label: 'Events Count', type: 'number' },
-    { key: 'awardsCount', label: 'Awards Count', type: 'number' },
-  ];
-
-  return (
-    <div style={{ maxWidth: 640 }}>
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.75rem' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <i className="fa-solid fa-sliders" style={{ color: 'var(--orange)' }} /> Site Settings
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {fields.map(f => (
-            <div key={f.key}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>{f.label}</label>
-              {f.type === 'select' ? (
-                <select className="form-input" value={settings[f.key] || ''} onChange={e => handleChange(f.key, e.target.value)} style={{ width: '100%' }}>
-                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : f.type === 'textarea' ? (
-                <textarea className="form-input" value={settings[f.key] || ''} onChange={e => handleChange(f.key, e.target.value)} style={{ width: '100%', minHeight: 80, fontFamily: 'inherit' }} />
-              ) : (
-                <input className="form-input" type={f.type || 'text'} value={settings[f.key] || ''} onChange={e => handleChange(f.key, e.target.value)} style={{ width: '100%' }} />
-              )}
-            </div>
-          ))}
-        </div>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ marginTop: '1.5rem', width: '100%', justifyContent: 'center' }}>
-          {saving ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Settings</>}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ═══════════════════════════════════ BADGES TAB ═══════════════════════════════════ */
 function BadgeManagementTab() {
   const [badges, setBadges] = useState([]);
@@ -1630,7 +1556,6 @@ export default function Admin({ user }) {
           {tab === 'analytics'    && <AnalyticsTab />}
           {tab === 'winners'      && <WinnersTab />}
           {tab === 'leaderboard'  && <LeaderboardAdmin />}
-          {tab === 'settings'     && <SettingsTab />}
           {tab === 'members'      && <MembersTab />}
           {tab === 'core'         && <CoreBoardTab allMembers={members} />}
           {tab === 'events'       && <EventsTab />}
