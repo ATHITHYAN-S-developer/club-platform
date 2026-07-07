@@ -106,6 +106,7 @@ export default function AnnouncementDetails({ user }) {
             phone: user.phone || '',
             college: user.college || 'VCET',
             department: user.department || '',
+            year: user.year || '1',
             className: user.className || '',
           });
         }
@@ -488,10 +489,21 @@ export default function AnnouncementDetails({ user }) {
                         <input className="form-input form-input-sm" value={formValues.department || ''} onChange={e => setFormValues(p => ({ ...p, department: e.target.value }))} required placeholder="e.g. CSE" style={{ width: '100%' }} />
                       </div>
 
-                      {/* Class & Year */}
+                      {/* Year select */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Class & Year *</label>
-                        <input className="form-input form-input-sm" value={formValues.className || ''} onChange={e => setFormValues(p => ({ ...p, className: e.target.value }))} required placeholder="e.g. III CSE A" style={{ width: '100%' }} />
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Year *</label>
+                        <select className="form-input form-input-sm" value={formValues.year || '1'} onChange={e => setFormValues(p => ({ ...p, year: e.target.value }))} style={{ width: '100%' }}>
+                          <option value="1">1st Year</option>
+                          <option value="2">2nd Year</option>
+                          <option value="3">3rd Year</option>
+                          <option value="4">4th Year</option>
+                        </select>
+                      </div>
+
+                      {/* Class */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Class *</label>
+                        <input className="form-input form-input-sm" value={formValues.className || ''} onChange={e => setFormValues(p => ({ ...p, className: e.target.value }))} required placeholder="e.g. CSE A" style={{ width: '100%' }} />
                       </div>
 
                       {/* Render extra custom fields if configured */}

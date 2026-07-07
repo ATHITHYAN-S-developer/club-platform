@@ -53,13 +53,13 @@ export default function RegistrationDashboard({ announcement }) {
       const dept = (ddata.department || 'Other').toUpperCase().trim();
       depts[dept] = (depts[dept] || 0) + 1;
 
-      // Year extraction from Class Name
-      const cls = (ddata.className || ddata.year || '').toUpperCase();
+      // Year extraction from Class or Year
+      const yearVal = ddata.year || ddata.className || '1';
       let year = '1';
-      if (cls.includes('4') || cls.includes('IV') || cls.includes('FINAL')) year = '4';
-      else if (cls.includes('3') || cls.includes('III') || cls.includes('THIRD')) year = '3';
-      else if (cls.includes('2') || cls.includes('II') || cls.includes('SECOND')) year = '2';
-      else if (cls.includes('1') || cls.includes('I') || cls.includes('FIRST')) year = '1';
+      if (yearVal.toString().includes('4') || yearVal.toString().toUpperCase().includes('IV') || yearVal.toString().toUpperCase().includes('FINAL')) year = '4';
+      else if (yearVal.toString().includes('3') || yearVal.toString().toUpperCase().includes('III') || yearVal.toString().toUpperCase().includes('THIRD')) year = '3';
+      else if (yearVal.toString().includes('2') || yearVal.toString().toUpperCase().includes('II') || yearVal.toString().toUpperCase().includes('SECOND')) year = '2';
+      else if (yearVal.toString().includes('1') || yearVal.toString().toUpperCase().includes('I') || yearVal.toString().toUpperCase().includes('FIRST')) year = '1';
       
       if (years[year] !== undefined) years[year]++;
 
@@ -123,7 +123,7 @@ export default function RegistrationDashboard({ announcement }) {
     
     // Create header fields
     const customHeaders = announcement.formFields?.map(f => f.label) || [];
-    const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Department', 'Class & Year', ...customHeaders];
+    const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Department', 'Year', 'Class', ...customHeaders];
     
     const rows = registrations.map(r => {
       const ddata = r.submittedData || {};
@@ -136,7 +136,8 @@ export default function RegistrationDashboard({ announcement }) {
         ddata.fullName || '—',
         ddata.phone || '—',
         ddata.department || '—',
-        ddata.className || ddata.year || '—',
+        ddata.year || '—',
+        ddata.className || '—',
         ...customRowData
       ].map(val => `"${val.toString().replace(/"/g, '""')}"`);
     });
@@ -298,7 +299,7 @@ export default function RegistrationDashboard({ announcement }) {
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Name</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Contact Details</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Department & Class</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Dept, Yr & Class</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Registered On</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Status</th>
                   <th style={{ textAlign: 'center', padding: '0.75rem 1rem' }}>Action Operations</th>
@@ -323,7 +324,7 @@ export default function RegistrationDashboard({ announcement }) {
                         <div style={{ color: 'var(--text-secondary)' }}>{ddata.phone || '—'}</div>
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem' }}>
-                        {(ddata.department || '—').toUpperCase()} ({ddata.className || ddata.year || '—'})
+                        {(ddata.department || '—').toUpperCase()} (Yr {ddata.year || '—'}, {ddata.className || '—'})
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                         {new Date(r.registeredAt).toLocaleDateString()} at {new Date(r.registeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
