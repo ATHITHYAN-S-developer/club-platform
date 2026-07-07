@@ -1,24 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import db from './db';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
+import Loading from './components/ui/Loading';
+import ScrollToTop from './components/ScrollToTop';
+import { ThemeProvider } from './contexts/ThemeContext';
 
-import Home from './pages/Home';
-import Members from './pages/Members';
-import Resources from './pages/Resources';
-import Gallery from './pages/Gallery';
-import Events from './pages/Events';
-import Quiz from './pages/QuizPage';
-import Leaderboard from './pages/Leaderboard';
-import Winners from './pages/Winners';
-import Tasks from './pages/Tasks';
-import Contact from './pages/Contact';
-import Careers from './pages/Careers';
-import Admin from './pages/Admin';
-import Auth from './pages/Auth';
-import Signup from './pages/Signup';
+const Home = lazy(() => import('./pages/Home'));
+const Members = lazy(() => import('./pages/Members'));
+const Resources = lazy(() => import('./pages/Resources'));
+const Gallery = lazy(() => import('./pages/Gallery'));
+const Events = lazy(() => import('./pages/Events'));
+const Quiz = lazy(() => import('./pages/QuizPage'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+const Winners = lazy(() => import('./pages/Winners'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Careers = lazy(() => import('./pages/Careers'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Auth = lazy(() => import('./pages/Auth'));
+const Signup = lazy(() => import('./pages/Signup'));
+
+function PageLoading() {
+  return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}><Loading /></div>;
+}
+
+function ProtectedRoute({ children, roleRequired, user, authLoading }) {
+  if (authLoading) return <div className="loading-spinner" />;
+  if (!user) {
+    const redirectUrl = window.location.pathname + window.location.search;
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(redirectUrl)}`} replace />;
+  }
+  if (roleRequired && user.role !== roleRequired) {
+    window.showToast('Access Denied', 'Unauthorized access level.', 'error');
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
 
 export default function App() {
   const location = useLocation();
@@ -47,77 +67,36 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const ProtectedRoute = ({ children, roleRequired }) => {
-    if (authLoading) return <div className="loading-spinner"></div>;
-    if (!user) {
-      const redirectUrl = window.location.pathname + window.location.search;
-      return <Navigate to={`/auth?redirect=${encodeURIComponent(redirectUrl)}`} replace />;
-    }
-    if (roleRequired && user.role !== roleRequired) {
-      window.showToast('Access Denied', 'Unauthorized access level.', 'error');
-      return <Navigate to="/" replace />;
-    }
-    return children;
-  };
-
-  if (isFullscreenPage) {
-    return (
-      <div style={{ position: 'relative', minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Header user={user} />
-        <div style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}>
-          {authLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-              <div className="loading-spinner"></div>
-            </div>
-          ) : (
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<Auth user={user} />} />
-              <Route path="/signup" element={<Signup user={user} />} />
-            </Routes>
-          )}
-        </div>
-        <Footer />
-        <div id="toast-container" className="toast-container">
-          {toasts.map((toast) => (
-            <Toast key={toast.id} id={toast.id} title={toast.title} message={toast.message} type={toast.type} onClose={removeToast} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  const appContent = (
     <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column', position: 'relative' }}>
-
       <Header user={user} />
-
-      <div className={`main-content ${location.pathname === '/' ? 'home-main-content' : ''}`}>
+      <div className={`main-content ${location.pathname === '/' ? 'home-main-content' : ''} ${location.pathname.startsWith('/quiz') ? 'quiz-main-content' : ''}`}>
         {authLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
             <div className="loading-spinner"></div>
           </div>
         ) : (
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/members" element={<Members />} />
-            <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/events" element={<Events user={user} />} />
-            <Route path="/winners" element={<Winners />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/auth" element={<Auth user={user} />} />
-            <Route path="/signup" element={<Signup user={user} />} />
-            <Route path="/quiz" element={<ProtectedRoute><Quiz user={user} /></ProtectedRoute>} />
-            <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard user={user} /></ProtectedRoute>} />
-            <Route path="/tasks" element={<ProtectedRoute><Tasks user={user} /></ProtectedRoute>} />
-            <Route path="/careers" element={<ProtectedRoute><Careers /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute roleRequired="admin"><Admin user={user} /></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/members" element={<Members />} />
+              <Route path="/resources" element={<ProtectedRoute user={user} authLoading={authLoading}><Resources /></ProtectedRoute>} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/events" element={<Events user={user} />} />
+              <Route path="/winners" element={<Winners />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/auth" element={<Auth user={user} />} />
+              <Route path="/signup" element={<Signup user={user} />} />
+              <Route path="/quiz" element={<ProtectedRoute user={user} authLoading={authLoading}><Quiz user={user} /></ProtectedRoute>} />
+              <Route path="/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><Leaderboard user={user} /></ProtectedRoute>} />
+              <Route path="/tasks" element={<ProtectedRoute user={user} authLoading={authLoading}><Tasks user={user} /></ProtectedRoute>} />
+              <Route path="/careers" element={<ProtectedRoute user={user} authLoading={authLoading}><Careers /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><Admin user={user} /></ProtectedRoute>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         )}
       </div>
-
       <Footer />
       <div id="toast-container" className="toast-container">
         {toasts.map((toast) => (
@@ -126,4 +105,38 @@ export default function App() {
       </div>
     </div>
   );
+
+  if (isFullscreenPage) {
+    return (
+      <ThemeProvider>
+        <ScrollToTop />
+        <div style={{ position: 'relative', minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Header user={user} />
+          <div style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}>
+            {authLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <div className="loading-spinner"></div>
+              </div>
+            ) : (
+              <Suspense fallback={<PageLoading />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/auth" element={<Auth user={user} />} />
+                  <Route path="/signup" element={<Signup user={user} />} />
+                </Routes>
+              </Suspense>
+            )}
+          </div>
+          <Footer />
+          <div id="toast-container" className="toast-container">
+            {toasts.map((toast) => (
+              <Toast key={toast.id} id={toast.id} title={toast.title} message={toast.message} type={toast.type} onClose={removeToast} />
+            ))}
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  return <ThemeProvider><ScrollToTop />{appContent}</ThemeProvider>;
 }

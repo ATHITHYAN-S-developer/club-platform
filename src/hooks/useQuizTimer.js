@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 export default function useQuizTimer(totalSeconds, options = {}) {
-  const { onTick, onTimeUp, autoStart = true } = options;
+  const { onTick, onTimeUp, autoStart = false } = options;
   const [timeLeft, setTimeLeft] = useState(totalSeconds);
   const [isRunning, setIsRunning] = useState(autoStart);
   const [isPaused, setIsPaused] = useState(false);
@@ -64,9 +64,7 @@ export default function useQuizTimer(totalSeconds, options = {}) {
     setTimeLeft(totalSeconds);
   }, [totalSeconds]);
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const formatted = `${String(Math.floor(timeLeft / 60)).padStart(2, '0')}:${String(timeLeft % 60).padStart(2, '0')}`;
   const progress = totalSeconds > 0 ? timeLeft / totalSeconds : 0;
   const isWarning = timeLeft <= 60;
   const isDanger = timeLeft <= 30;

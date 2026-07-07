@@ -1,11 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import db from '../db.js';
 
 export default function useAntiCheat(options = {}) {
   const {
     enabled = true,
-    violationLimit = 3,
-    onViolation,
+    violationLimit = 2,
     onAutoSubmit,
     quizId,
     userId,
@@ -14,104 +12,161 @@ export default function useAntiCheat(options = {}) {
     copyPasteBlock = true,
     rightClickBlock = true,
     devToolsDetection = true,
+    onWarning,
   } = options;
 
   const [violations, setViolations] = useState([]);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const warningCountRef = useRef(0);
+  const [warningCount, setWarningCount] = useState(0);
   const lastViolationRef = useRef(0);
   const submittedRef = useRef(false);
-  const devToolsOpenRef = useRef(false);
-  const checkIntervalRef = useRef(null);
+  const devToolsCheckRef = useRef(null);
+  const warningCountRef = useRef(0);
 
   const addViolation = useCallback(async (type) => {
     const now = Date.now();
-    if (now - lastViolationRef.current < 1000) return;
+    if (now - lastViolationRef.current < 800) return;
     lastViolationRef.current = now;
-
     if (submittedRef.current) return;
 
     const count = warningCountRef.current + 1;
     warningCountRef.current = count;
+    setWarningCount(count);
+
     const violation = { type, count, timestamp: new Date().toISOString() };
     setViolations(prev => [...prev, violation]);
-
-    try {
-      await db.insert('Violations', { userId, quizId, attemptId, type, count });
-    } catch { /* silent */ }
-
-    onViolation?.(violation);
+    onWarning?.(violation);
 
     if (count >= violationLimit) {
       submittedRef.current = true;
-      setIsBlocked(true);
       onAutoSubmit?.('Auto Submitted - Rule Violation');
     }
-  }, [userId, quizId, attemptId, violationLimit, onViolation, onAutoSubmit]);
+  }, [violationLimit, onAutoSubmit, onWarning]);
 
-  useEffect(() => {
-    if (!enabled || !tabSwitchDetection) return;
-    const handleVisibility = () => {
-      if (document.hidden) addViolation('tab-switch');
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [enabled, tabSwitchDetection, addViolation]);
+  const handleVisibility = useCallback(() => {
+    if (document.hidden) addViolation('tab-switch');
+  }, [addViolation]);
 
-  useEffect(() => {
-    if (!enabled || !copyPasteBlock) return;
-    const handleCopy = (e) => { e.preventDefault(); addViolation('copy'); };
-    document.addEventListener('copy', handleCopy);
-    return () => document.removeEventListener('copy', handleCopy);
-  }, [enabled, copyPasteBlock, addViolation]);
+  const handleCopy = useCallback((e) => {
+    e.preventDefault();
+    addViolation('copy');
+  }, [addViolation]);
 
-  useEffect(() => {
-    if (!enabled || !copyPasteBlock) return;
-    const handlePaste = (e) => { e.preventDefault(); addViolation('paste'); };
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
-  }, [enabled, copyPasteBlock, addViolation]);
+  const handlePaste = useCallback((e) => {
+    e.preventDefault();
+    addViolation('paste');
+  }, [addViolation]);
 
-  useEffect(() => {
-    if (!enabled || !rightClickBlock) return;
-    const handleContext = (e) => { e.preventDefault(); addViolation('right-click'); };
-    document.addEventListener('contextmenu', handleContext);
-    return () => document.removeEventListener('contextmenu', handleContext);
-  }, [enabled, rightClickBlock, addViolation]);
+  const handleCut = useCallback((e) => {
+    e.preventDefault();
+    addViolation('cut');
+  }, [addViolation]);
 
-  useEffect(() => {
-    if (!enabled || !devToolsDetection) return;
-    const checkDevTools = () => {
-      const start = performance.now();
-      debugger;
-      const end = performance.now();
-      if (end - start > 100) {
-        devToolsOpenRef.current = true;
-        addViolation('devtools');
-      }
-    };
-    checkIntervalRef.current = setInterval(checkDevTools, 5000);
-    return () => clearInterval(checkIntervalRef.current);
-  }, [enabled, devToolsDetection, addViolation]);
+  const handleContext = useCallback((e) => {
+    e.preventDefault();
+    addViolation('right-click');
+  }, [addViolation]);
+
+  const handleSelectStart = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDragStart = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
+  const handleBeforeUnload = useCallback((e) => {
+    addViolation('page-refresh');
+    e.preventDefault();
+    e.returnValue = '';
+  }, [addViolation]);
+
+  const handlePopState = useCallback(() => {
+    addViolation('back-button');
+  }, [addViolation]);
+
+  const handleBlur = useCallback(() => {
+    addViolation('window-blur');
+  }, [addViolation]);
+
+  const checkDevTools = useCallback(() => {
+    const start = performance.now();
+    debugger;
+    const end = performance.now();
+    if (end - start > 100) {
+      addViolation('devtools');
+    }
+  }, [addViolation]);
 
   useEffect(() => {
     if (!enabled) return;
-    const handleBeforeUnload = (e) => {
-      addViolation('page-refresh');
-      e.preventDefault();
-      e.returnValue = '';
-    };
+    warningCountRef.current = 0;
+    setViolations([]);
+    setWarningCount(0);
+    submittedRef.current = false;
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const events = [];
+
+    if (tabSwitchDetection) {
+      document.addEventListener('visibilitychange', handleVisibility);
+      events.push(() => document.removeEventListener('visibilitychange', handleVisibility));
+    }
+
+    if (copyPasteBlock) {
+      document.addEventListener('copy', handleCopy, true);
+      document.addEventListener('paste', handlePaste, true);
+      document.addEventListener('cut', handleCut, true);
+      events.push(() => {
+        document.removeEventListener('copy', handleCopy, true);
+        document.removeEventListener('paste', handlePaste, true);
+        document.removeEventListener('cut', handleCut, true);
+      });
+    }
+
+    if (rightClickBlock) {
+      document.addEventListener('contextmenu', handleContext, true);
+      events.push(() => document.removeEventListener('contextmenu', handleContext, true));
+    }
+
+    document.addEventListener('selectstart', handleSelectStart, true);
+    document.addEventListener('dragstart', handleDragStart, true);
+    events.push(() => {
+      document.removeEventListener('selectstart', handleSelectStart, true);
+      document.removeEventListener('dragstart', handleDragStart, true);
+    });
+
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [enabled, addViolation]);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('blur', handleBlur);
+    events.push(() => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('blur', handleBlur);
+    });
+
+    if (devToolsDetection) {
+      devToolsCheckRef.current = setInterval(checkDevTools, 4000);
+      events.push(() => clearInterval(devToolsCheckRef.current));
+    }
+
+    return () => events.forEach(cleanup => cleanup());
+  }, [
+    enabled, tabSwitchDetection, copyPasteBlock, rightClickBlock,
+    devToolsDetection, handleVisibility, handleCopy, handlePaste,
+    handleCut, handleContext, handleSelectStart, handleDragStart,
+    handleBeforeUnload, handlePopState, handleBlur, checkDevTools,
+  ]);
 
   const reset = useCallback(() => {
     warningCountRef.current = 0;
     lastViolationRef.current = 0;
     submittedRef.current = false;
     setViolations([]);
-    setIsBlocked(false);
+    setWarningCount(0);
   }, []);
 
-  return { violations, warningCount: warningCountRef.current, isBlocked, addViolation, reset };
+  return { violations, warningCount, isBlocked: submittedRef.current, addViolation, reset };
 }

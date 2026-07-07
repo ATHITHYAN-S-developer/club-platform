@@ -463,14 +463,11 @@ export default function Home() {
           position: 'absolute', bottom: '2.5rem', right: '3.5rem',
           display: 'flex', gap: '1.25rem', zIndex: 10, fontSize: '0.95rem'
         }}>
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#0f1117'} onMouseLeave={e => e.currentTarget.style.color = '#fff'}>
-            <i className="fa-brands fa-github" />
-          </a>
           <a href="https://www.linkedin.com/company/mindcraft-ai-vcet" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#0f1117'} onMouseLeave={e => e.currentTarget.style.color = '#fff'}>
             <i className="fa-brands fa-linkedin" />
           </a>
-          <a href="https://whatsapp.com" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#0f1117'} onMouseLeave={e => e.currentTarget.style.color = '#fff'}>
-            <i className="fa-brands fa-whatsapp" />
+          <a href="https://www.instagram.com/clubmindcraftai?igsh=cGl4ZTA4aXNnZXk2" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#0f1117'} onMouseLeave={e => e.currentTarget.style.color = '#fff'}>
+            <i className="fa-brands fa-instagram" />
           </a>
         </div>
       </section>

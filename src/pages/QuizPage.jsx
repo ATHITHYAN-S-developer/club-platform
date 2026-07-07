@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import QuizDashboard from '../components/quiz/QuizDashboard';
 import QuizPlayer from '../components/quiz/QuizPlayer';
 
@@ -15,23 +15,25 @@ export default function QuizPage({ user }) {
   }, []);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="quiz-page">
-      <AnimatePresence mode="wait">
-        {activeQuiz ? (
-          <QuizPlayer
-            key={`player-${activeQuiz.id}`}
-            quiz={activeQuiz}
-            user={user}
-            onFinish={handleFinish}
-          />
-        ) : (
-          <QuizDashboard
-            key="dashboard"
-            user={user}
-            onStartQuiz={handleStartQuiz}
-          />
-        )}
-      </AnimatePresence>
-    </motion.div>
+    <div className="quiz-page">
+      <div className="quiz-content">
+        <AnimatePresence mode="wait">
+          {activeQuiz ? (
+            <QuizPlayer
+              key={`player-${activeQuiz.id}`}
+              quiz={activeQuiz}
+              user={user}
+              onFinish={handleFinish}
+            />
+          ) : (
+            <QuizDashboard
+              key="dashboard"
+              user={user}
+              onStartQuiz={handleStartQuiz}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

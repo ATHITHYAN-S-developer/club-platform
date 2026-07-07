@@ -637,6 +637,16 @@ class FirebaseDatabase {
           throw new Error('NOT_REGISTERED');
         }
       }
+      if (firebaseUser.photoURL && userProfile.photo !== firebaseUser.photoURL) {
+        userProfile.photo = firebaseUser.photoURL;
+        try {
+          await setDoc(doc(firestore, 'Users', userProfile.id), { photo: firebaseUser.photoURL }, { merge: true });
+        } catch {
+          const localData = getLocalStorageCollection('Users');
+          const idx = localData.findIndex(u => u.id === userProfile.id);
+          if (idx !== -1) { localData[idx].photo = firebaseUser.photoURL; setLocalStorageCollection('Users', localData); }
+        }
+      }
       localStorage.setItem('aether_user_session', JSON.stringify(userProfile));
       localStorage.setItem('aether_jwt_token', `firebase.${btoa(JSON.stringify(userProfile))}.signature`);
       return { user: userProfile };
