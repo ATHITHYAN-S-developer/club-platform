@@ -135,6 +135,17 @@ export default function AnnouncementDetails({ user }) {
       const regId = 'reg_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
       const isWaitlist = stats.remaining === 0;
 
+      const qrDataText = [
+        `Event: ${ann.title}`,
+        `Ticket ID: ${regId}`,
+        `Name: ${formValues.fullName || ''}`,
+        `Email: ${user.email}`,
+        `Phone: ${formValues.phone || ''}`,
+        `Dept: ${formValues.department || ''}`,
+        `Year: ${formValues.year || '1'}`,
+        `Class: ${formValues.className || ''}`
+      ].join('\n');
+
       const record = {
         id: regId,
         announcementId: id,
@@ -145,7 +156,7 @@ export default function AnnouncementDetails({ user }) {
         submittedData: formValues,
         registeredAt: new Date().toISOString(),
         status: isWaitlist ? 'Waitlisted' : 'Registered',
-        qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${regId}`,
+        qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataText)}`,
       };
 
       await db.insert('EventRegistrations', record);
@@ -178,8 +189,20 @@ export default function AnnouncementDetails({ user }) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const qrDataText = [
+        `Event: ${ann.title}`,
+        `Ticket ID: ${userRegistration.id}`,
+        `Name: ${formValues.fullName || ''}`,
+        `Email: ${user.email}`,
+        `Phone: ${formValues.phone || ''}`,
+        `Dept: ${formValues.department || ''}`,
+        `Year: ${formValues.year || '1'}`,
+        `Class: ${formValues.className || ''}`
+      ].join('\n');
+
       await db.update('EventRegistrations', userRegistration.id, {
         submittedData: formValues,
+        qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataText)}`,
       });
       
       const regs = await db.find('EventRegistrations');
