@@ -1,10 +1,34 @@
 import db from '../db';
+import { saveEntry as saveLeaderboardEntry } from './leaderboardService';
 
 export async function saveResult(data) {
-  return await db.insert('QuizResults', {
+  const result = await db.insert('QuizResults', {
     ...data,
     createdAt: new Date().toISOString(),
   });
+
+  try {
+    await saveLeaderboardEntry({
+      userId: data.userId,
+      userName: data.userName,
+      userEmail: data.userEmail,
+      userDepartment: data.userDepartment,
+      userCollege: data.userCollege,
+      quizId: data.quizId,
+      quizTitle: data.quizTitle,
+      quizCategory: data.quizCategory,
+      score: data.score,
+      total: data.total,
+      accuracy: data.accuracy,
+      timeTaken: data.timeTaken,
+      submittedAt: data.submittedAt,
+      badge: data.badge,
+    });
+  } catch (e) {
+    console.error('Failed to sync leaderboard entry:', e);
+  }
+
+  return result;
 }
 
 export async function getUserResults(userId, limit = 50) {

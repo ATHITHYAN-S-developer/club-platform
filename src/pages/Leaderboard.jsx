@@ -1,90 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import db from '../db.js';
+import { subscribeEntries, exportCSV } from '../services/leaderboardService';
 import LeaderboardPodium from '../components/quiz/LeaderboardPodium';
 import LeaderboardTable from '../components/quiz/LeaderboardTable';
 
-
 export default function Leaderboard({ user }) {
-  const [results, setResults] = useState([]);
+  const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quizFilter, setQuizFilter] = useState('all');
-  const [timeFilter, setTimeFilter] = useState('all');
 
   useEffect(() => {
-    loadData();
+    const unsub = subscribeEntries((data) => {
+      setEntries(data);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => unsub();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [rData, qData] = await Promise.all([
-        db.find('QuizResults'),
-        db.find('Quiz'),
-      ]);
-      const quizMap = {};
-      qData.forEach(q => { quizMap[q.id] = q; });
-      const enriched = rData.map(r => {
-        const q = quizMap[r.quizId];
-        return { ...r, total: r.total || q?.questions?.length || 1, totalTime: q?.timeLimit * 60 || 300 };
-      });
-      setResults(enriched);
-    } catch (e) {
-      console.error('Failed to load leaderboard:', e);
-    }
-    setLoading(false);
-  };
-
   const filteredResults = useMemo(() => {
-    let data = [...results];
-
+    let data = [...entries];
     if (quizFilter !== 'all') {
       data = data.filter(r => r.quizId === quizFilter);
     }
-
-    if (timeFilter === 'today') {
-      const today = new Date().toDateString();
-      data = data.filter(r => new Date(r.date || r.submittedAt).toDateString() === today);
-    } else if (timeFilter === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      data = data.filter(r => new Date(r.date || r.submittedAt) >= weekAgo);
-    } else if (timeFilter === 'month') {
-      const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      data = data.filter(r => new Date(r.date || r.submittedAt) >= monthAgo);
-    }
-
-    data.sort((a, b) => {
-      const aPct = (a.score || 0) / (a.total || 1);
-      const bPct = (b.score || 0) / (b.total || 1);
-      if (bPct !== aPct) return bPct - aPct;
-      const aAcc = a.accuracy || Math.round((a.score || 0) / (a.total || 1) * 100);
-      const bAcc = b.accuracy || Math.round((b.score || 0) / (b.total || 1) * 100);
-      if (bAcc !== aAcc) return bAcc - aAcc;
-      const aTime = a.timeTaken || a.timeSpent || 0;
-      const bTime = b.timeTaken || b.timeSpent || 0;
-      if (aTime !== bTime) return aTime - bTime;
-      return new Date(a.date || a.submittedAt) - new Date(b.date || b.submittedAt);
-    });
-
-    const seen = new Set();
-    data = data.filter(r => {
-      const key = `${r.userId}-${r.quizId}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    const ranked = data.map((r, i) => ({ ...r, rank: i + 1 }));
-
-    return ranked.map(r => ({
-      ...r,
-      badges: r.badge ? [r.badge] : [],
-    }));
-  }, [results, quizFilter, timeFilter]);
+    return data;
+  }, [entries, quizFilter]);
 
   const topThree = filteredResults.slice(0, 3);
+
   const stats = useMemo(() => {
     if (filteredResults.length === 0) return { participants: 0, avgScore: 0, highestScore: 0, avgAccuracy: 0, fastestTime: 0 };
     const avgScore = filteredResults.reduce((s, r) => s + (r.score || 0), 0) / filteredResults.length;
@@ -102,9 +44,9 @@ export default function Leaderboard({ user }) {
 
   const quizOptions = useMemo(() => {
     const map = {};
-    results.forEach(r => { map[r.quizId] = r.quizTitle; });
+    entries.forEach(r => { map[r.quizId] = r.quizTitle; });
     return Object.entries(map).map(([id, title]) => ({ id, title }));
-  }, [results]);
+  }, [entries]);
 
   if (loading) {
     return (
@@ -120,82 +62,82 @@ export default function Leaderboard({ user }) {
         <div className="page-header">
           <span className="page-tag"><i className="fas fa-ranking-star"></i> Leaderboard</span>
           <h1 className="page-title">Top Performers</h1>
-          <p className="page-subtitle">Ranked by highest score, accuracy, and completion time.</p>
+          <p className="page-subtitle">Ranked by highest score, fastest time, and earliest submission.</p>
         </div>
 
-        <div className="lb-stats">
-          <div className="lb-stat-card"><div className="lb-stat-value">{stats.participants}</div><div className="lb-stat-label">Participants</div></div>
-          <div className="lb-stat-card"><div className="lb-stat-value">{stats.avgScore}</div><div className="lb-stat-label">Avg Score</div></div>
-          <div className="lb-stat-card"><div className="lb-stat-value">{stats.highestScore}%</div><div className="lb-stat-label">Highest Score</div></div>
-          <div className="lb-stat-card"><div className="lb-stat-value">{stats.avgAccuracy}%</div><div className="lb-stat-label">Avg Accuracy</div></div>
-          <div className="lb-stat-card"><div className="lb-stat-value">{stats.fastestTime}s</div><div className="lb-stat-label">Fastest Time</div></div>
-        </div>
-
-        <div className="filter-bar">
-          <div className="filter-buttons">
-            {['all', 'today', 'week', 'month'].map(t => (
-              <button key={t} className={`btn btn-sm ${timeFilter === t ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTimeFilter(t)}>
-                {t === 'all' ? 'All Time' : t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+        {entries.length === 0 ? (
+          <div className="empty-state" style={{ marginTop: '2rem' }}>
+            <div className="empty-state-icon"><i className="fas fa-trophy"></i></div>
+            <h3>No leaderboard data available yet</h3>
+            <p>Complete a quiz to appear on the leaderboard.</p>
           </div>
-          <select className="form-select" style={{ width: 'auto', minWidth: 180 }} value={quizFilter} onChange={(e) => setQuizFilter(e.target.value)}>
-            <option value="all">All Quizzes</option>
-            {quizOptions.map(o => (
-              <option key={o.id} value={o.id}>{o.title}</option>
-            ))}
-          </select>
-        </div>
-
-        {topThree.length >= 3 && <LeaderboardPodium topThree={topThree} />}
-
-        <LeaderboardTable data={filteredResults} currentUserId={user?.id} />
-
-        {/* Personal Rank */}
-        {user && (() => {
-          const myEntries = filteredResults.filter(r => r.userId === user.id);
-          if (myEntries.length === 0) return null;
-          const best = myEntries.reduce((a, b) => ((b.score || 0) / (b.total || 1)) > ((a.score || 0) / (a.total || 1)) ? b : a);
-          if (best.rank <= 10) return null;
-          return (
-            <div style={{
-              marginTop: '1.5rem', padding: '1rem', borderRadius: 14,
-              background: 'var(--card)', border: '2px solid var(--orange)',
-              display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
-            }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: '50%',
-                background: 'rgba(255,85,0,0.1)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <i className="fas fa-user" style={{ color: 'var(--orange)', fontSize: '1.2rem' }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>Your Rank</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Best score: {best.percentage || Math.round((best.score || 0) / (best.total || 1) * 100)}%
-                </div>
-              </div>
-              <div style={{
-                fontSize: '1.8rem', fontWeight: 800, color: 'var(--orange)',
-              }}>
-                #{best.rank}
-              </div>
-              {best.badge && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '0.35rem',
-                  padding: '0.3rem 0.65rem', borderRadius: 8,
-                  background: `${best.badge.color}15`,
-                }}>
-                  <i className={`fas ${best.badge.icon || 'fa-medal'}`} style={{ color: best.badge.color }} />
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: best.badge.color }}>
-                    {best.badge.name}
-                  </span>
-                </div>
-              )}
+        ) : (
+          <>
+            <div className="lb-stats">
+              <div className="lb-stat-card"><div className="lb-stat-value">{stats.participants}</div><div className="lb-stat-label">Participants</div></div>
+              <div className="lb-stat-card"><div className="lb-stat-value">{stats.avgScore}</div><div className="lb-stat-label">Avg Score</div></div>
+              <div className="lb-stat-card"><div className="lb-stat-value">{stats.highestScore}%</div><div className="lb-stat-label">Highest Score</div></div>
+              <div className="lb-stat-card"><div className="lb-stat-value">{stats.avgAccuracy}%</div><div className="lb-stat-label">Avg Accuracy</div></div>
+              <div className="lb-stat-card"><div className="lb-stat-value">{stats.fastestTime}s</div><div className="lb-stat-label">Fastest Time</div></div>
             </div>
-          );
-        })()}
+
+            <div className="filter-bar">
+              <select className="form-select" style={{ width: 'auto', minWidth: 180 }} value={quizFilter} onChange={(e) => setQuizFilter(e.target.value)}>
+                <option value="all">All Quizzes</option>
+                {quizOptions.map(o => (
+                  <option key={o.id} value={o.id}>{o.title}</option>
+                ))}
+              </select>
+            </div>
+
+            {topThree.length >= 3 && <LeaderboardPodium topThree={topThree} />}
+
+            <LeaderboardTable data={filteredResults} currentUserId={user?.id} />
+
+            {user && (() => {
+              const myEntries = filteredResults.filter(r => r.userId === user.id);
+              if (myEntries.length === 0) return null;
+              const best = myEntries.reduce((a, b) => ((b.score || 0) / (b.total || 1)) > ((a.score || 0) / (a.total || 1)) ? b : a);
+              if (best.rank <= 10) return null;
+              return (
+                <div style={{
+                  marginTop: '1.5rem', padding: '1rem', borderRadius: 14,
+                  background: 'var(--card)', border: '2px solid var(--orange)',
+                  display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
+                }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: '50%',
+                    background: 'rgba(255,85,0,0.1)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <i className="fas fa-user" style={{ color: 'var(--orange)', fontSize: '1.2rem' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>Your Rank</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Best score: {best.percentage || Math.round((best.score || 0) / (best.total || 1) * 100)}%
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--orange)' }}>
+                    #{best.rank}
+                  </div>
+                  {best.badge && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.35rem',
+                      padding: '0.3rem 0.65rem', borderRadius: 8,
+                      background: `${best.badge.color}15`,
+                    }}>
+                      <i className={`fas ${best.badge.icon || 'fa-medal'}`} style={{ color: best.badge.color }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: best.badge.color }}>
+                        {best.badge.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </>
+        )}
       </motion.div>
     </div>
   );

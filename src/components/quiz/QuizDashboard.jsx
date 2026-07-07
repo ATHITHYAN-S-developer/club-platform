@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import db from '../../db.js';
+import { getUserBestRank } from '../../services/leaderboardService';
 
 export default function QuizDashboard({ user, onStartQuiz }) {
   const [quizzes, setQuizzes] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [heroVisible, setHeroVisible] = useState(false);
+  const [userBestRank, setUserBestRank] = useState(null);
   const heroRef = useRef(null);
 
   useEffect(() => {
@@ -17,6 +19,13 @@ export default function QuizDashboard({ user, onStartQuiz }) {
     if (heroRef.current) obs.observe(heroRef.current);
     return () => obs.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getUserBestRank(user.id).then(best => {
+      if (best) setUserBestRank(best);
+    }).catch(() => {});
+  }, [user?.id]);
 
   const loadData = async () => {
     setLoading(true);
@@ -479,6 +488,38 @@ export default function QuizDashboard({ user, onStartQuiz }) {
       {/* ── RESULTS ── */}
       {results.length > 0 && (
         <section className="quiz-results-section">
+          {userBestRank && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: '0.7rem 1rem', marginBottom: '1rem',
+              background: 'rgba(255,85,0,0.06)', borderRadius: 12,
+              border: '1px solid rgba(255,85,0,0.2)',
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(255,85,0,0.12)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="fas fa-trophy" style={{ color: 'var(--orange)', fontSize: '1.1rem' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>Your Best Rank</div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--orange)' }}>
+                  #{userBestRank.rank} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>in {userBestRank.quizTitle}</span>
+                </div>
+              </div>
+              {userBestRank.badge && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                  padding: '0.25rem 0.5rem', borderRadius: 8,
+                  background: `${userBestRank.badge.color}15`,
+                }}>
+                  <i className={`fas ${userBestRank.badge.icon || 'fa-medal'}`} style={{ color: userBestRank.badge.color, fontSize: '0.8rem' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: userBestRank.badge.color }}>{userBestRank.badge.name}</span>
+                </div>
+              )}
+            </div>
+          )}
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', marginBottom: '1rem', color: '#0f1117' }}>Your Results</h2>
           <div style={{ overflowX: 'auto', background: '#fff', border: '1px solid var(--border-light)', borderRadius: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
             <table>
