@@ -108,7 +108,7 @@ export default function AnnouncementDetails({ user }) {
             email: user.email || '',
             phone: user.phone || '',
             college: user.college || 'VCET',
-            department: user.department || '',
+            registerNumber: user.registerNumber || '',
             year: user.year || '1',
             className: user.className || '',
           });
@@ -141,7 +141,7 @@ export default function AnnouncementDetails({ user }) {
         `Name: ${formValues.fullName || ''}`,
         `Email: ${user.email}`,
         `Phone: ${formValues.phone || ''}`,
-        `Dept: ${formValues.department || ''}`,
+        `Reg No: ${formValues.registerNumber || ''}`,
         `Year: ${formValues.year || '1'}`,
         `Class: ${formValues.className || ''}`
       ].join('\n');
@@ -195,7 +195,7 @@ export default function AnnouncementDetails({ user }) {
         `Name: ${formValues.fullName || ''}`,
         `Email: ${user.email}`,
         `Phone: ${formValues.phone || ''}`,
-        `Dept: ${formValues.department || ''}`,
+        `Reg No: ${formValues.registerNumber || ''}`,
         `Year: ${formValues.year || '1'}`,
         `Class: ${formValues.className || ''}`
       ].join('\n');
@@ -509,10 +509,10 @@ export default function AnnouncementDetails({ user }) {
                         <input className="form-input form-input-sm" type="tel" value={formValues.phone || ''} onChange={e => setFormValues(p => ({ ...p, phone: e.target.value }))} required style={{ width: '100%' }} />
                       </div>
 
-                      {/* Department */}
+                      {/* Register Number */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Department *</label>
-                        <input className="form-input form-input-sm" value={formValues.department || ''} onChange={e => setFormValues(p => ({ ...p, department: e.target.value }))} required placeholder="e.g. CSE" style={{ width: '100%' }} />
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Register Number *</label>
+                        <input className="form-input form-input-sm" value={formValues.registerNumber || ''} onChange={e => setFormValues(p => ({ ...p, registerNumber: e.target.value }))} required placeholder="e.g. 917621104001" style={{ width: '100%' }} />
                       </div>
 
                       {/* Year select */}
@@ -533,7 +533,7 @@ export default function AnnouncementDetails({ user }) {
                       </div>
 
                       {/* Render extra custom fields if configured */}
-                      {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'department', 'className', 'year'].includes(f.id)).map(f => (
+                      {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => (
                         <div key={f.id}>
                           <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{f.label} {f.required && '*'}</label>
                           {f.type === 'select' ? (

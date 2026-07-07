@@ -123,7 +123,7 @@ export default function RegistrationDashboard({ announcement }) {
     
     // Create header fields
     const customHeaders = announcement.formFields?.map(f => f.label) || [];
-    const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Department', 'Year', 'Class', ...customHeaders];
+    const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Register Number', 'Year', 'Class', ...customHeaders];
     
     const rows = registrations.map(r => {
       const ddata = r.submittedData || {};
@@ -135,7 +135,7 @@ export default function RegistrationDashboard({ announcement }) {
         r.status,
         ddata.fullName || '—',
         ddata.phone || '—',
-        ddata.department || '—',
+        ddata.registerNumber || '—',
         ddata.year || '—',
         ddata.className || '—',
         ...customRowData
@@ -299,7 +299,7 @@ export default function RegistrationDashboard({ announcement }) {
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Name</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Contact Details</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Dept, Yr & Class</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Reg No, Yr & Class</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Registered On</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Status</th>
                   <th style={{ textAlign: 'center', padding: '0.75rem 1rem' }}>Action Operations</th>
@@ -324,7 +324,8 @@ export default function RegistrationDashboard({ announcement }) {
                         <div style={{ color: 'var(--text-secondary)' }}>{ddata.phone || '—'}</div>
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem' }}>
-                        {(ddata.department || '—').toUpperCase()} (Yr {ddata.year || '—'}, {ddata.className || '—'})
+                        <div>{ddata.registerNumber || '—'}</div>
+                        <div style={{ color: 'var(--text-secondary)' }}>Yr {ddata.year || '—'}, {ddata.className || '—'}</div>
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                         {new Date(r.registeredAt).toLocaleDateString()} at {new Date(r.registeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
