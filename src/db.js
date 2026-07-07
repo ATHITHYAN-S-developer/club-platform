@@ -116,6 +116,7 @@ const initialCollections = {
   QuizAttempt: [],
   Violations: [],
   Notifications: [],
+  EventRegistrations: [],
   WeeklyTasks: [
     { id: 'tsk_1', title: 'Glassmorphic Card Re-creation', description: 'Design and build a gorgeous glassmorphic product card using custom CSS shadows, dynamic HSL colors, and blur backdrops. Submit a single HTML file containing styles.', deadline: '2026-07-02T23:59:00Z', active: true },
     { id: 'tsk_2', title: 'Algorithm Optimization: Array Deduplication', description: 'Write an optimized JavaScript algorithm to deduplicate arrays with over 10,000 coordinates. Measure execution time and document benchmarks.', deadline: '2026-06-20T23:59:00Z', active: false },

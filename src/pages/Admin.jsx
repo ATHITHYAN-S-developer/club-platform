@@ -5,6 +5,7 @@ import LeaderboardAdmin from './admin/LeaderboardAdmin';
 import StudentManagement from './admin/StudentManagement';
 import AnalyticsTab from './admin/AnalyticsTab';
 import SecuritySettings from './admin/SecuritySettings';
+import AnnouncementAdmin from './admin/AnnouncementAdmin';
 
 const SIDEBAR_SECTIONS = [
   {
@@ -22,6 +23,7 @@ const SIDEBAR_SECTIONS = [
       { id: 'members',     label: 'Members',       icon: 'fa-users' },
       { id: 'core',        label: 'Core Board',    icon: 'fa-star' },
       { id: 'events',      label: 'Events',        icon: 'fa-calendar' },
+      { id: 'announcements', label: 'Announcements', icon: 'fa-bullhorn' },
       { id: 'messages',    label: 'Messages',      icon: 'fa-envelope' },
       { id: 'quizzes',     label: 'Quizzes',       icon: 'fa-question-circle' },
       { id: 'students',    label: 'Students',      icon: 'fa-graduation-cap' },
@@ -1559,6 +1561,7 @@ export default function Admin({ user }) {
           {tab === 'members'      && <MembersTab />}
           {tab === 'core'         && <CoreBoardTab allMembers={members} />}
           {tab === 'events'       && <EventsTab />}
+          {tab === 'announcements' && <AnnouncementAdmin />}
           {tab === 'messages'     && <MessagesTab />}
           {tab === 'quizzes'      && <QuizManagement />}
           {tab === 'students'     && <StudentManagement />}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import db from '../db';
+import NotificationCenter from './NotificationCenter';
 
 export default function Header({ user }) {
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ export default function Header({ user }) {
 
   const navItems = [
     { to: '/', label: 'Home', icon: 'fa-house' },
+    { to: '/announcements', label: 'Announcements', icon: 'fa-bullhorn' },
+    { to: '/my-registrations', label: 'My Registrations', icon: 'fa-ticket-simple' },
     { to: '/members', label: 'Members', icon: 'fa-users' },
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
@@ -51,15 +54,15 @@ export default function Header({ user }) {
 
   const primaryNavItems = [
     { to: '/', label: 'Home', icon: 'fa-house' },
+    { to: '/announcements', label: 'Announcements', icon: 'fa-bullhorn' },
     { to: '/members', label: 'Members', icon: 'fa-users' },
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/events', label: 'Events', icon: 'fa-calendar-days' },
-    { to: '/contact', label: 'Contact', icon: 'fa-phone' },
   ];
 
   const exploreNavItems = [
+    { to: '/my-registrations', label: 'My Registrations', icon: 'fa-ticket-simple' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
-    { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/quiz', label: 'Quiz', icon: 'fa-brain' },
     { to: '/careers', label: 'Careers', icon: 'fa-diagram-project' },
     { to: '/leaderboard', label: 'Leaderboard', icon: 'fa-ranking-star' },
@@ -102,13 +105,15 @@ export default function Header({ user }) {
 
 
         {user ? (
-          <div className="profile-dropdown-container" ref={profileRef}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span className="header-email-display" style={{ fontSize: '0.83rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{user.email}</span>
-              <button className="profile-trigger" onClick={() => setIsProfileOpen(prev => !prev)}>
-                <img className="profile-avatar-top" src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=ff5500&color=fff`} alt={user.name} />
-              </button>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <NotificationCenter user={user} />
+            <div className="profile-dropdown-container" ref={profileRef}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span className="header-email-display" style={{ fontSize: '0.83rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{user.email}</span>
+                <button className="profile-trigger" onClick={() => setIsProfileOpen(prev => !prev)}>
+                  <img className="profile-avatar-top" src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=ff5500&color=fff`} alt={user.name} />
+                </button>
+              </div>
             <div className={`profile-dropdown-menu ${isProfileOpen ? 'active' : ''}`}>
               <div className="dropdown-user-header">
                 <span className="dropdown-user-name">{user.name}</span>
@@ -123,6 +128,7 @@ export default function Header({ user }) {
                 <i className="fa-solid fa-right-from-bracket"></i> Logout
               </button>
             </div>
+          </div>
           </div>
         ) : (
           <Link to="/signup" className="btn btn-primary btn-sm header-signin-btn">

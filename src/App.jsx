@@ -24,6 +24,9 @@ const Auth = lazy(() => import('./pages/Auth'));
 const Signup = lazy(() => import('./pages/Signup'));
 const MyResults = lazy(() => import('./pages/MyResults'));
 const MyBadges = lazy(() => import('./pages/MyBadges'));
+const Announcements = lazy(() => import('./pages/Announcements'));
+const AnnouncementDetails = lazy(() => import('./pages/AnnouncementDetails'));
+const MyRegistrations = lazy(() => import('./pages/MyRegistrations'));
 
 function PageLoading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}><Loading /></div>;
@@ -95,6 +98,9 @@ export default function App() {
               <Route path="/careers" element={<ProtectedRoute user={user} authLoading={authLoading}><Careers /></ProtectedRoute>} />
               <Route path="/my-results" element={<ProtectedRoute user={user} authLoading={authLoading}><MyResults user={user} /></ProtectedRoute>} />
               <Route path="/my-badges" element={<ProtectedRoute user={user} authLoading={authLoading}><MyBadges user={user} /></ProtectedRoute>} />
+              <Route path="/announcements" element={<Announcements user={user} />} />
+              <Route path="/announcements/:id" element={<AnnouncementDetails user={user} />} />
+              <Route path="/my-registrations" element={<ProtectedRoute user={user} authLoading={authLoading}><MyRegistrations user={user} /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><Admin user={user} /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -58,6 +58,8 @@ const COLLECTIONS_TO_CLEAR = [
   'WeeklyTasks',
   'TaskSubmissions',
   'Announcements',
+  'EventRegistrations',
+  'Notifications',
   'JoinRequests',
   'WeeklyWinners',
   'CoreMembers',
