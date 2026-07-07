@@ -470,6 +470,12 @@ export default function AnnouncementDetails({ user }) {
                         <input className="form-input form-input-sm" value={formValues.fullName || ''} onChange={e => setFormValues(p => ({ ...p, fullName: e.target.value }))} required style={{ width: '100%' }} />
                       </div>
 
+                      {/* Email (Read-only as they are logged in) */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Email Address *</label>
+                        <input className="form-input form-input-sm" type="email" value={formValues.email || ''} readOnly style={{ width: '100%', opacity: 0.8, cursor: 'not-allowed', background: 'rgba(0,0,0,0.03)' }} />
+                      </div>
+
                       {/* Phone */}
                       <div>
                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Phone Number *</label>
@@ -489,7 +495,7 @@ export default function AnnouncementDetails({ user }) {
                       </div>
 
                       {/* Render extra custom fields if configured */}
-                      {ann.formFields?.map(f => (
+                      {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'department', 'className', 'year'].includes(f.id)).map(f => (
                         <div key={f.id}>
                           <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{f.label} {f.required && '*'}</label>
                           {f.type === 'select' ? (
