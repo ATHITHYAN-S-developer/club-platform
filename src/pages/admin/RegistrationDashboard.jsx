@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import db from '../../db';
 
 export default function RegistrationDashboard({ announcement }) {
+  const [ann, setAnn] = useState(announcement);
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +25,10 @@ export default function RegistrationDashboard({ announcement }) {
     }
   };
 
-  useEffect(() => { loadRegistrations(); }, [announcement.id]);
+  useEffect(() => {
+    setAnn(announcement);
+    loadRegistrations();
+  }, [announcement.id]);
 
   // Statistics Computations
   const stats = useMemo(() => {
@@ -33,12 +37,12 @@ export default function RegistrationDashboard({ announcement }) {
     const confirmed = list.filter(r => r.status === 'Registered').length;
     const waitlisted = list.filter(r => r.status === 'Waitlisted').length;
     const checkedIn = list.filter(r => r.status === 'Checked In').length;
-    const limit = announcement.seatsLimit || 100;
+    const limit = ann.seatsLimit || 100;
     const remaining = Math.max(0, limit - (confirmed + checkedIn));
     const rate = limit > 0 ? Math.round(((confirmed + checkedIn) / limit) * 100) : 0;
 
     return { total, confirmed, waitlisted, checkedIn, limit, remaining, rate };
-  }, [registrations, announcement]);
+  }, [registrations, ann]);
 
   // Analytics aggregations (Dept, Year, Daily registrations)
   const analytics = useMemo(() => {
@@ -117,17 +121,41 @@ export default function RegistrationDashboard({ announcement }) {
     }
   };
 
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const handleToggleRegistrationClose = async () => {
+    const isClosed = ann.eventStatus === 'Registration Closed';
+    const nextStatus = isClosed ? 'Registration Open' : 'Registration Closed';
+    
+    if (!window.confirm(`Are you sure you want to ${isClosed ? 'reopen' : 'close'} registrations for this event?`)) {
+      return;
+    }
+    
+    setUpdatingStatus(true);
+    try {
+      const updated = await db.update('Announcements', ann.id, {
+        eventStatus: nextStatus,
+        status: nextStatus === 'Draft' ? 'draft' : 'published'
+      });
+      setAnn(updated);
+      window.showToast('Success', `Registration has been manually ${isClosed ? 'reopened' : 'closed'}.`, 'success');
+    } catch (err) {
+      window.showToast('Error', 'Failed to update registration status: ' + err.message, 'error');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   // Exporters
   const handleExportCSV = () => {
     if (!registrations.length) return;
     
     // Create header fields
-    const customHeaders = announcement.formFields?.map(f => f.label) || [];
+    const customHeaders = ann.formFields?.map(f => f.label) || [];
     const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Register Number', 'Year', 'Class', ...customHeaders];
     
     const rows = registrations.map(r => {
       const ddata = r.submittedData || {};
-      const customRowData = announcement.formFields?.map(f => ddata[f.id] ?? '—') || [];
+      const customRowData = ann.formFields?.map(f => ddata[f.id] ?? '—') || [];
       return [
         r.id || '—',
         r.userEmail || '—',
@@ -150,7 +178,7 @@ export default function RegistrationDashboard({ announcement }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `${announcement.title.toLowerCase().replace(/\s+/g, '_')}_registrations.csv`);
+    link.setAttribute('download', `${ann.title.toLowerCase().replace(/\s+/g, '_')}_registrations.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -167,15 +195,33 @@ export default function RegistrationDashboard({ announcement }) {
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.25rem', display: 'flex', justifyItem: 'center', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--orange)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dashboard for</span>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 850, color: 'var(--text)', margin: '0.15rem 0 0' }}>{announcement.title}</h2>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 850, color: 'var(--text)', margin: '0.15rem 0 0' }}>{ann.title}</h2>
           <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-            <span><i className="fa-regular fa-calendar" /> {new Date(announcement.date).toLocaleDateString()}</span>
+            <span><i className="fa-regular fa-calendar" /> {new Date(ann.date).toLocaleDateString()}</span>
             <span>•</span>
-            <span><i className="fa-solid fa-location-dot" /> {announcement.venue}</span>
+            <span><i className="fa-solid fa-location-dot" /> {ann.venue}</span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {ann.registrationEnabled && (
+            <button
+              className="btn btn-sm"
+              disabled={updatingStatus}
+              onClick={handleToggleRegistrationClose}
+              style={{
+                background: ann.eventStatus === 'Registration Closed' ? '#22c55e' : '#ef4444',
+                color: '#fff',
+                borderColor: ann.eventStatus === 'Registration Closed' ? '#22c55e' : '#ef4444',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem'
+              }}
+            >
+              <i className={ann.eventStatus === 'Registration Closed' ? 'fa-solid fa-lock-open' : 'fa-solid fa-lock'} />
+              {ann.eventStatus === 'Registration Closed' ? 'Reopen Registration' : 'Close Registration'}
+            </button>
+          )}
           <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>
             <i className="fas fa-file-csv" style={{ marginRight: '0.3rem' }} /> Export Excel / CSV
           </button>
