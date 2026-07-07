@@ -57,7 +57,7 @@ export default function AnnouncementAdmin() {
         { id: 'email', label: 'Email Address', type: 'email', required: true },
         { id: 'phone', label: 'Phone Number', type: 'tel', required: true },
         { id: 'department', label: 'Department', type: 'text', required: true },
-        { id: 'year', label: 'Year', type: 'select', options: ['1', '2', '3', '4'], required: true },
+        { id: 'className', label: 'Class & Year', type: 'text', required: true },
       ],
       faqs: [], gallery: { photos: [], videos: [], slides: [] }
     });

@@ -53,8 +53,14 @@ export default function RegistrationDashboard({ announcement }) {
       const dept = (ddata.department || 'Other').toUpperCase().trim();
       depts[dept] = (depts[dept] || 0) + 1;
 
-      // Year
-      const year = ddata.year || '1';
+      // Year extraction from Class Name
+      const cls = (ddata.className || ddata.year || '').toUpperCase();
+      let year = '1';
+      if (cls.includes('4') || cls.includes('IV') || cls.includes('FINAL')) year = '4';
+      else if (cls.includes('3') || cls.includes('III') || cls.includes('THIRD')) year = '3';
+      else if (cls.includes('2') || cls.includes('II') || cls.includes('SECOND')) year = '2';
+      else if (cls.includes('1') || cls.includes('I') || cls.includes('FIRST')) year = '1';
+      
       if (years[year] !== undefined) years[year]++;
 
       // Daily
@@ -117,7 +123,7 @@ export default function RegistrationDashboard({ announcement }) {
     
     // Create header fields
     const customHeaders = announcement.formFields?.map(f => f.label) || [];
-    const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Department', 'Year', ...customHeaders];
+    const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Department', 'Class & Year', ...customHeaders];
     
     const rows = registrations.map(r => {
       const ddata = r.submittedData || {};
@@ -130,7 +136,7 @@ export default function RegistrationDashboard({ announcement }) {
         ddata.fullName || '—',
         ddata.phone || '—',
         ddata.department || '—',
-        ddata.year || '—',
+        ddata.className || ddata.year || '—',
         ...customRowData
       ].map(val => `"${val.toString().replace(/"/g, '""')}"`);
     });
@@ -292,7 +298,7 @@ export default function RegistrationDashboard({ announcement }) {
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Name</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Contact Details</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Department & Year</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Department & Class</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Registered On</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1rem' }}>Status</th>
                   <th style={{ textAlign: 'center', padding: '0.75rem 1rem' }}>Action Operations</th>
@@ -317,7 +323,7 @@ export default function RegistrationDashboard({ announcement }) {
                         <div style={{ color: 'var(--text-secondary)' }}>{ddata.phone || '—'}</div>
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem' }}>
-                        {(ddata.department || '—').toUpperCase()} (Yr {ddata.year || '—'})
+                        {(ddata.department || '—').toUpperCase()} ({ddata.className || ddata.year || '—'})
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                         {new Date(r.registeredAt).toLocaleDateString()} at {new Date(r.registeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
