@@ -1,6 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
+const formatDuration = (seconds) => {
+  if (!seconds || seconds <= 0) return '-';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+};
+
 export default function LeaderboardTable({ data, currentUserId }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -65,6 +72,7 @@ export default function LeaderboardTable({ data, currentUserId }) {
               const rank = (page - 1) * perPage + i + 1;
               const accuracy = p.accuracy || Math.round((p.score || 0) / (p.total || 1) * 100);
               const badges = p.badges || [];
+              const avatarUrl = p.userPhoto || p.photo || p.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.userName || p.name || 'Anonymous')}&background=ff5500&color=fff`;
               return (
                 <motion.tr
                   key={p.id || `${p.userId}-${p.quizId}`}
@@ -85,7 +93,7 @@ export default function LeaderboardTable({ data, currentUserId }) {
                   <td>
                     <div className="lb-player-cell">
                       <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.userName || p.name)}&background=ff5500&color=fff`}
+                        src={avatarUrl}
                         alt=""
                         className="lb-avatar"
                       />
@@ -101,7 +109,7 @@ export default function LeaderboardTable({ data, currentUserId }) {
                     <span className="accuracy-dot" style={{ background: getAccuracyColor(accuracy) }}></span>
                     {accuracy}%
                   </td>
-                  <td>{p.timeTaken || p.timeSpent || '-'}s</td>
+                  <td>{formatDuration(p.timeTaken || p.timeSpent)}</td>
                   <td>
                     <div className="lb-badges">
                       {badges.slice(0, 3).map((b, bi) => (

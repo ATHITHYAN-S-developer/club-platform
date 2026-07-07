@@ -1,6 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+const formatDuration = (seconds) => {
+  if (!seconds || seconds <= 0) return '-';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+};
+
 export default function LeaderboardPodium({ topThree }) {
   const positions = [
     { rank: 2, label: '2nd', icon: 'fa-medal', color: '#a0a0a0', delay: 0.2 },
@@ -26,7 +33,7 @@ export default function LeaderboardPodium({ topThree }) {
               </div>
               <div className="podium-avatar">
                 {player ? (
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(player.userName || player.name)}&background=ff5500&color=fff`} alt="" />
+                  <img src={player.userPhoto || player.photo || player.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.userName || player.name || 'Anonymous')}&background=ff5500&color=fff`} alt="" />
                 ) : (
                   <i className="fas fa-user"></i>
                 )}
@@ -36,6 +43,9 @@ export default function LeaderboardPodium({ topThree }) {
               <strong>{player?.userName || player?.name || '---'}</strong>
               <span className="podium-score">{player?.score || 0}/{player?.total || 0}</span>
               <span className="podium-accuracy">{player?.accuracy || Math.round((player?.score || 0) / (player?.total || 1) * 100)}% accuracy</span>
+              <span className="podium-time" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Time: {player ? formatDuration(player.timeTaken || player.timeSpent) : '—'}
+              </span>
               {player?.badge && (
                 <span style={{
                   marginTop: '0.3rem', fontSize: '0.72rem', fontWeight: 600,

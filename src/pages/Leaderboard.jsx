@@ -4,9 +4,24 @@ import db from '../db.js';
 import LeaderboardPodium from '../components/quiz/LeaderboardPodium';
 import LeaderboardTable from '../components/quiz/LeaderboardTable';
 
+// Helper to format seconds to m and s format
+const formatDuration = (seconds) => {
+  if (!seconds || seconds <= 0) return '-';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+};
+
+// Safe date parsing helper
+const safeGetDate = (dateStr) => {
+  if (!dateStr) return new Date(0);
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? new Date(0) : d;
+};
 
 export default function Leaderboard({ user }) {
   const [results, setResults] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quizFilter, setQuizFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all');
@@ -22,15 +37,29 @@ export default function Leaderboard({ user }) {
         db.find('QuizResults'),
         db.find('Quiz'),
       ]);
+
+      const validResults = Array.isArray(rData) ? rData : [];
+      const validQuizzes = Array.isArray(qData) ? qData : [];
+
+      setQuizzes(validQuizzes);
+
       const quizMap = {};
-      qData.forEach(q => { quizMap[q.id] = q; });
-      const enriched = rData.map(r => {
+      validQuizzes.forEach(q => { quizMap[q.id] = q; });
+
+      const enriched = validResults.map(r => {
         const q = quizMap[r.quizId];
-        return { ...r, total: r.total || q?.questions?.length || 1, totalTime: q?.timeLimit * 60 || 300 };
+        return {
+          ...r,
+          total: r.total || q?.questions?.length || 1,
+          totalTime: q?.timeLimit * 60 || 300,
+          userName: r.userName || 'Anonymous',
+          userPhoto: r.userPhoto || r.photo || null,
+        };
       });
+
       setResults(enriched);
     } catch (e) {
-      console.error('Failed to load leaderboard:', e);
+      console.error('Failed to load leaderboard data:', e);
     }
     setLoading(false);
   };
@@ -38,44 +67,55 @@ export default function Leaderboard({ user }) {
   const filteredResults = useMemo(() => {
     let data = [...results];
 
+    // Filter by quiz
     if (quizFilter !== 'all') {
       data = data.filter(r => r.quizId === quizFilter);
     }
 
+    // Filter by time period
+    const today = new Date();
     if (timeFilter === 'today') {
-      const today = new Date().toDateString();
-      data = data.filter(r => new Date(r.date || r.submittedAt).toDateString() === today);
+      const todayStr = today.toDateString();
+      data = data.filter(r => safeGetDate(r.date || r.submittedAt).toDateString() === todayStr);
     } else if (timeFilter === 'week') {
       const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      data = data.filter(r => new Date(r.date || r.submittedAt) >= weekAgo);
+      weekAgo.setDate(today.getDate() - 7);
+      data = data.filter(r => safeGetDate(r.date || r.submittedAt) >= weekAgo);
     } else if (timeFilter === 'month') {
       const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      data = data.filter(r => new Date(r.date || r.submittedAt) >= monthAgo);
+      monthAgo.setMonth(today.getMonth() - 1);
+      data = data.filter(r => safeGetDate(r.date || r.submittedAt) >= monthAgo);
     }
 
+    // Sort by best score percentage, then best accuracy percentage, then fastest time, then earliest submission date
     data.sort((a, b) => {
       const aPct = (a.score || 0) / (a.total || 1);
       const bPct = (b.score || 0) / (b.total || 1);
       if (bPct !== aPct) return bPct - aPct;
+
       const aAcc = a.accuracy || Math.round((a.score || 0) / (a.total || 1) * 100);
       const bAcc = b.accuracy || Math.round((b.score || 0) / (b.total || 1) * 100);
       if (bAcc !== aAcc) return bAcc - aAcc;
-      const aTime = a.timeTaken || a.timeSpent || 0;
-      const bTime = b.timeTaken || b.timeSpent || 0;
+
+      // Handle time taken safely (treat 0 or missing as maximum possible completion time)
+      const aTime = a.timeTaken || a.timeSpent || 999999;
+      const bTime = b.timeTaken || b.timeSpent || 999999;
       if (aTime !== bTime) return aTime - bTime;
-      return new Date(a.date || a.submittedAt) - new Date(b.date || b.submittedAt);
+
+      return safeGetDate(a.date || a.submittedAt).getTime() - safeGetDate(b.date || b.submittedAt).getTime();
     });
 
+    // Deduplicate per user per quiz so only their absolute best attempt shows
     const seen = new Set();
     data = data.filter(r => {
-      const key = `${r.userId}-${r.quizId}`;
+      const userKey = r.userId || r.userEmail || r.userName || r.id || 'anonymous';
+      const key = `${userKey}-${r.quizId}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
 
+    // Add rank numbering
     const ranked = data.map((r, i) => ({ ...r, rank: i + 1 }));
 
     return ranked.map(r => ({
@@ -85,26 +125,37 @@ export default function Leaderboard({ user }) {
   }, [results, quizFilter, timeFilter]);
 
   const topThree = filteredResults.slice(0, 3);
+
   const stats = useMemo(() => {
-    if (filteredResults.length === 0) return { participants: 0, avgScore: 0, highestScore: 0, avgAccuracy: 0, fastestTime: 0 };
+    if (filteredResults.length === 0) {
+      return { participants: 0, avgScore: 0, highestScore: 0, avgAccuracy: 0, fastestTime: '-' };
+    }
+
+    const uniqueParticipants = new Set(filteredResults.map(r => r.userId || r.userEmail || r.userName || r.id)).size;
     const avgScore = filteredResults.reduce((s, r) => s + (r.score || 0), 0) / filteredResults.length;
-    const highestScore = Math.max(...filteredResults.map(r => (r.score || 0) / (r.total || 1) * 100));
+    const highestScore = Math.max(...filteredResults.map(r => ((r.score || 0) / (r.total || 1)) * 100));
     const avgAcc = filteredResults.reduce((s, r) => s + (r.accuracy || Math.round((r.score || 0) / (r.total || 1) * 100)), 0) / filteredResults.length;
-    const fastestTime = Math.min(...filteredResults.map(r => r.timeTaken || r.timeSpent || 999999));
+
+    // Only look at actual positive completion times
+    const validTimes = filteredResults.map(r => r.timeTaken || r.timeSpent || 0).filter(t => t > 0);
+    const fastestTime = validTimes.length > 0 ? Math.min(...validTimes) : 0;
+
     return {
-      participants: filteredResults.length,
+      participants: uniqueParticipants,
       avgScore: Math.round(avgScore * 10) / 10,
       highestScore: Math.round(highestScore),
       avgAccuracy: Math.round(avgAcc),
-      fastestTime: fastestTime === 999999 ? 0 : fastestTime,
+      fastestTime: fastestTime > 0 ? formatDuration(fastestTime) : '-',
     };
   }, [filteredResults]);
 
+  // Retrieve quizzes lists from both the results set and the database for robust filters dropdown listing
   const quizOptions = useMemo(() => {
     const map = {};
-    results.forEach(r => { map[r.quizId] = r.quizTitle; });
+    quizzes.forEach(q => { map[q.id] = q.title; });
+    results.forEach(r => { if (r.quizId && !map[r.quizId]) map[r.quizId] = r.quizTitle; });
     return Object.entries(map).map(([id, title]) => ({ id, title }));
-  }, [results]);
+  }, [quizzes, results]);
 
   if (loading) {
     return (
@@ -128,7 +179,7 @@ export default function Leaderboard({ user }) {
           <div className="lb-stat-card"><div className="lb-stat-value">{stats.avgScore}</div><div className="lb-stat-label">Avg Score</div></div>
           <div className="lb-stat-card"><div className="lb-stat-value">{stats.highestScore}%</div><div className="lb-stat-label">Highest Score</div></div>
           <div className="lb-stat-card"><div className="lb-stat-value">{stats.avgAccuracy}%</div><div className="lb-stat-label">Avg Accuracy</div></div>
-          <div className="lb-stat-card"><div className="lb-stat-value">{stats.fastestTime}s</div><div className="lb-stat-label">Fastest Time</div></div>
+          <div className="lb-stat-card"><div className="lb-stat-value">{stats.fastestTime}</div><div className="lb-stat-label">Fastest Time</div></div>
         </div>
 
         <div className="filter-bar">
@@ -153,7 +204,7 @@ export default function Leaderboard({ user }) {
 
         {/* Personal Rank */}
         {user && (() => {
-          const myEntries = filteredResults.filter(r => r.userId === user.id);
+          const myEntries = filteredResults.filter(r => r.userId === user.id || r.userEmail === user.email);
           if (myEntries.length === 0) return null;
           const best = myEntries.reduce((a, b) => ((b.score || 0) / (b.total || 1)) > ((a.score || 0) / (a.total || 1)) ? b : a);
           if (best.rank <= 10) return null;
