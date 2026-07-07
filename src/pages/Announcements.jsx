@@ -75,7 +75,7 @@ export default function Announcements({ user }) {
     });
   }, [announcements, search, categoryFilter, priorityFilter, statusFilter, user]);
 
-  const pinned = useMemo(() => filtered.filter(a => a.pinned && a.status !== 'draft' && a.eventStatus !== 'Draft'), [filtered]);
+  const pinned = useMemo(() => filtered.filter(a => a.pinned), [filtered]);
   const unpinned = useMemo(() => filtered.filter(a => !a.pinned), [filtered]);
 
   const upcomingEvents = useMemo(() => {
@@ -140,6 +140,49 @@ export default function Announcements({ user }) {
 
   return (
     <div className="main-content">
+      <style>{`
+        .announcements-grid-layout {
+          display: grid;
+          grid-template-columns: 1fr 300px;
+          gap: 2rem;
+        }
+        .announcement-card-item {
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: var(--shadow-sm);
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+        }
+        .announcement-card-item:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-md);
+          border-color: var(--orange);
+        }
+        .announcement-filter-grid {
+          display: grid;
+          grid-template-columns: 1fr auto auto auto;
+          gap: 0.75rem;
+          margin-bottom: 2rem;
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 1rem;
+        }
+        @media (max-width: 900px) {
+          .announcements-grid-layout {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+          }
+          .announcement-filter-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.6rem !important;
+          }
+        }
+      `}</style>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         
         {/* Header */}
@@ -150,12 +193,7 @@ export default function Announcements({ user }) {
         </div>
 
         {/* Filter Bar */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0.75rem',
-          marginBottom: '2rem', flexWrap: 'wrap',
-          background: 'var(--card)', border: '1px solid var(--border)',
-          borderRadius: 16, padding: '1rem',
-        }}>
+        <div className="announcement-filter-grid">
           <div style={{ position: 'relative' }}>
             <i className="fas fa-search" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
@@ -163,7 +201,7 @@ export default function Announcements({ user }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search announcements, topics..."
-              style={{ paddingLeft: '2.3rem', width: '100%' }}
+              style={{ paddingLeft: '2.3rem', width: '100%', boxSizing: 'border-box' }}
             />
           </div>
 
@@ -191,7 +229,7 @@ export default function Announcements({ user }) {
         </div>
 
         {/* Main Grid Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
+        <div className="announcements-grid-layout">
           
           {/* Announcements list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -209,11 +247,8 @@ export default function Announcements({ user }) {
                     key={a.id}
                     initial={{ y: 15, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    style={{
-                      background: 'var(--card)', border: '2px solid var(--orange)',
-                      borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--shadow-md)',
-                      display: 'flex', flexDirection: 'column',
-                    }}
+                    className="announcement-card-item"
+                    style={{ border: '2px solid var(--orange)' }}
                   >
                     {a.bannerUrl && (
                       <div style={{ height: 180, overflow: 'hidden', position: 'relative' }}>
@@ -279,11 +314,7 @@ export default function Announcements({ user }) {
                     key={a.id}
                     initial={{ y: 15, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    style={{
-                      background: 'var(--card)', border: '1px solid var(--border)',
-                      borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--shadow-sm)',
-                      display: 'flex', flexDirection: 'column', position: 'relative',
-                    }}
+                    className="announcement-card-item"
                   >
                     {a.status === 'draft' && (
                       <span style={{ position: 'absolute', top: '1rem', left: '1rem', background: '#6b7280', color: '#fff', fontSize: '0.64rem', fontWeight: 800, padding: '0.25rem 0.5rem', borderRadius: 6, zIndex: 10 }}>
