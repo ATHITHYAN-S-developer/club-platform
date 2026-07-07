@@ -184,6 +184,50 @@ export default function AnnouncementAdmin() {
     }));
   };
 
+  const handleDownloadCSV = async (ann) => {
+    try {
+      const regs = await db.find('EventRegistrations');
+      const filtered = regs.filter(r => r.announcementId === ann.id);
+      if (!filtered.length) {
+        window.showToast('No Data', 'No registrations found for this event.', 'info');
+        return;
+      }
+      
+      const customHeaders = ann.formFields?.map(f => f.label) || [];
+      const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Register Number', 'Year', 'Class', ...customHeaders];
+      
+      const rows = filtered.map(r => {
+        const ddata = r.submittedData || {};
+        const customRowData = ann.formFields?.map(f => ddata[f.id] ?? '—') || [];
+        return [
+          r.id,
+          r.userEmail,
+          new Date(r.registeredAt).toLocaleDateString(),
+          r.status,
+          ddata.fullName || '—',
+          ddata.phone || '—',
+          ddata.registerNumber || '—',
+          ddata.year || '—',
+          ddata.className || '—',
+          ...customRowData
+        ].map(val => `"${val.toString().replace(/"/g, '""')}"`);
+      });
+
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${ann.title.toLowerCase().replace(/\s+/g, '_')}_registrations.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.showToast('Downloaded', 'CSV file downloaded successfully.', 'success');
+    } catch (err) {
+      window.showToast('Error', 'Failed to export CSV: ' + err.message, 'error');
+    }
+  };
+
   if (currentView === 'dashboard' && selectedAnn) {
     return (
       <div>
@@ -274,6 +318,11 @@ export default function AnnouncementAdmin() {
                       )}
                     </td>
                     <td style={{ padding: '0.75rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                      {a.registrationEnabled && (
+                        <button onClick={() => handleDownloadCSV(a)} style={{ background: '#e0f2fe', border: 'none', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#0284c7' }} title="Download registrations (Excel/CSV)">
+                          <i className="fa-solid fa-download" />
+                        </button>
+                      )}
                       <button onClick={() => handleTogglePin(a)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)' }} title={a.pinned ? 'Unpin' : 'Pin'}>
                         <i className="fa-solid fa-thumbtack" />
                       </button>
