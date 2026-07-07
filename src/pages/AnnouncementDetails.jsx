@@ -280,6 +280,58 @@ export default function AnnouncementDetails({ user }) {
           grid-template-columns: 1fr 340px;
           gap: 2rem;
         }
+        .google-form-card {
+          background: #fff;
+          border: 1px solid #dadce0;
+          border-radius: 8px;
+          padding: 1.25rem 1.5rem;
+          margin-bottom: 0.75rem;
+          position: relative;
+          transition: border-color 0.2s;
+        }
+        .google-form-header-card {
+          border-top: 8px solid var(--orange);
+        }
+        .google-form-label {
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: #202124;
+          margin-bottom: 0.6rem;
+          display: block;
+        }
+        .google-form-input {
+          border: none !important;
+          border-bottom: 1px solid #dadce0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          padding: 0.5rem 0 !important;
+          font-size: 0.88rem !important;
+          color: #202124 !important;
+          width: 100%;
+          outline: none !important;
+          transition: border-bottom-color 0.2s;
+          box-shadow: none !important;
+        }
+        .google-form-input:focus {
+          border-bottom: 2px solid var(--orange) !important;
+        }
+        .google-form-select {
+          border: none !important;
+          border-bottom: 1px solid #dadce0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          padding: 0.5rem 0 !important;
+          font-size: 0.88rem !important;
+          color: #202124 !important;
+          width: 100%;
+          outline: none !important;
+          transition: border-bottom-color 0.2s;
+          box-shadow: none !important;
+          cursor: pointer;
+        }
+        .google-form-select:focus {
+          border-bottom: 2px solid var(--orange) !important;
+        }
         @media (max-width: 900px) {
           .details-grid-layout {
             grid-template-columns: 1fr !important;
@@ -412,13 +464,13 @@ export default function AnnouncementDetails({ user }) {
           </div>
 
           {/* Right Column Widget (Event Information & Registration) */}
-          <div>
-            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.5rem', marginBottom: '1.5rem', position: 'sticky', top: '1.5rem' }}>
+          <div style={{ position: 'sticky', top: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Event Details Card */}
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.5rem' }}>
               <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <i className="fa-solid fa-circle-info" style={{ color: 'var(--orange)' }} /> Event Details
               </h3>
               
-              {/* Details table */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
                 {ann.date && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -456,7 +508,7 @@ export default function AnnouncementDetails({ user }) {
 
               {/* Registration Control Info */}
               {ann.registrationEnabled && (
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '0.85rem', marginBottom: '1.25rem' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '0.85rem' }}>
                   <div style={{ display: 'flex', justifyItem: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 650, color: 'var(--text-secondary)' }}>
                     <span>Capacity:</span>
                     <strong style={{ color: 'var(--text)' }}>{stats.limit} seats</strong>
@@ -476,121 +528,132 @@ export default function AnnouncementDetails({ user }) {
                   )}
                 </div>
               )}
+            </div>
 
-              {/* Action (Registration Form or Ticket) */}
-              {ann.registrationEnabled ? (
-                userRegistration && !isEditing ? (
-                  /* Render Ticket */
-                  <div style={{ textAlign: 'center', borderTop: '1px solid var(--border-light)', paddingTop: '1.25rem' }}>
-                    <div style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', fontSize: '0.82rem', fontWeight: 800, padding: '0.5rem', borderRadius: 8, marginBottom: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', width: '100%', justifyContent: 'center' }}>
-                      <i className="fas fa-check-circle" /> {successMsg || (userRegistration.status === 'Waitlisted' ? 'Waitlisted Successful' : 'Registration Confirmed')}
-                    </div>
+            {/* Action (Registration Form or Ticket) */}
+            {ann.registrationEnabled ? (
+              userRegistration && !isEditing ? (
+                /* Render Ticket in its own card */
+                <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.5rem', textAlign: 'center' }}>
+                  <div style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', fontSize: '0.82rem', fontWeight: 800, padding: '0.5rem', borderRadius: 8, marginBottom: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', width: '100%', justifyContent: 'center' }}>
+                    <i className="fas fa-check-circle" /> {successMsg || (userRegistration.status === 'Waitlisted' ? 'Waitlisted Successful' : 'Registration Confirmed')}
+                  </div>
 
-                    {/* QR Code */}
-                    <div style={{ width: 140, height: 140, margin: '0 auto 1rem', padding: '0.5rem', border: '1px solid var(--border-light)', borderRadius: 12, background: '#fff' }}>
-                      <img src={userRegistration.qrCodeUrl} alt="QR Check-in Ticket" style={{ width: '100%', height: '100%' }} />
-                    </div>
+                  {/* QR Code */}
+                  <div style={{ width: 140, height: 140, margin: '0 auto 1rem', padding: '0.5rem', border: '1px solid var(--border-light)', borderRadius: 12, background: '#fff' }}>
+                    <img src={userRegistration.qrCodeUrl} alt="QR Check-in Ticket" style={{ width: '100%', height: '100%' }} />
+                  </div>
 
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                      Registration ID: <strong style={{ fontFamily: 'monospace', color: 'var(--text)' }}>{userRegistration.id}</strong>
-                    </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+                    Registration ID: <strong style={{ fontFamily: 'monospace', color: 'var(--text)' }}>{userRegistration.id}</strong>
+                  </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      {ann.allowEditing !== false && (
-                        <button className="btn btn-outline btn-sm" onClick={startEdit} style={{ flex: 1, justifyContent: 'center' }}>
-                          Edit Info
-                        </button>
-                      )}
-                      {ann.allowCancellation !== false && (
-                        <button className="btn btn-sm" onClick={handleCancelRegistration} style={{ flex: 1, justifyContent: 'center', color: '#ef4444', background: 'rgba(239, 68, 68, 0.08)', border: 'none' }}>
-                          Cancel
-                        </button>
-                      )}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {ann.allowEditing !== false && (
+                      <button className="btn btn-outline btn-sm" onClick={startEdit} style={{ flex: 1, justifyContent: 'center' }}>
+                        Edit Info
+                      </button>
+                    )}
+                    {ann.allowCancellation !== false && (
+                      <button className="btn btn-sm" onClick={handleCancelRegistration} style={{ flex: 1, justifyContent: 'center', color: '#ef4444', background: 'rgba(239, 68, 68, 0.08)', border: 'none' }}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Render Registration Form as Google Form */
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {/* Google Form Header Card */}
+                  <div className="google-form-card google-form-header-card">
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#202124', margin: 0, fontFamily: 'var(--font-display)' }}>
+                      {isEditing ? 'Edit Registration' : stats.remaining === 0 ? 'Waitlist Registration' : 'Event Registration'}
+                    </h2>
+                    <p style={{ fontSize: '0.74rem', color: '#5f6368', margin: '0.35rem 0 0' }}>
+                      {isEditing ? 'Modify your registration info below.' : stats.remaining === 0 ? 'The event is full. Fill this out to join the waitlist.' : 'Fill this out to reserve your seat.'}
+                    </p>
+                    <div style={{ borderTop: '1px solid #dadce0', marginTop: '0.85rem', paddingTop: '0.5rem', fontSize: '0.72rem', color: '#d93025' }}>
+                      * Indicates required question
                     </div>
                   </div>
-                ) : (
-                  /* Render Registration Form */
-                  <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.25rem' }}>
-                    <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.85rem' }}>
-                      {isEditing ? 'Update Details' : stats.remaining === 0 ? 'Join Waitlist' : 'Register for Event'}
-                    </h4>
-                    
-                    <form onSubmit={isEditing ? handleEditDetails : handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {/* Name */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Full Name *</label>
-                        <input className="form-input form-input-sm" value={formValues.fullName || ''} onChange={e => setFormValues(p => ({ ...p, fullName: e.target.value }))} required style={{ width: '100%' }} />
+
+                  <form onSubmit={isEditing ? handleEditDetails : handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    {/* Name */}
+                    <div className="google-form-card">
+                      <label className="google-form-label">Full Name <span style={{ color: '#d93025' }}>*</span></label>
+                      <input className="google-form-input" value={formValues.fullName || ''} onChange={e => setFormValues(p => ({ ...p, fullName: e.target.value }))} required placeholder="Your answer" />
+                    </div>
+
+                    {/* Email */}
+                    <div className="google-form-card">
+                      <label className="google-form-label">Email Address <span style={{ color: '#d93025' }}>*</span></label>
+                      <input className="google-form-input" type="email" value={formValues.email || ''} readOnly style={{ opacity: 0.8, color: '#70757a', cursor: 'not-allowed' }} />
+                    </div>
+
+                    {/* Phone */}
+                    <div className="google-form-card">
+                      <label className="google-form-label">Phone Number <span style={{ color: '#d93025' }}>*</span></label>
+                      <input className="google-form-input" type="tel" value={formValues.phone || ''} onChange={e => setFormValues(p => ({ ...p, phone: e.target.value }))} required placeholder="Your answer" />
+                    </div>
+
+                    {/* Register Number */}
+                    <div className="google-form-card">
+                      <label className="google-form-label">Register Number <span style={{ color: '#d93025' }}>*</span></label>
+                      <input className="google-form-input" value={formValues.registerNumber || ''} onChange={e => setFormValues(p => ({ ...p, registerNumber: e.target.value }))} required placeholder="Your answer" />
+                    </div>
+
+                    {/* Year select */}
+                    <div className="google-form-card">
+                      <label className="google-form-label">Year <span style={{ color: '#d93025' }}>*</span></label>
+                      <select className="google-form-select" value={formValues.year || '1'} onChange={e => setFormValues(p => ({ ...p, year: e.target.value }))}>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                      </select>
+                    </div>
+
+                    {/* Class */}
+                    <div className="google-form-card">
+                      <label className="google-form-label">Class <span style={{ color: '#d93025' }}>*</span></label>
+                      <input className="google-form-input" value={formValues.className || ''} onChange={e => setFormValues(p => ({ ...p, className: e.target.value }))} required placeholder="Your answer" />
+                    </div>
+
+                    {/* Render extra custom fields if configured */}
+                    {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => (
+                      <div key={f.id} className="google-form-card">
+                        <label className="google-form-label">{f.label} {f.required && <span style={{ color: '#d93025' }}>*</span>}</label>
+                        {f.type === 'select' ? (
+                          <select className="google-form-select" value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required}>
+                            <option value="">Select Option</option>
+                            {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : (
+                          <input className="google-form-input" type={f.type || 'text'} value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} placeholder="Your answer" />
+                        )}
                       </div>
+                    ))}
 
-                      {/* Email (Read-only as they are logged in) */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Email Address *</label>
-                        <input className="form-input form-input-sm" type="email" value={formValues.email || ''} readOnly style={{ width: '100%', opacity: 0.8, cursor: 'not-allowed', background: 'rgba(0,0,0,0.03)' }} />
-                      </div>
-
-                      {/* Phone */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Phone Number *</label>
-                        <input className="form-input form-input-sm" type="tel" value={formValues.phone || ''} onChange={e => setFormValues(p => ({ ...p, phone: e.target.value }))} required style={{ width: '100%' }} />
-                      </div>
-
-                      {/* Register Number */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Register Number *</label>
-                        <input className="form-input form-input-sm" value={formValues.registerNumber || ''} onChange={e => setFormValues(p => ({ ...p, registerNumber: e.target.value }))} required placeholder="e.g. 917621104001" style={{ width: '100%' }} />
-                      </div>
-
-                      {/* Year select */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Year *</label>
-                        <select className="form-input form-input-sm" value={formValues.year || '1'} onChange={e => setFormValues(p => ({ ...p, year: e.target.value }))} style={{ width: '100%' }}>
-                          <option value="1">1st Year</option>
-                          <option value="2">2nd Year</option>
-                          <option value="3">3rd Year</option>
-                          <option value="4">4th Year</option>
-                        </select>
-                      </div>
-
-                      {/* Class */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Class *</label>
-                        <input className="form-input form-input-sm" value={formValues.className || ''} onChange={e => setFormValues(p => ({ ...p, className: e.target.value }))} required placeholder="e.g. CSE A" style={{ width: '100%' }} />
-                      </div>
-
-                      {/* Render extra custom fields if configured */}
-                      {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => (
-                        <div key={f.id}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{f.label} {f.required && '*'}</label>
-                          {f.type === 'select' ? (
-                            <select className="form-input form-input-sm" value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} style={{ width: '100%' }}>
-                              <option value="">Select Option</option>
-                              {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
-                            </select>
-                          ) : (
-                            <input className="form-input form-input-sm" type={f.type || 'text'} value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} placeholder={`Enter ${f.label.toLowerCase()}`} style={{ width: '100%' }} />
-                          )}
-                        </div>
-                      ))}
-
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', width: isEditing ? '100%' : 'auto' }}>
                         {isEditing && (
                           <button type="button" className="btn btn-secondary btn-sm" onClick={() => setIsEditing(false)} style={{ flex: 1 }}>
                             Cancel
                           </button>
                         )}
-                        <button type="submit" className="btn btn-primary btn-sm" disabled={submitting} style={{ flex: 1, background: stats.remaining === 0 && !isEditing ? '#f59e0b' : 'var(--orange)', borderColor: stats.remaining === 0 && !isEditing ? '#f59e0b' : 'var(--orange)', justifyContent: 'center' }}>
-                          {submitting ? 'Please wait...' : isEditing ? 'Save Changes' : stats.remaining === 0 ? 'Join Waitlist' : 'Register Now'}
+                        <button type="submit" className="btn btn-primary btn-sm" disabled={submitting} style={{ padding: '0.5rem 1.5rem', background: stats.remaining === 0 && !isEditing ? '#f59e0b' : 'var(--orange)', borderColor: stats.remaining === 0 && !isEditing ? '#f59e0b' : 'var(--orange)', justifyContent: 'center' }}>
+                          {submitting ? 'Submitting...' : isEditing ? 'Save' : stats.remaining === 0 ? 'Join Waitlist' : 'Submit'}
                         </button>
                       </div>
-                    </form>
-                  </div>
-                )
-              ) : (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', background: 'var(--surface)', padding: '1rem', borderRadius: 12 }}>
-                  Registration not required for this event. Just show up at the venue!
+                    </div>
+                  </form>
                 </div>
-              )}
-            </div>
+              )
+            ) : (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', background: 'var(--surface)', padding: '1rem', borderRadius: 12 }}>
+                Registration not required for this event. Just show up at the venue!
+              </div>
+            )}
           </div>
 
         </div>
