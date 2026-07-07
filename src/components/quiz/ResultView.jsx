@@ -1,10 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuiz } from '../../contexts/QuizContext';
+import { getQuizResults } from '../../services/resultService';
 import ReviewPanel from './ReviewPanel';
 
 export default function ResultView() {
   const { result, quiz, questions, answers, lockedQuestions } = useQuiz();
   const [showReview, setShowReview] = useState(false);
+  const [rank, setRank] = useState(null);
+  const [totalParticipants, setTotalParticipants] = useState(0);
+
+  useEffect(() => {
+    if (!result?.quizId) return;
+    getQuizResults(result.quizId).then(all => {
+      const sorted = all
+        .filter(r => r.userId)
+        .sort((a, b) => {
+          const aPct = (a.score || 0) / (a.total || 1);
+          const bPct = (b.score || 0) / (b.total || 1);
+          if (bPct !== aPct) return bPct - aPct;
+          const aAcc = a.accuracy || Math.round(aPct * 100);
+          const bAcc = b.accuracy || Math.round(bPct * 100);
+          if (bAcc !== aAcc) return bAcc - aAcc;
+          return (a.timeTaken || a.timeSpent || 0) - (b.timeTaken || b.timeSpent || 0);
+        });
+      setTotalParticipants(sorted.length);
+      const idx = sorted.findIndex(r => r.userId === result.userId);
+      if (idx >= 0) setRank(idx + 1);
+    }).catch(() => {});
+  }, [result]);
 
   if (!result) return null;
 
@@ -66,6 +89,30 @@ export default function ResultView() {
               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{score}/{total}</span>
             </div>
           </div>
+
+          {/* Rank */}
+          {rank !== null && totalParticipants > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+              padding: '0.7rem 1rem', marginBottom: '0.75rem',
+              background: 'rgba(255,85,0,0.06)', borderRadius: 12,
+              border: '1px solid rgba(255,85,0,0.2)',
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(255,85,0,0.12)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="fas fa-trophy" style={{ color: 'var(--orange)', fontSize: '1.1rem' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>Your Rank</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--orange)' }}>
+                  #{rank} <span style={{ fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-muted)' }}>of {totalParticipants}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats grid */}
           <div style={{

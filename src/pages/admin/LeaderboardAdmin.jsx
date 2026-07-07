@@ -32,11 +32,8 @@ export default function LeaderboardAdmin() {
 
   const handleClearAll = async () => {
     if (!window.confirm('Clear ALL quiz results? This cannot be undone.')) return;
-    for (const r of results) {
-      setDeleting(r.id);
-      try { await db.delete('QuizResults', r.id); }
-      catch { /* ignore */ }
-    }
+    setDeleting('all');
+    await Promise.allSettled(results.map(r => db.delete('QuizResults', r.id)));
     setDeleting(null);
     setResults([]);
     window.showToast('Cleared', 'All results removed.', 'success');
