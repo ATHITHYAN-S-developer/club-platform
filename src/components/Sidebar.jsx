@@ -17,7 +17,6 @@ export default function Sidebar({ user, isCollapsed, toggleCollapse, isMobileOpe
     { to: '/', label: 'Home', icon: 'fa-house' },
     { to: '/members', label: 'Members', icon: 'fa-users' },
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
-    { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
     { to: '/events', label: 'Events', icon: 'fa-calendar-days' },
     { to: '/quiz', label: 'Weekly Quiz', icon: 'fa-brain' },

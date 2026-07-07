@@ -2,6 +2,8 @@ export function validateQuiz(form) {
   const errors = {};
   if (!form.title?.trim()) errors.title = 'Title is required';
   if (!form.questions?.length) errors.questions = 'At least one question is required';
+  if (!form.timePerQuestion || form.timePerQuestion < 5) errors.timePerQuestion = 'Time per question must be at least 5 seconds';
+  if (form.timePerQuestion > 600) errors.timePerQuestion = 'Time per question cannot exceed 600 seconds';
 
   form.questions?.forEach((q, i) => {
     if (!q.questionText?.trim()) errors[`q_${i}_text`] = 'Question text is required';
@@ -12,7 +14,6 @@ export function validateQuiz(form) {
       if (!opts.some(o => o.isCorrect)) errors[`q_${i}_correct`] = 'Select a correct answer';
     }
     if (q.marks < 0) errors[`q_${i}_marks`] = 'Marks cannot be negative';
-    if (q.timeLimit < 5) errors[`q_${i}_timer`] = 'Timer must be at least 5 seconds';
   });
   return errors;
 }

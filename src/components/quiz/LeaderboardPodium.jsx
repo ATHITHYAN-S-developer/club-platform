@@ -36,6 +36,15 @@ export default function LeaderboardPodium({ topThree }) {
               <strong>{player?.userName || player?.name || '---'}</strong>
               <span className="podium-score">{player?.score || 0}/{player?.total || 0}</span>
               <span className="podium-accuracy">{player?.accuracy || Math.round((player?.score || 0) / (player?.total || 1) * 100)}% accuracy</span>
+              {player?.badge && (
+                <span style={{
+                  marginTop: '0.3rem', fontSize: '0.72rem', fontWeight: 600,
+                  color: player.badge.color || '#ff5500',
+                }}>
+                  <i className={`fas ${player.badge.icon || 'fa-medal'}`} style={{ marginRight: '0.25rem' }} />
+                  {player.badge.name}
+                </span>
+              )}
             </div>
             <div className="podium-bar" style={{ background: pos.color, opacity: 0.3, height: pos.rank === 1 ? '120px' : pos.rank === 2 ? '90px' : '60px' }}></div>
           </motion.div>

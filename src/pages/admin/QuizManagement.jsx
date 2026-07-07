@@ -33,10 +33,10 @@ const EMPTY_QUESTION = () => ({
 const EMPTY_QUIZ = () => ({
   title: '', description: '', instructions: '', category: 'General', difficulty: 'medium',
   passPercentage: 0, totalMarks: 0, negativeMarking: 0,
-  startTime: '', endTime: '', timeLimit: 10, maxAttempts: 1,
+  startTime: '', endTime: '', timePerQuestion: 30, maxAttempts: 1,
   fullscreenRequired: true, shuffleQuestions: false, shuffleOptions: false,
   showResultImmediately: true, enableLeaderboard: true, enableReview: true,
-  archived: false, published: false,
+  archived: false, published: true,
   security: { fullscreenRequired: true, tabSwitchDetection: true, copyPasteBlock: true, rightClickBlock: true, devToolsDetection: true, violationLimit: 2 },
   questions: [EMPTY_QUESTION()],
 });
@@ -575,9 +575,23 @@ export default function QuizManagement() {
                 <SectionHeader icon="fa-clock" title="Timing & Access" />
                 <div style={{ padding: '0.75rem' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.65rem' }}>
-                    <FormField label="Duration (min)">
-                      <input className="form-input" type="number" min={1}
-                        value={form.timeLimit} onChange={e => setForm(p => ({ ...p, timeLimit: parseInt(e.target.value) || 1 }))} />
+                    <FormField label="Time Per Question (seconds)">
+                      <input className="form-input" type="number" min={5} max={600}
+                        value={form.timePerQuestion} onChange={e => setForm(p => ({ ...p, timePerQuestion: parseInt(e.target.value) || 30 }))} />
+                    </FormField>
+                    <FormField label="Overall Time (auto)">
+                      <div className="form-input" style={{
+                        background: 'var(--surface-2)', cursor: 'not-allowed',
+                        display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      }}>
+                        <i className="fas fa-clock" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }} />
+                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>
+                          {Math.floor(((form.questions?.length || 0) * (form.timePerQuestion || 30)) / 60)}m {((form.questions?.length || 0) * (form.timePerQuestion || 30)) % 60}s
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                          {(form.questions?.length || 0)} × {form.timePerQuestion || 30}s
+                        </span>
+                      </div>
                     </FormField>
                     <FormField label="Max Attempts">
                       <input className="form-input" type="number" min={0}
@@ -671,7 +685,7 @@ export default function QuizManagement() {
                 placeholder="Search quizzes..."
                 style={{ border: 'none', background: 'none', fontSize: '0.82rem', color: 'var(--text)', width: '100%', outline: 'none' }} />
             </div>
-            <div style={{ display: 'flex', gap: '0.25rem' }}>
+            <div className="filter-btn-group" style={{ display: 'flex', gap: '0.25rem' }}>
               {['all', 'published', 'draft', 'archived'].map(f => (
                 <button key={f} className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-outline'}`}
                   style={{ fontSize: '0.72rem', padding: '0.3rem 0.65rem', borderRadius: 8 }}
@@ -740,7 +754,7 @@ export default function QuizManagement() {
                               </span>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: '0.2rem', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                          <div className="quiz-card-actions" style={{ display: 'flex', gap: '0.2rem', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                             {[
                               { icon: 'fa-eye', title: 'Preview', onClick: () => setPreviewQuiz(q), color: 'var(--text-muted)' },
                               { icon: q.published ? 'fa-eye-slash' : 'fa-eye', title: q.published ? 'Unpublish' : 'Publish', onClick: () => togglePublish(q), color: 'var(--text-muted)' },
@@ -753,7 +767,7 @@ export default function QuizManagement() {
                                   background: 'none', border: 'none', borderRadius: 6,
                                   width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   cursor: 'pointer', color: btn.color, fontSize: '0.7rem',
-                                  opacity: 0, transition: 'opacity 0.15s',
+                                  transition: 'opacity 0.15s',
                                 }}
                                 className="quiz-action-btn"
                                 onClick={btn.onClick}
@@ -786,6 +800,32 @@ export default function QuizManagement() {
         }
         .quiz-list-item:hover .quiz-action-btn {
           opacity: 1 !important;
+        }
+        @media (max-width: 768px) {
+          .admin-two-col [style*="grid-template-columns: 1fr 1fr 1fr 1fr"] {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .quiz-card-actions {
+            flex-wrap: wrap !important;
+            justify-content: flex-end;
+          }
+        }
+        @media (max-width: 480px) {
+          .admin-two-col [style*="grid-template-columns: 1fr 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+          }
+          .admin-two-col [style*="grid-template-columns: 1fr 1fr 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+          }
+          .admin-two-col [style*="grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+          }
+          .filter-btn-group {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            flex-wrap: nowrap !important;
+            padding-bottom: 0.25rem;
+          }
         }
       `}</style>
 

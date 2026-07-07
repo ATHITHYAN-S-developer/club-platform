@@ -22,6 +22,8 @@ const Careers = lazy(() => import('./pages/Careers'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Signup = lazy(() => import('./pages/Signup'));
+const MyResults = lazy(() => import('./pages/MyResults'));
+const MyBadges = lazy(() => import('./pages/MyBadges'));
 
 function PageLoading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}><Loading /></div>;
@@ -91,6 +93,8 @@ export default function App() {
               <Route path="/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><Leaderboard user={user} /></ProtectedRoute>} />
               <Route path="/tasks" element={<ProtectedRoute user={user} authLoading={authLoading}><Tasks user={user} /></ProtectedRoute>} />
               <Route path="/careers" element={<ProtectedRoute user={user} authLoading={authLoading}><Careers /></ProtectedRoute>} />
+              <Route path="/my-results" element={<ProtectedRoute user={user} authLoading={authLoading}><MyResults user={user} /></ProtectedRoute>} />
+              <Route path="/my-badges" element={<ProtectedRoute user={user} authLoading={authLoading}><MyBadges user={user} /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><Admin user={user} /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

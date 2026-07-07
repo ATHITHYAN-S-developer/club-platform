@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import QuizDashboard from '../components/quiz/QuizDashboard';
 import QuizPlayer from '../components/quiz/QuizPlayer';
+import { QuizProvider } from '../contexts/QuizContext';
 
 export default function QuizPage({ user }) {
   const [activeQuiz, setActiveQuiz] = useState(null);
@@ -19,12 +20,14 @@ export default function QuizPage({ user }) {
       <div className="quiz-content">
         <AnimatePresence mode="wait">
           {activeQuiz ? (
-            <QuizPlayer
-              key={`player-${activeQuiz.id}`}
-              quiz={activeQuiz}
-              user={user}
-              onFinish={handleFinish}
-            />
+            <QuizProvider>
+              <QuizPlayer
+                key={`player-${activeQuiz.id}`}
+                quiz={activeQuiz}
+                user={user}
+                onFinish={handleFinish}
+              />
+            </QuizProvider>
           ) : (
             <QuizDashboard
               key="dashboard"

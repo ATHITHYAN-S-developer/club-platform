@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import db from '../db.js';
 import LeaderboardPodium from '../components/quiz/LeaderboardPodium';
 import LeaderboardTable from '../components/quiz/LeaderboardTable';
-import { computeBadges } from '../data/quiz/badges.js';
+
 
 export default function Leaderboard({ user }) {
   const [results, setResults] = useState([]);
@@ -78,15 +78,9 @@ export default function Leaderboard({ user }) {
 
     const ranked = data.map((r, i) => ({ ...r, rank: i + 1 }));
 
-    const userResultsMap = {};
-    ranked.forEach(r => {
-      if (!userResultsMap[r.userId]) userResultsMap[r.userId] = [];
-      userResultsMap[r.userId].push(r);
-    });
-
     return ranked.map(r => ({
       ...r,
-      badges: computeBadges(r, userResultsMap[r.userId] || []),
+      badges: r.badge ? [r.badge] : [],
     }));
   }, [results, quizFilter, timeFilter]);
 
@@ -156,6 +150,52 @@ export default function Leaderboard({ user }) {
         {topThree.length >= 3 && <LeaderboardPodium topThree={topThree} />}
 
         <LeaderboardTable data={filteredResults} currentUserId={user?.id} />
+
+        {/* Personal Rank */}
+        {user && (() => {
+          const myEntries = filteredResults.filter(r => r.userId === user.id);
+          if (myEntries.length === 0) return null;
+          const best = myEntries.reduce((a, b) => ((b.score || 0) / (b.total || 1)) > ((a.score || 0) / (a.total || 1)) ? b : a);
+          if (best.rank <= 10) return null;
+          return (
+            <div style={{
+              marginTop: '1.5rem', padding: '1rem', borderRadius: 14,
+              background: 'var(--card)', border: '2px solid var(--orange)',
+              display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap',
+            }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'rgba(255,85,0,0.1)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <i className="fas fa-user" style={{ color: 'var(--orange)', fontSize: '1.2rem' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>Your Rank</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Best score: {best.percentage || Math.round((best.score || 0) / (best.total || 1) * 100)}%
+                </div>
+              </div>
+              <div style={{
+                fontSize: '1.8rem', fontWeight: 800, color: 'var(--orange)',
+              }}>
+                #{best.rank}
+              </div>
+              {best.badge && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.35rem',
+                  padding: '0.3rem 0.65rem', borderRadius: 8,
+                  background: `${best.badge.color}15`,
+                }}>
+                  <i className={`fas ${best.badge.icon || 'fa-medal'}`} style={{ color: best.badge.color }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: best.badge.color }}>
+                    {best.badge.name}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </motion.div>
     </div>
   );

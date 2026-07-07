@@ -469,15 +469,32 @@ class FirebaseDatabase {
       if (match && match.email) emailToBlacklist = match.email;
     }
 
-    // 1. Direct Firestore deletion (raises exception on failure)
-    const docRef = doc(firestore, collectionName, id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists() && docSnap.data().email) {
-      emailToBlacklist = docSnap.data().email;
-    }
-    await deleteDoc(docRef);
+    try {
+      // 1. Attempt Firestore deletion
+      const docRef = doc(firestore, collectionName, id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists() && docSnap.data().email) {
+        emailToBlacklist = docSnap.data().email;
+      }
+      await deleteDoc(docRef);
 
-    // 2. Local cache updates (only executed if Firestore deletion succeeds)
+      if (emailToBlacklist && (collectionName === 'Users' || collectionName === 'CoreMembers')) {
+        const cleanEmail = emailToBlacklist.toLowerCase().trim();
+        addDeletedEmail(cleanEmail);
+
+        const colRef = collection(firestore, collectionName);
+        const q = query(colRef, where('email', '==', emailToBlacklist));
+        const snap = await getDocs(q);
+        await Promise.all(snap.docs.map(async (d) => {
+          addDeletedId(d.id);
+          await deleteDoc(d.ref);
+        }));
+      }
+    } catch (error) {
+      console.warn(`delete(${collectionName}, ${id}) failed in Firestore, falling back to local:`, error.message);
+    }
+
+    // 2. Local cache updates (always executed)
     addDeletedId(id);
     setLocalStorageCollection(collectionName, items.filter(item => item.id !== id));
 
@@ -487,15 +504,6 @@ class FirebaseDatabase {
 
       const filteredItems = items.filter(item => item.id !== id && (item.email || '').toLowerCase().trim() !== cleanEmail);
       setLocalStorageCollection(collectionName, filteredItems);
-
-      // Query delete all duplicate documents in Firestore sharing the same email
-      const colRef = collection(firestore, collectionName);
-      const q = query(colRef, where('email', '==', emailToBlacklist));
-      const snap = await getDocs(q);
-      await Promise.all(snap.docs.map(async (d) => {
-        addDeletedId(d.id);
-        await deleteDoc(d.ref);
-      }));
     }
 
     return { id };

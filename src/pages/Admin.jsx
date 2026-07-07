@@ -27,6 +27,7 @@ const SIDEBAR_SECTIONS = [
       { id: 'quizzes',     label: 'Quizzes',       icon: 'fa-question-circle' },
       { id: 'students',    label: 'Students',      icon: 'fa-graduation-cap' },
       { id: 'security',    label: 'Security',      icon: 'fa-shield-halved' },
+      { id: 'badges',      label: 'Badges',        icon: 'fa-medal' },
     ]
   }
 ];
@@ -1319,6 +1320,176 @@ function SettingsTab() {
   );
 }
 
+/* ═══════════════════════════════════ BADGES TAB ═══════════════════════════════════ */
+function BadgeManagementTab() {
+  const [badges, setBadges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ name: '', icon: 'fa-medal', description: '', minScore: 0, color: '#ff5500' });
+
+  const load = async () => {
+    try {
+      const all = await db.find('Badges');
+      setBadges(all);
+    } catch { setBadges([]); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm({ name: '', icon: 'fa-medal', description: '', minScore: 0, color: '#ff5500' });
+  };
+
+  const handleEdit = (badge) => {
+    setEditingId(badge.id);
+    setForm({
+      name: badge.name || '',
+      icon: badge.icon || 'fa-medal',
+      description: badge.description || '',
+      minScore: badge.minScore ?? 0,
+      color: badge.color || '#ff5500',
+    });
+  };
+
+  const handleSave = async () => {
+    if (!form.name) { window.showToast('Missing', 'Badge name is required.', 'error'); return; }
+    setSaving(true);
+    try {
+      const payload = { ...form, minScore: Number(form.minScore) || 0 };
+      if (editingId) {
+        await db.update('Badges', editingId, payload);
+        window.showToast('Updated', `"${form.name}" badge updated.`, 'success');
+      } else {
+        await db.insert('Badges', { ...payload, createdAt: new Date().toISOString() });
+        window.showToast('Created', `"${form.name}" badge created.`, 'success');
+      }
+      resetForm();
+      load();
+    } catch (err) {
+      window.showToast('Error', err.message, 'error');
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete badge "${name}"?`)) return;
+    try {
+      await db.delete('Badges', id);
+      setBadges(prev => prev.filter(b => b.id !== id));
+      window.showToast('Deleted', `"${name}" removed.`, 'success');
+    } catch (err) { window.showToast('Error', err.message, 'error'); }
+  };
+
+  const iconOptions = [
+    'fa-medal', 'fa-trophy', 'fa-star', 'fa-bolt', 'fa-crown', 'fa-gem',
+    'fa-fire', 'fa-shield-halved', 'fa-brain', 'fa-rocket', 'fa-flask',
+    'fa-leaf', 'fa-heart', 'fa-certificate', 'fa-award',
+  ];
+
+  return (
+    <div className="admin-grid-layout">
+      <div>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.5rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', color: 'var(--text)' }}>
+            <i className="fa-solid fa-medal" style={{ color: 'var(--orange)', marginRight: '0.5rem' }} />
+            {editingId ? 'Edit Badge' : 'Create Badge'}
+          </h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Badge Name</label>
+              <input className="form-input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Gold Scholar" style={{ width: '100%' }} />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Icon</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {iconOptions.map(icon => (
+                  <button key={icon} onClick={() => setForm(p => ({ ...p, icon }))}
+                    style={{
+                      width: 36, height: 36, borderRadius: 8, border: `2px solid ${form.icon === icon ? 'var(--orange)' : 'var(--border)'}`,
+                      background: form.icon === icon ? 'rgba(255,85,0,0.1)' : 'var(--surface)',
+                      color: 'var(--text)', fontSize: '0.9rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <i className={`fa-solid ${icon}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Color</label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input type="color" value={form.color} onChange={e => setForm(p => ({ ...p, color: e.target.value }))} style={{ width: 40, height: 40, borderRadius: 8, border: '1px solid var(--border)', padding: 2, cursor: 'pointer' }} />
+                <input className="form-input" value={form.color} onChange={e => setForm(p => ({ ...p, color: e.target.value }))} placeholder="#ff5500" style={{ flex: 1 }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Min Score (%)</label>
+              <input type="number" min="0" max="100" className="form-input" value={form.minScore} onChange={e => setForm(p => ({ ...p, minScore: e.target.value }))} placeholder="e.g. 80" style={{ width: '100%' }} />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Description</label>
+              <textarea className="form-input" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g. Awarded for scoring 80% or above" style={{ width: '100%', minHeight: 60, fontFamily: 'inherit' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
+                {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Saving…</> : <><i className="fa-solid fa-check" /> {editingId ? 'Save Changes' : 'Create Badge'}</>}
+              </button>
+              {editingId && (
+                <button className="btn btn-secondary" onClick={resetForm}>Cancel</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ padding: '0.9rem 1.2rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)' }}>Badge Definitions</span>
+            <Badge color="blue">{badges.length} total</Badge>
+          </div>
+          {loading ? <div className="loading-spinner" /> : badges.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No badges defined yet.</div>
+          ) : (
+            <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 500, overflowY: 'auto' }}>
+              {badges.map((b, i) => (
+                <div key={b.id || i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: '1px solid var(--border-light)', borderRadius: 10 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: '50%', background: `${b.color || '#ff5500'}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', color: b.color || '#ff5500', flexShrink: 0 }}>
+                    <i className={`fa-solid ${b.icon || 'fa-medal'}`} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text)' }}>{b.name}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                      {b.description || b.condition || ''} {b.minScore != null && <span style={{ color: 'var(--orange)' }}>— ≥{b.minScore}%</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                    <button onClick={() => handleEdit(b)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
+                      <i className="fa-solid fa-pen" />
+                    </button>
+                    <button onClick={() => handleDelete(b.id, b.name)} style={{ background: '#fee2e2', border: 'none', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#dc2626', fontSize: '0.74rem' }}>
+                      <i className="fa-solid fa-trash" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════ QUIZZES TAB ═══════════════════════════════════ */
 
 /* ═══════════════════════════════════ MAIN ADMIN PAGE ═══════════════════════════════════ */
@@ -1467,6 +1638,7 @@ export default function Admin({ user }) {
           {tab === 'quizzes'      && <QuizManagement />}
           {tab === 'students'     && <StudentManagement />}
           {tab === 'security'     && <SecuritySettings />}
+          {tab === 'badges'       && <BadgeManagementTab />}
         </div>
       </div>
     </div>

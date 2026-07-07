@@ -105,7 +105,7 @@ export default function LeaderboardTable({ data, currentUserId }) {
                   <td>
                     <div className="lb-badges">
                       {badges.slice(0, 3).map((b, bi) => (
-                        <span key={bi} className="badge badge-orange" title={b.desc || b.label}>
+                        <span key={bi} className="badge badge-orange" title={b.description || b.name || b.desc || b.label}>
                           <i className={`fas ${b.icon || 'fa-star'}`}></i>
                         </span>
                       ))}

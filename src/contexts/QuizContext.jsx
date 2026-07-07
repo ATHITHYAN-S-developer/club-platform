@@ -1,80 +1,80 @@
-import { createContext, useContext, useReducer, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
 
 const QuizContext = createContext();
 
 const initialState = {
-  phase: 'dashboard',
+  phase: 'confirm',
   quiz: null,
   questions: [],
   currentIndex: 0,
   answers: {},
-  markedForReview: [],
-  flaggedQuestions: [],
   lockedQuestions: [],
   result: null,
-  isSubmitting: false,
-  violationCount: 0,
-  shuffledQuestions: [],
+  startedAt: null,
+  timeRemaining: 0,
+  questionTimeRemaining: 0,
+  submittedAt: null,
 };
 
 function quizReducer(state, action) {
   switch (action.type) {
-    case 'START_QUIZ':
+    case 'INIT_QUIZ':
       return {
         ...initialState,
         phase: 'confirm',
-        quiz: action.payload.quiz,
-        questions: action.payload.questions,
-        shuffledQuestions: action.payload.shuffledQuestions,
+        quiz: action.quiz,
+        questions: action.questions,
+        timeRemaining: action.overallTime,
+        questionTimeRemaining: action.timePerQuestion,
       };
 
-    case 'SET_PHASE':
-      return { ...state, phase: action.payload };
+    case 'START':
+      return { ...state, phase: 'active', startedAt: action.now || new Date().toISOString() };
 
-    case 'GO_TO_QUESTION':
-      return { ...state, currentIndex: action.payload };
+    case 'SET_PHASE':
+      return { ...state, phase: action.phase };
 
     case 'ANSWER_QUESTION':
       return {
         ...state,
-        answers: { ...state.answers, [action.payload.questionId]: action.payload.answer },
-      };
-
-    case 'TOGGLE_REVIEW':
-      return {
-        ...state,
-        markedForReview: state.markedForReview.includes(action.payload)
-          ? state.markedForReview.filter(id => id !== action.payload)
-          : [...state.markedForReview, action.payload],
-      };
-
-    case 'TOGGLE_FLAG':
-      return {
-        ...state,
-        flaggedQuestions: state.flaggedQuestions.includes(action.payload)
-          ? state.flaggedQuestions.filter(id => id !== action.payload)
-          : [...state.flaggedQuestions, action.payload],
+        answers: { ...state.answers, [action.questionId]: action.answer },
       };
 
     case 'LOCK_QUESTION':
+      if (state.lockedQuestions.includes(action.questionId)) return state;
       return {
         ...state,
-        lockedQuestions: state.lockedQuestions.includes(action.payload)
-          ? state.lockedQuestions
-          : [...state.lockedQuestions, action.payload],
+        lockedQuestions: [...state.lockedQuestions, action.questionId],
       };
 
-    case 'ADD_VIOLATION':
-      return { ...state, violationCount: state.violationCount + 1 };
+    case 'GO_TO_QUESTION':
+      return { ...state, currentIndex: Math.min(action.index, state.questions.length - 1) };
+
+    case 'UPDATE_TIMER':
+      return { ...state, timeRemaining: action.timeRemaining };
+
+    case 'UPDATE_QUESTION_TIMER':
+      return { ...state, questionTimeRemaining: action.timeRemaining };
 
     case 'SET_RESULT':
-      return { ...state, result: action.payload, phase: 'result' };
+      return { ...state, result: action.result, phase: 'submitting' };
 
-    case 'SET_SUBMITTING':
-      return { ...state, isSubmitting: action.payload };
+    case 'SET_SUBMITTED':
+      return { ...state, phase: 'result', submittedAt: action.now || new Date().toISOString() };
 
     case 'RESET':
       return { ...initialState };
+
+    case 'RESUME_SESSION':
+      return {
+        ...state,
+        currentIndex: action.data.currentIndex || 0,
+        answers: action.data.answers || {},
+        lockedQuestions: action.data.lockedQuestions || [],
+        timeRemaining: action.data.timeRemaining || state.timeRemaining,
+        questionTimeRemaining: action.data.questionTimeRemaining || state.questionTimeRemaining,
+        startedAt: action.data.startedAt || state.startedAt,
+      };
 
     default:
       return state;
@@ -83,77 +83,101 @@ function quizReducer(state, action) {
 
 export function QuizProvider({ children }) {
   const [state, dispatch] = useReducer(quizReducer, initialState);
-  const submitRef = useRef(false);
 
-  const startQuiz = useCallback((quiz) => {
-    const qs = quiz.questions || [];
-    const shuffled = quiz.shuffleQuestions
-      ? [...qs].sort(() => Math.random() - 0.5)
-      : qs;
-    dispatch({ type: 'START_QUIZ', payload: { quiz, questions: qs, shuffledQuestions: shuffled } });
+  const initQuiz = useCallback((quiz, questions, overallTime, timePerQuestion) => {
+    dispatch({ type: 'INIT_QUIZ', quiz, questions, overallTime, timePerQuestion });
+  }, []);
+
+  const startQuiz = useCallback(() => {
+    dispatch({ type: 'START', now: new Date().toISOString() });
   }, []);
 
   const setPhase = useCallback((phase) => {
-    dispatch({ type: 'SET_PHASE', payload: phase });
-  }, []);
-
-  const goToQuestion = useCallback((index) => {
-    dispatch({ type: 'GO_TO_QUESTION', payload: index });
+    dispatch({ type: 'SET_PHASE', phase });
   }, []);
 
   const answerQuestion = useCallback((questionId, answer) => {
-    dispatch({ type: 'ANSWER_QUESTION', payload: { questionId, answer } });
-  }, []);
-
-  const toggleReview = useCallback((questionId) => {
-    dispatch({ type: 'TOGGLE_REVIEW', payload: questionId });
-  }, []);
-
-  const toggleFlag = useCallback((questionId) => {
-    dispatch({ type: 'TOGGLE_FLAG', payload: questionId });
+    dispatch({ type: 'ANSWER_QUESTION', questionId, answer });
   }, []);
 
   const lockQuestion = useCallback((questionId) => {
-    dispatch({ type: 'LOCK_QUESTION', payload: questionId });
+    dispatch({ type: 'LOCK_QUESTION', questionId });
   }, []);
 
-  const addViolation = useCallback(() => {
-    dispatch({ type: 'ADD_VIOLATION' });
+  const goToQuestion = useCallback((index) => {
+    dispatch({ type: 'GO_TO_QUESTION', index });
+  }, []);
+
+  const updateTimer = useCallback((timeRemaining) => {
+    dispatch({ type: 'UPDATE_TIMER', timeRemaining });
+  }, []);
+
+  const updateQuestionTimer = useCallback((timeRemaining) => {
+    dispatch({ type: 'UPDATE_QUESTION_TIMER', timeRemaining });
   }, []);
 
   const setResult = useCallback((result) => {
-    dispatch({ type: 'SET_RESULT', payload: result });
+    dispatch({ type: 'SET_RESULT', result });
   }, []);
 
-  const setSubmitting = useCallback((val) => {
-    dispatch({ type: 'SET_SUBMITTING', payload: val });
+  const setSubmitted = useCallback(() => {
+    dispatch({ type: 'SET_SUBMITTED', now: new Date().toISOString() });
   }, []);
 
   const resetQuiz = useCallback(() => {
-    submitRef.current = false;
     dispatch({ type: 'RESET' });
   }, []);
 
-  const getQuestionStatus = useCallback((qId, index) => {
-    const { answers, markedForReview, currentIndex, lockedQuestions } = state;
-    const hasAnswer = answers[qId] !== undefined && answers[qId] !== null && answers[qId] !== '';
+  const resumeSession = useCallback((data) => {
+    dispatch({ type: 'RESUME_SESSION', data });
+  }, []);
 
-    if (lockedQuestions.includes(qId)) return 'locked';
-    if (index === currentIndex) return 'current';
-    if (markedForReview.includes(qId)) return 'review';
+  const getQuestionStatus = useCallback((qId, index) => {
+    const isLocked = state.lockedQuestions.includes(qId);
+    const hasAnswer = state.answers[qId] !== undefined && state.answers[qId] !== null && state.answers[qId] !== '';
+
+    if (isLocked) return 'locked';
+    if (index === state.currentIndex) return 'current';
     if (hasAnswer) return 'answered';
-    if (index < currentIndex && !hasAnswer) return 'skipped';
-    return 'unvisited';
-  }, [state]);
+    if (index < state.currentIndex) return 'skipped';
+    return 'unanswered';
+  }, [state.lockedQuestions, state.answers, state.currentIndex]);
+
+  const answeredCount = useMemo(
+    () => state.questions.filter((q) => {
+      const ans = state.answers[q.id];
+      return ans !== undefined && ans !== null && ans !== '';
+    }).length,
+    [state.questions, state.answers]
+  );
+
+  const lockedCount = useMemo(() => state.lockedQuestions.length, [state.lockedQuestions]);
+  const totalCount = state.questions.length;
+  const remainingCount = totalCount - answeredCount - lockedCount;
+
+  const value = useMemo(() => ({
+    ...state,
+    answeredCount,
+    lockedCount,
+    remainingCount,
+    totalCount,
+    initQuiz,
+    startQuiz,
+    setPhase,
+    answerQuestion,
+    lockQuestion,
+    goToQuestion,
+    updateTimer,
+    updateQuestionTimer,
+    setResult,
+    setSubmitted,
+    resetQuiz,
+    resumeSession,
+    getQuestionStatus,
+  }), [state, answeredCount, lockedCount, remainingCount, totalCount, initQuiz, startQuiz, setPhase, answerQuestion, lockQuestion, goToQuestion, updateTimer, updateQuestionTimer, setResult, setSubmitted, resetQuiz, resumeSession, getQuestionStatus]);
 
   return (
-    <QuizContext.Provider value={{
-      ...state,
-      startQuiz, setPhase, goToQuestion, answerQuestion,
-      toggleReview, toggleFlag, lockQuestion, addViolation,
-      setResult, setSubmitting, resetQuiz, getQuestionStatus,
-      submitRef,
-    }}>
+    <QuizContext.Provider value={value}>
       {children}
     </QuizContext.Provider>
   );
