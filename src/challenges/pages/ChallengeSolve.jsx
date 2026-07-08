@@ -232,9 +232,9 @@ export default function ChallengeSolve({ user }) {
       )}
 
       {!monitoringStarted && hasSecurity && !submitted ? null : (
-        <div className="chl-solve" style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 68px)' }}>
           {monitoringStarted && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 24px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 24px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', gap: 16, flexWrap: 'wrap', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: `${secLevel.color}15` }}>
                   <span style={{ fontSize: 11 }}>{secLevel.icon}</span>
@@ -267,7 +267,8 @@ export default function ChallengeSolve({ user }) {
             </div>
           )}
 
-          <div className="chl-solve-desc">
+          <div className="chl-solve" style={{ flex: 1, minHeight: 0, height: 'auto', position: 'relative' }}>
+            <div className="chl-solve-desc">
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <span className={`chl-diff chl-diff-${challenge.difficulty}`}>{diff.label}</span>
@@ -457,7 +458,8 @@ export default function ChallengeSolve({ user }) {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       <style>{`
         @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
