@@ -1,222 +1,190 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import db from '../db';
+import { getVisibleTasks, getUserSubmissions } from '../services/taskService';
+import TaskCard from '../components/task/TaskCard';
+import { TASK_TYPES } from '../config/taskConfig';
 
 export default function Tasks({ user }) {
   const [tasks, setTasks] = useState([]);
-  const [activeTasks, setActiveTasks] = useState([]);
-  const [expiredTasks, setExpiredTasks] = useState([]);
   const [mySubmissions, setMySubmissions] = useState([]);
-  const [selectedFiles, setSelectedFiles] = useState({});
   const [loading, setLoading] = useState(true);
-  const fileInputsRef = useRef({});
-  const heroRef = useRef(null);
-  const [heroVisible, setHeroVisible] = useState(false);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setHeroVisible(true); obs.disconnect(); }
-    }, { threshold: 0.05 });
-    if (heroRef.current) obs.observe(heroRef.current);
-    return () => obs.disconnect();
-  }, []);
+  const [filterType, setFilterType] = useState('all');
+  const [filterDifficulty, setFilterDifficulty] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchTasks = async () => {
     try {
-      const list = await db.find('WeeklyTasks');
-      setTasks(list);
-      const subs = await db.find('TaskSubmissions');
-      if (user) setMySubmissions(subs.filter(s => s.userId === user.id));
-      const now = new Date();
-      setActiveTasks(list.filter(t => new Date(t.deadline) > now));
-      setExpiredTasks(list.filter(t => new Date(t.deadline) <= now));
+      const visible = await getVisibleTasks(user);
+      setTasks(visible);
+      if (user) {
+        const subs = await getUserSubmissions(user.id);
+        setMySubmissions(subs);
+      }
     } catch { /* ignore */ } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchTasks(); }, [user]);
 
-  const handleFileSelect = (taskId, file) => {
-    if (file.size > 10 * 1024 * 1024) { window.showToast('File Too Large', 'Maximum file size is 10 MB.', 'error'); return; }
-    setSelectedFiles(prev => ({ ...prev, [taskId]: file }));
-  };
-
-  const handleSubmit = async (taskId, taskTitle) => {
-    const file = selectedFiles[taskId];
-    if (!file) { window.showToast('No File', 'Please select a file to submit.', 'error'); return; }
-    try {
-      const fileUrl = await db.uploadFile(file, 'task-submissions');
-      await db.insert('TaskSubmissions', {
-        taskId, taskTitle, userId: user.id, userName: user.name,
-        fileName: file.name, fileUrl, submittedAt: new Date().toISOString(), status: 'Pending',
-      });
-      window.showToast('Submitted!', 'Your task has been submitted for review.', 'success');
-      setSelectedFiles(prev => { const copy = { ...prev }; delete copy[taskId]; return copy; });
-      fetchTasks();
-    } catch (err) { window.showToast('Error', err.message, 'error'); }
-  };
-
-  const isSubmitted = (taskId) => mySubmissions.some(s => s.taskId === taskId);
-  const getSubmissionStatus = (taskId) => {
-    const sub = mySubmissions.find(s => s.taskId === taskId);
-    if (!sub) return null;
-    return sub.status;
-  };
-
-  const reveal = (vis) => ({
-    opacity: vis ? 1 : 0,
-    transform: vis ? 'none' : 'translateY(40px)',
-    transition: 'opacity 0.75s cubic-bezier(0.16,1,0.3,1), transform 0.75s cubic-bezier(0.16,1,0.3,1)',
+  const filtered = tasks.filter(t => {
+    if (filterType !== 'all' && t.taskType !== filterType) return false;
+    if (filterDifficulty !== 'all' && t.difficulty !== filterDifficulty) return false;
+    if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
   });
 
-  const TaskCard = ({ task, active = true }) => (
-    <div className="rs-card" style={{ padding: '1.5rem' }}>
-      <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f1117', marginBottom: '0.4rem' }}>{task.title}</h3>
-      <p style={{ fontSize: '0.82rem', color: '#6b7280', lineHeight: 1.6, flex: 1, marginBottom: '1rem' }}>{task.description}</p>
-      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '1rem' }}>
-        ⏰ Deadline: {new Date(task.deadline).toLocaleDateString()} {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      </div>
-      {active && user ? (
-        isSubmitted(task.id) ? (
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: getSubmissionStatus(task.id) === 'Approved' ? '#16a34a' : getSubmissionStatus(task.id) === 'Rejected' ? '#dc2626' : 'var(--orange)' }}>
-              {getSubmissionStatus(task.id) === 'Approved' ? '✅ Approved' : getSubmissionStatus(task.id) === 'Rejected' ? '❌ Rejected' : '⏳ Submitted'}
-            </span>
-          </div>
-        ) : (
-          <div>
-            <input type="file" ref={el => fileInputsRef.current[task.id] = el} onChange={(e) => handleFileSelect(task.id, e.target.files[0])} style={{ display: 'none' }} />
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="rs-btn rs-btn-outline" onClick={() => fileInputsRef.current[task.id]?.click()} style={{ flex: 1, fontSize: '0.78rem', padding: '0.4rem 0.9rem' }}>
-                {selectedFiles[task.id] ? selectedFiles[task.id].name.substring(0, 20) : '📎 Choose File'}
-              </button>
-              <button className="rs-btn rs-btn-primary" onClick={() => handleSubmit(task.id, task.title)} disabled={!selectedFiles[task.id]} style={{ fontSize: '0.78rem', padding: '0.4rem 0.9rem', opacity: selectedFiles[task.id] ? 1 : 0.5 }}>
-                Submit
-              </button>
-            </div>
-          </div>
-        )
-      ) : active && !user ? (
-        <Link to="/auth" className="rs-btn rs-btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem', padding: '0.4rem 0.9rem' }}>
-          Sign In to Submit
-        </Link>
-      ) : (
-        <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontStyle: 'italic' }}>Deadline passed</span>
-      )}
-    </div>
-  );
+  const getSubmissionForTask = (taskId) => mySubmissions.find(s => s.taskId === taskId);
+
+  const openTasks = filtered.filter(t => t.status === 'open');
+  const otherTasks = filtered.filter(t => t.status !== 'open');
 
   return (
-    <div style={{ background: '#ffffff', color: '#0f1117', minHeight: '100vh', overflowX: 'hidden', position: 'relative', margin: '-2.5rem -3.5rem', padding: 0 }}>
+    <div className="ts-page">
+      <div className="ts-hero">
+        <div className="ts-hero-content">
+          <p className="ts-hero-subtitle">Sharpen Your Skills</p>
+          <h1 className="ts-hero-title">Tasks</h1>
+          <p className="ts-hero-desc">Complete tasks, earn XP, climb the leaderboard, and unlock badges.</p>
+          <div className="ts-hero-actions">
+            <Link to="/tasks/dashboard" className="ts-btn ts-btn-primary">
+              <i className="fa-solid fa-gauge-high" /> Dashboard
+            </Link>
+            <Link to="/task-leaderboard" className="ts-btn ts-btn-secondary">
+              <i className="fa-solid fa-trophy" /> Leaderboard
+            </Link>
+            <Link to="/my-submissions" className="ts-btn ts-btn-secondary">
+              <i className="fa-solid fa-clock-rotate-left" /> My Submissions
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="ts-filters">
+        <div className="ts-search-bar">
+          <i className="fa-solid fa-search" />
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="ts-filter-group">
+          <label>Type</label>
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+            <option value="all">All Types</option>
+            {Object.entries(TASK_TYPES).map(([key, config]) => (
+              <option key={key} value={key}>{config.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="ts-filter-group">
+          <label>Difficulty</label>
+          <select value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)}>
+            <option value="all">All Difficulties</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="ts-loading"><div className="loading-spinner" /></div>
+      ) : (
+        <div className="ts-section">
+          {openTasks.length > 0 && (
+            <div className="ts-task-section">
+              <h3 className="ts-section-title">
+                <span className="ts-section-dot" style={{ color: '#10b981' }}>●</span>
+                Open Tasks ({openTasks.length})
+              </h3>
+              <div className="ts-grid">
+                {openTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    userSubmission={getSubmissionForTask(task.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {otherTasks.length > 0 && (
+            <div className="ts-task-section">
+              <h3 className="ts-section-title">
+                <span className="ts-section-dot" style={{ color: '#9ca3af' }}>●</span>
+                Other Tasks ({otherTasks.length})
+              </h3>
+              <div className="ts-grid">
+                {otherTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    userSubmission={getSubmissionForTask(task.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!loading && filtered.length === 0 && (
+            <div className="ts-empty">
+              <div className="ts-empty-icon">📝</div>
+              <p>No tasks found. Try adjusting your filters.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
-        @keyframes marquee-ltr {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
+        .ts-page { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+        .ts-hero {
+          position: relative; padding: 6rem 2rem 3rem; text-align: center;
+          background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+          overflow: hidden;
         }
-        .sphere {
-          position: absolute; border-radius: 50%;
-          background: radial-gradient(circle at 30% 30%, #ffaa66 0%, var(--orange) 60%, var(--orange-dark) 100%);
-          box-shadow: inset -12px -12px 30px rgba(0,0,0,0.35), inset 8px 8px 20px rgba(255,255,255,0.25), 0 25px 50px rgba(204,68,0,0.2);
-          z-index: 0; pointer-events: none;
+        .ts-hero::before {
+          content: ''; position: absolute; top: -120px; right: -120px;
+          width: 360px; height: 360px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(255,85,0,0.06) 0%, transparent 70%);
         }
-        .sphere-tr { top: -40px; right: -40px; width: clamp(120px,18vw,260px); height: clamp(120px,18vw,260px); animation: float-tr 12s ease-in-out infinite; }
-        .sphere-br { bottom: 60px; right: 3%; width: clamp(80px,10vw,150px); height: clamp(80px,10vw,150px); animation: float-br 10s ease-in-out infinite; animation-delay: 1.5s; }
-        .sphere-bl { bottom: -50px; left: -40px; width: clamp(100px,14vw,200px); height: clamp(100px,14vw,200px); animation: float-bl 11s ease-in-out infinite; animation-delay: 3s; }
-        @keyframes float-tr { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-10px,15px) rotate(3deg); } }
-        @keyframes float-br { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-15px,-10px) rotate(-3deg); } }
-        @keyframes float-bl { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(15px,-15px) rotate(2deg); } }
-        .rs-hero-section {
-          position: relative; min-height: 70vh; display: flex; align-items: center; justify-content: center;
-          padding: 7rem 3.5rem 4rem 3.5rem; overflow: hidden; background: #ffffff;
-        }
-        .shard-tl {
-          position: absolute; top: 0; left: 0; width: 320px; height: 320px;
-          background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%);
-          clip-path: polygon(0 0, 100% 0, 0 100%); z-index: 0;
-        }
-        .shard-br {
-          position: absolute; bottom: 0; right: 0; width: 450px; height: 450px;
-          background: linear-gradient(315deg, var(--orange) 0%, var(--orange-light) 100%);
-          clip-path: polygon(100% 100%, 100% 0, 0 100%); z-index: 0;
-        }
-        .rs-card {
-          background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 1.5rem;
-          transition: all 0.35s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-          display: flex; flex-direction: column; height: 100%; position: relative; overflow: hidden;
-        }
-        .rs-card::before {
-          content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-          background: linear-gradient(90deg, var(--orange), var(--orange-light));
-          transform: scaleX(0); transform-origin: left; transition: transform 0.35s ease;
-        }
-        .rs-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(255,85,0,0.1); border-color: rgba(255,85,0,0.15); }
-        .rs-card:hover::before { transform: scaleX(1); }
-        .rs-btn {
-          display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
-          padding: 0.5rem 1.1rem; border-radius: 10px; font-size: 0.82rem; font-weight: 600;
-          transition: all 0.2s ease; cursor: pointer; text-decoration: none; border: none;
-        }
-        .rs-btn-primary { background: var(--orange); color: #ffffff; box-shadow: 0 4px 12px rgba(255,85,0,0.3); }
-        .rs-btn-primary:hover { background: var(--orange-dark); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,85,0,0.4); }
-        .rs-btn-outline { background: transparent; color: #0f1117; border: 1px solid #e5e7eb; }
-        .rs-btn-outline:hover { background: #f9fafb; border-color: var(--orange); color: var(--orange); }
-        .rs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; margin-top: 1.25rem; }
-        @media (max-width: 900px) {
-          .rs-hero-section { padding: 6rem 1.5rem 3rem 1.5rem !important; }
-          .rs-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+        .ts-hero-content { max-width: 700px; margin: 0 auto; position: relative; z-index: 1; }
+        .ts-hero-subtitle { font-family: 'Dancing Script', cursive; font-size: 1.8rem; color: var(--orange); margin: 0 0 0.2rem; }
+        .ts-hero-title { font-size: clamp(2rem,4vw,3.2rem); font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; margin: 0 0 0.6rem; color: var(--text); }
+        .ts-hero-desc { font-size: 1rem; color: var(--text-muted); line-height: 1.7; margin: 0 0 1.5rem; }
+        .ts-hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+        .ts-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.2rem; border-radius: 10px; font-weight: 700; font-size: 0.85rem; text-decoration: none; transition: all 0.2s; }
+        .ts-btn-primary { background: var(--orange); color: white; }
+        .ts-btn-primary:hover { background: var(--orange-dark); transform: translateY(-1px); }
+        .ts-btn-secondary { background: var(--surface-2); color: var(--text-secondary); }
+        .ts-btn-secondary:hover { background: var(--surface-3); }
+        .ts-filters { display: flex; gap: 1rem; max-width: 1200px; margin: 0 auto; padding: 0 2rem 1.5rem; flex-wrap: wrap; align-items: flex-end; }
+        .ts-search-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; flex: 1; min-width: 200px; }
+        .ts-search-bar i { color: var(--text-muted); font-size: 0.85rem; }
+        .ts-search-bar input { border: none; background: none; outline: none; font-size: 0.85rem; color: var(--text); width: 100%; }
+        .ts-search-bar input::placeholder { color: var(--text-muted); }
+        .ts-filter-group { display: flex; flex-direction: column; gap: 0.25rem; }
+        .ts-filter-group label { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+        .ts-filter-group select { padding: 0.45rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; color: var(--text); background: var(--surface); cursor: pointer; }
+        .ts-loading { display: flex; justify-content: center; padding: 3rem; }
+        .ts-section { max-width: 1200px; margin: 0 auto; padding: 0 2rem 4rem; }
+        .ts-task-section { margin-bottom: 2rem; }
+        .ts-section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+        .ts-section-dot { font-size: 0.8rem; }
+        .ts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
+        .ts-empty { text-align: center; padding: 3rem; color: var(--text-muted); }
+        .ts-empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+        @media (max-width: 768px) {
+          .ts-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+          .ts-hero { padding: 5rem 1.5rem 2.5rem; }
         }
         @media (max-width: 600px) {
-          .rs-hero-section { padding: 5rem 1.2rem 2.5rem 1.2rem !important; min-height: auto !important; }
-          .shard-tl { width: 180px !important; height: 180px !important; }
-          .shard-br { width: 220px !important; height: 220px !important; }
-          .rs-grid { grid-template-columns: 1fr; }
+          .ts-grid { grid-template-columns: 1fr; }
+          .ts-filters { flex-direction: column; }
+          .ts-search-bar { min-width: auto; }
         }
       `}</style>
-
-      <section className="rs-hero-section">
-        <div className="shard-tl" /><div className="shard-br" />
-        <div className="sphere sphere-tr" /><div className="sphere sphere-br" /><div className="sphere sphere-bl" />
-        <div ref={heroRef} style={{ maxWidth: '1000px', width: '100%', textAlign: 'center', position: 'relative', zIndex: 1, ...reveal(heroVisible) }}>
-          <p style={{ fontFamily: "'Dancing Script', cursive", fontSize: '2.4rem', color: 'var(--orange)', margin: '0 0 0.2rem 0', lineHeight: 1.1, textShadow: '0 0 15px rgba(255,85,0,0.15)' }}>Sharpen Your Skills</p>
-          <h1 style={{ fontSize: 'clamp(2.2rem,5vw,4rem)', fontFamily: 'var(--font-display)', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '0.02em', margin: '0 0 0.8rem 0', lineHeight: 1.05, color: '#0f1117' }}>Weekly Tasks</h1>
-          <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.8, maxWidth: '640px', margin: '0 auto 1.75rem' }}>Sharpen your skills with weekly coding problems and design sprints. Submit your solutions for review.</p>
-        </div>
-      </section>
-
-      <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem 4rem', position: 'relative', zIndex: 2 }}>
-        {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><div className="loading-spinner" /></div> : (
-          <>
-            {activeTasks.length > 0 && (
-              <div style={{ marginBottom: '3rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#0f1117', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#16a34a' }}>●</span> Active Tasks ({activeTasks.length})
-                </h3>
-                <div className="rs-grid">
-                  {activeTasks.map(task => <TaskCard key={task.id} task={task} active />)}
-                </div>
-              </div>
-            )}
-
-            {expiredTasks.length > 0 && (
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#0f1117', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#9ca3af' }}>●</span> Past Tasks ({expiredTasks.length})
-                </h3>
-                <div className="rs-grid">
-                  {expiredTasks.map(task => <TaskCard key={task.id} task={task} active={false} />)}
-                </div>
-              </div>
-            )}
-
-            {!loading && tasks.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📝</div>
-                <p>No tasks available yet. Check back soon!</p>
-              </div>
-            )}
-          </>
-        )}
-      </section>
     </div>
   );
 }

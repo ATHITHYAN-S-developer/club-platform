@@ -27,6 +27,10 @@ const MyBadges = lazy(() => import('./pages/MyBadges'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const AnnouncementDetails = lazy(() => import('./pages/AnnouncementDetails'));
 const MyRegistrations = lazy(() => import('./pages/MyRegistrations'));
+const TaskDashboard = lazy(() => import('./pages/TaskDashboard'));
+const TaskDetail = lazy(() => import('./pages/TaskDetail'));
+const MySubmissions = lazy(() => import('./pages/MySubmissions'));
+const TaskLeaderboard = lazy(() => import('./pages/TaskLeaderboard'));
 
 function PageLoading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}><Loading /></div>;
@@ -101,6 +105,10 @@ export default function App() {
               <Route path="/announcements" element={<Announcements user={user} />} />
               <Route path="/announcements/:id" element={<AnnouncementDetails user={user} />} />
               <Route path="/my-registrations" element={<ProtectedRoute user={user} authLoading={authLoading}><MyRegistrations user={user} /></ProtectedRoute>} />
+              <Route path="/tasks/dashboard" element={<ProtectedRoute user={user} authLoading={authLoading}><TaskDashboard user={user} /></ProtectedRoute>} />
+              <Route path="/tasks/:id" element={<ProtectedRoute user={user} authLoading={authLoading}><TaskDetail user={user} /></ProtectedRoute>} />
+              <Route path="/my-submissions" element={<ProtectedRoute user={user} authLoading={authLoading}><MySubmissions user={user} /></ProtectedRoute>} />
+              <Route path="/task-leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><TaskLeaderboard user={user} /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><Admin user={user} /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
