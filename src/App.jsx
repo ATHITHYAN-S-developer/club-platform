@@ -30,7 +30,6 @@ const ChallengesDashboard = lazy(() => import('./challenges/pages/ChallengesDash
 const ChallengeSolve = lazy(() => import('./challenges/pages/ChallengeSolve'));
 const ChallengesLeaderboard = lazy(() => import('./challenges/pages/ChallengesLeaderboard'));
 const ChallengesProfile = lazy(() => import('./challenges/pages/ChallengesProfile'));
-
 function PageLoading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}><Loading /></div>;
 }

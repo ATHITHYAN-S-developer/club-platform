@@ -488,8 +488,6 @@ export default function Home() {
         </div>
       </div>
 
-
-
       {/* ── WEEKLY WINNERS SECTION ── */}
       {winners.length > 0 && (
         <section className="celebration-section">
