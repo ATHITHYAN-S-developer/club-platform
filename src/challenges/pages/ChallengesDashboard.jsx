@@ -252,6 +252,16 @@ export default function ChallengesDashboard({ user }) {
     ];
   }, [solvedSet, user, submissions, top10Leaderboard]);
 
+  // Footer Stats Summary
+  const footerStats = useMemo(() => {
+    const total = challenges.length;
+    const solved = solvedSet.size;
+    const pending = Math.max(total - solved, 0);
+    const xpEarned = user?.challengeXp || 0;
+    const rank = userRank ? `#${userRank.rank}` : '—';
+    return { total, solved, pending, xpEarned, rank };
+  }, [challenges, solvedSet, user, userRank]);
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-16 space-y-12" style={{ fontFamily: 'Inter, sans-serif' }}>
       
