@@ -23,8 +23,6 @@ export default function Sidebar({ user, isCollapsed, toggleCollapse, isMobileOpe
     { to: '/events', label: 'Events', icon: 'fa-calendar-days' },
     { to: '/quiz', label: 'Weekly Quiz', icon: 'fa-brain' },
     { to: '/winners', label: 'Weekly Winners', icon: 'fa-trophy' },
-    { to: '/tasks', label: 'Tasks', icon: 'fa-square-check' },
-    { to: '/task-leaderboard', label: 'Task Leaderboard', icon: 'fa-ranking-star' },
     { to: '/join', label: 'Join Club', icon: 'fa-hand-fist' },
     { to: '/contact', label: 'Contact', icon: 'fa-phone' },
   ];

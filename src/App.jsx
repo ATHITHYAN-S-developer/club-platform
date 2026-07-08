@@ -16,7 +16,6 @@ const Events = lazy(() => import('./pages/Events'));
 const Quiz = lazy(() => import('./pages/QuizPage'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const Winners = lazy(() => import('./pages/Winners'));
-const Tasks = lazy(() => import('./pages/Tasks'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Careers = lazy(() => import('./pages/Careers'));
 const Admin = lazy(() => import('./pages/Admin'));
@@ -27,10 +26,6 @@ const MyBadges = lazy(() => import('./pages/MyBadges'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const AnnouncementDetails = lazy(() => import('./pages/AnnouncementDetails'));
 const MyRegistrations = lazy(() => import('./pages/MyRegistrations'));
-const TaskDashboard = lazy(() => import('./pages/TaskDashboard'));
-const TaskDetail = lazy(() => import('./pages/TaskDetail'));
-const MySubmissions = lazy(() => import('./pages/MySubmissions'));
-const TaskLeaderboard = lazy(() => import('./pages/TaskLeaderboard'));
 
 function PageLoading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}><Loading /></div>;
@@ -98,17 +93,12 @@ export default function App() {
               <Route path="/signup" element={<Signup user={user} />} />
               <Route path="/quiz" element={<ProtectedRoute user={user} authLoading={authLoading}><Quiz user={user} /></ProtectedRoute>} />
               <Route path="/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><Leaderboard user={user} /></ProtectedRoute>} />
-              <Route path="/tasks" element={<ProtectedRoute user={user} authLoading={authLoading}><Tasks user={user} /></ProtectedRoute>} />
               <Route path="/careers" element={<ProtectedRoute user={user} authLoading={authLoading}><Careers /></ProtectedRoute>} />
               <Route path="/my-results" element={<ProtectedRoute user={user} authLoading={authLoading}><MyResults user={user} /></ProtectedRoute>} />
               <Route path="/my-badges" element={<ProtectedRoute user={user} authLoading={authLoading}><MyBadges user={user} /></ProtectedRoute>} />
               <Route path="/announcements" element={<Announcements user={user} />} />
               <Route path="/announcements/:id" element={<AnnouncementDetails user={user} />} />
               <Route path="/my-registrations" element={<ProtectedRoute user={user} authLoading={authLoading}><MyRegistrations user={user} /></ProtectedRoute>} />
-              <Route path="/tasks/dashboard" element={<ProtectedRoute user={user} authLoading={authLoading}><TaskDashboard user={user} /></ProtectedRoute>} />
-              <Route path="/tasks/:id" element={<ProtectedRoute user={user} authLoading={authLoading}><TaskDetail user={user} /></ProtectedRoute>} />
-              <Route path="/my-submissions" element={<ProtectedRoute user={user} authLoading={authLoading}><MySubmissions user={user} /></ProtectedRoute>} />
-              <Route path="/task-leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><TaskLeaderboard user={user} /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><Admin user={user} /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

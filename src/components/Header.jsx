@@ -47,7 +47,6 @@ export default function Header({ user }) {
     { to: '/quiz', label: 'Quiz', icon: 'fa-brain' },
     { to: '/careers', label: 'Careers', icon: 'fa-diagram-project' },
     { to: '/leaderboard', label: 'Leaderboard', icon: 'fa-ranking-star' },
-    { to: '/tasks', label: 'Tasks', icon: 'fa-square-check' },
     { to: '/winners', label: 'Winners', icon: 'fa-trophy' },
     { to: '/contact', label: 'Contact', icon: 'fa-phone' },
   ];
@@ -66,7 +65,6 @@ export default function Header({ user }) {
     { to: '/quiz', label: 'Quiz', icon: 'fa-brain' },
     { to: '/careers', label: 'Careers', icon: 'fa-diagram-project' },
     { to: '/leaderboard', label: 'Leaderboard', icon: 'fa-ranking-star' },
-    { to: '/tasks', label: 'Tasks', icon: 'fa-square-check' },
     { to: '/winners', label: 'Winners', icon: 'fa-trophy' },
   ];
 
@@ -119,15 +117,6 @@ export default function Header({ user }) {
                 <span className="dropdown-user-name">{user.name}</span>
                 <span className="dropdown-user-role">{user.role}</span>
               </div>
-              <Link to="/tasks/dashboard" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
-                <i className="fa-solid fa-gauge-high"></i> Task Dashboard
-              </Link>
-              <Link to="/my-submissions" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
-                <i className="fa-solid fa-clock-rotate-left"></i> My Submissions
-              </Link>
-              <Link to="/task-leaderboard" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
-                <i className="fa-solid fa-trophy"></i> Task Leaderboard
-              </Link>
               {user.role === 'admin' && (
                 <Link to="/admin" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                   <i className="fa-solid fa-crown"></i> Admin Panel
