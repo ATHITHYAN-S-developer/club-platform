@@ -126,6 +126,89 @@ export default function ChallengesDashboard({ user }) {
         </div>
       </div>
 
+      {/* Daily Challenge Spotlight */}
+      {(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const daily = challenges.find(c => c.isDailyChallenge && c.challengeDate?.startsWith(today));
+        if (!daily) return null;
+        const dailyDiff = DIFFICULTY[daily.difficulty] || DIFFICULTY.easy;
+        const dailyDone = completedIds.has(daily.id);
+        const dailyAttempts = attemptCounts[daily.id] || 0;
+        const dailyMax = daily.maxAttempts || 0;
+        const dailyLimitReached = dailyMax > 0 && dailyAttempts >= dailyMax;
+        return (
+          <div
+            style={{
+              marginBottom: 32,
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%)',
+              borderRadius: 20,
+              padding: 32,
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 24,
+              cursor: dailyLimitReached ? 'not-allowed' : 'pointer',
+              transition: 'transform .2s, box-shadow .2s',
+              boxShadow: '0 8px 32px rgba(79, 70, 229, 0.25)',
+            }}
+            onClick={() => {
+              if (dailyLimitReached) {
+                window.showToast?.('Limit Reached', `You have used all ${dailyMax} attempt${dailyMax > 1 ? 's' : ''} for today's challenge.`, 'warning');
+                return;
+              }
+              navigate(`/challenges/${daily.id}`);
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(79, 70, 229, 0.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(79, 70, 229, 0.25)'; }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 22 }}>🔥</span>
+                <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', opacity: 0.9 }}>Daily Challenge — {today}</span>
+              </div>
+              <h2 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 8px', lineHeight: 1.3 }}>{daily.title}</h2>
+              <p style={{ fontSize: 14, opacity: 0.85, margin: 0, lineHeight: 1.5, maxWidth: 560 }}>
+                {daily.description?.replace(/[#*`]/g, '').substring(0, 140)}...
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 999, background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)' }}>
+                  {dailyDiff.label}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>+{daily.xpReward || 100} XP</span>
+                {dailyMax > 0 && (
+                  <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.85 }}>
+                    {dailyAttempts}/{dailyMax} attempts
+                  </span>
+                )}
+                {dailyDone && <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.25)', padding: '3px 10px', borderRadius: 999 }}>✓ Completed</span>}
+                {dailyLimitReached && <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(239,68,68,0.3)', padding: '3px 10px', borderRadius: 999 }}>Limit Reached</span>}
+              </div>
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <button
+                style={{
+                  padding: '14px 28px',
+                  background: '#fff',
+                  color: '#4f46e5',
+                  border: 'none',
+                  borderRadius: 14,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: dailyLimitReached ? 'not-allowed' : 'pointer',
+                  opacity: dailyLimitReached ? 0.6 : 1,
+                  transition: 'all .2s',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+                disabled={dailyLimitReached}
+              >
+                {dailyDone ? 'Retry Challenge' : 'Start Daily Challenge'} →
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Filters */}
       <div className="chl-filters">
         <input
@@ -163,11 +246,13 @@ export default function ChallengesDashboard({ user }) {
             const userAttempts = attemptCounts[ch.id] || 0;
             const maxAttempts = ch.maxAttempts || 0;
             const limitReached = maxAttempts > 0 && userAttempts >= maxAttempts;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const isDaily = ch.isDailyChallenge && ch.challengeDate?.startsWith(todayStr);
             return (
               <div
                 key={ch.id}
                 className="chl-card"
-                style={{ cursor: limitReached ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', opacity: limitReached ? 0.65 : 1 }}
+                style={{ cursor: limitReached ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', opacity: limitReached ? 0.65 : 1, ...(isDaily ? { border: '2px solid #7c3aed', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.1)' } : {}) }}
                 onClick={() => {
                   if (limitReached) {
                     window.showToast?.('Limit Reached', `You have used all ${maxAttempts} attempt${maxAttempts > 1 ? 's' : ''} for this challenge.`, 'warning');
@@ -188,6 +273,9 @@ export default function ChallengesDashboard({ user }) {
                     {diff.label}
                   </span>
                   <span style={{ fontSize: 12, color: '#9ca3af' }}>{type.label}</span>
+                  {isDaily && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: 999 }}>🔥 Daily</span>
+                  )}
                 </div>
                 <h3 style={{ fontSize: 20, fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>{ch.title}</h3>
                 <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
