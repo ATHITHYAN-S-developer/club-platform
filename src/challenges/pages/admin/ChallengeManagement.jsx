@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import db from '../../../db';
-import { DIFFICULTY, DIFFICULTIES, LANGUAGES } from '../../config/challengeConfig';
+import { DIFFICULTY, DIFFICULTIES, LANGUAGES, DEFAULT_SECURITY, SECURITY_PRESETS, getSecurityLevel } from '../../config/challengeConfig';
 import { getChallenges, createChallenge, updateChallenge } from '../../services/challengeService';
+import { validateChallenge } from '../../../utils/challengeValidators';
+import { getSecurityReport } from '../../services/activityLogService';
 
 const P = '#4f46e5';
 const Bg = '#f8fafc';
@@ -22,9 +24,10 @@ const sidebarItems = [
   { step: 4, label: 'Test Cases', icon: 'fa-vial' },
   { step: 5, label: 'Starter Code', icon: 'fa-code' },
   { step: 6, label: 'Scoring', icon: 'fa-trophy' },
-  { step: 7, label: 'Publish', icon: 'fa-rocket' },
+  { step: 7, label: 'Security', icon: 'fa-shield-halved' },
+  { step: 8, label: 'Publish', icon: 'fa-rocket' },
   { type: 'divider' },
-  { step: 8, label: 'Manual Reviews', icon: 'fa-clipboard-check' },
+  { step: 9, label: 'Manual Reviews', icon: 'fa-clipboard-check' },
 ];
 
 function inpStyle(wide) {
@@ -89,6 +92,8 @@ export default function ChallengeManagement() {
 
   const [tcTab, setTcTab] = useState('sample');
   const [preview, setPreview] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -109,6 +114,8 @@ export default function ChallengeManagement() {
   };
 
   const handleCreateNew = () => {
+    setErrors({});
+    setShowErrors(false);
     setEditingId(null);
     setForm({
       title: '',
@@ -130,12 +137,15 @@ export default function ChallengeManagement() {
       isDailyChallenge: false,
       challengeDate: new Date().toISOString().split('T')[0],
       status: 'draft',
+      security: JSON.parse(JSON.stringify(DEFAULT_SECURITY)),
     });
     setActiveLangTab('python');
     setStep(1);
   };
 
   const handleEdit = (c) => {
+    setErrors({});
+    setShowErrors(false);
     setEditingId(c.id);
     setForm({
       ...c,
@@ -145,6 +155,7 @@ export default function ChallengeManagement() {
       starterCode: c.starterCode || { python: '', javascript: '' },
       solutionCode: c.solutionCode || { python: '', javascript: '' },
       supportedLanguages: c.supportedLanguages || ['python', 'javascript'],
+      security: c.security || JSON.parse(JSON.stringify(DEFAULT_SECURITY)),
     });
     setActiveLangTab('python');
     setStep(1);
@@ -186,6 +197,13 @@ export default function ChallengeManagement() {
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    const errs = validateChallenge(form);
+    setErrors(errs);
+    setShowErrors(true);
+    if (Object.keys(errs).length > 0) {
+      window.showToast('Validation Error', 'Please fix the highlighted fields before publishing.', 'error');
+      return;
+    }
     try {
       const tagsArray = form.tags.split(',').map(t => t.trim()).filter(t => t !== '');
       const payload = {
@@ -203,6 +221,8 @@ export default function ChallengeManagement() {
         await createChallenge({ id: newId, ...payload });
         window.showToast('Created', 'Challenge created successfully.', 'success');
       }
+      setErrors({});
+      setShowErrors(false);
       setStep(0);
       loadData();
     } catch (err) {
@@ -272,7 +292,7 @@ export default function ChallengeManagement() {
     return submissions.filter(s => s.status === 'pending_review');
   }, [submissions]);
 
-  const isFormStep = step >= 1 && step <= 7;
+  const isFormStep = step >= 1 && step <= 8;
 
   const thStyle = { padding: '12px 16px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: TextMuted, textAlign: 'left' };
   const tdStyle = { padding: '14px 16px', fontSize: 13 };
@@ -359,14 +379,22 @@ export default function ChallengeManagement() {
   function renderFormStep() {
     return (
       <div>
+        {/* Error banner */}
+        {showErrors && Object.keys(errors).length > 0 && (
+          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: RadiusSm, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="fa-solid fa-exclamation-triangle" style={{ color: '#dc2626', fontSize: 14 }} />
+            <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>Please fix the highlighted errors before saving.</span>
+          </div>
+        )}
+
         {/* Step indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 32 }}>
-          {[1, 2, 3, 4, 5, 6, 7].map(s => (
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: s <= step ? P : Border, color: s <= step ? '#fff' : TextMuted, cursor: 'pointer' }} onClick={() => setStep(s)}>
                 {s}
               </div>
-              {s < 7 && <div style={{ width: 20, height: 2, background: s < step ? P : Border }} />}
+              {s < 8 && <div style={{ width: 20, height: 2, background: s < step ? P : Border }} />}
             </div>
           ))}
         </div>
@@ -378,18 +406,24 @@ export default function ChallengeManagement() {
         {step === 4 && renderTestCases()}
         {step === 5 && renderStarterCode()}
         {step === 6 && renderScoring()}
-        {step === 7 && renderPublishing()}
+        {step === 7 && renderSecurity()}
+        {step === 8 && renderPublishing()}
       </div>
     );
   }
 
   function renderBasicInfo() {
+    const fieldStyle = (key) => ({
+      ...inpStyle(),
+      borderColor: errors[key] && showErrors ? '#dc2626' : Border,
+    });
     return (
       <Section title="Basic Details" desc="Name your challenge and set the difficulty level.">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle()}>Challenge Title *</label>
-            <input style={inpStyle()} placeholder="e.g. Two Sum Challenge" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
+            <input style={fieldStyle('title')} placeholder="e.g. Two Sum Challenge" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
+            {errors.title && showErrors && <span style={{ fontSize: 12, color: '#dc2626', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><i className="fa-solid fa-exclamation-circle"></i>{errors.title}</span>}
           </div>
           <div>
             <label style={labelStyle()}>Difficulty *</label>
@@ -622,10 +656,245 @@ export default function ChallengeManagement() {
     );
   }
 
+  function renderSecurity() {
+    const sec = form.security || DEFAULT_SECURITY;
+    const setSec = (updater) => setForm(p => ({ ...p, security: { ...p.security, ...updater } }));
+    const setGroup = (group, key, value) => setForm(p => ({
+      ...p,
+      security: { ...p.security, [group]: { ...p.security?.[group], [key]: value } },
+    }));
+    const applyPreset = (presetKey) => {
+      const preset = SECURITY_PRESETS[presetKey];
+      if (preset) setForm(p => ({ ...p, security: JSON.parse(JSON.stringify(preset.config)) }));
+    };
+
+    function ToggleSec({ group, field, label }) {
+      const checked = sec?.[group]?.[field] ?? DEFAULT_SECURITY[group]?.[field] ?? false;
+      return (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', padding: '6px 0' }}>
+          <div style={{ width: 36, height: 20, borderRadius: 12, position: 'relative', background: checked ? P : Border, transition: 'background 0.2s', flexShrink: 0 }}>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: checked ? 18 : 2, transition: 'left 0.2s' }} />
+            <input type="checkbox" checked={checked} onChange={e => setGroup(group, field, e.target.checked)} style={{ display: 'none' }} />
+          </div>
+          <span style={{ fontSize: 13, color: TextSec, fontWeight: 500 }}>{label}</span>
+        </label>
+      );
+    }
+
+    const secLevel = getSecurityLevel(sec);
+
+    return (
+      <Section title="Security" desc="Configure proctoring and anti-cheat settings for this challenge.">
+        {/* Preset selector */}
+        <div style={{ marginBottom: 24, padding: 16, background: Bg, borderRadius: RadiusSm, border: `1px solid ${Border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: TextSec }}>Security Preset:</label>
+            <select onChange={e => { if (e.target.value) applyPreset(e.target.value); e.target.value = ''; }}
+              style={{ height: 36, padding: '0 12px', border: `1px solid ${Border}`, borderRadius: 8, fontSize: 13, color: Text, background: Card, outline: 'none' }}>
+              <option value="">-- Select Preset --</option>
+              {Object.entries(SECURITY_PRESETS).map(([key, p]) => (
+                <option key={key} value={key}>{p.label} — {p.desc}</option>
+              ))}
+            </select>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderRadius: 999, background: `${secLevel.color}15` }}>
+              <span>{secLevel.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: secLevel.color }}>Level: {secLevel.label}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
+          {/* Exam Security */}
+          <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: Text, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-shield" style={{ color: P, fontSize: 13 }} /> Exam Security
+            </h4>
+            <p style={{ fontSize: 11, color: TextMuted, margin: '0 0 12px' }}>Browser and window controls</p>
+            <ToggleSec group="exam" field="fullscreenRequired" label="Require Fullscreen" />
+            <ToggleSec group="exam" field="tabSwitchDetection" label="Detect Tab Switching" />
+            <ToggleSec group="exam" field="windowBlurDetection" label="Detect Window Blur" />
+            <ToggleSec group="exam" field="minimizeDetection" label="Detect Minimize Window" />
+            <ToggleSec group="exam" field="disableRefreshWarning" label="Disable Refresh Warning" />
+            <ToggleSec group="exam" field="disablePrint" label="Disable Print (Ctrl+P)" />
+            <ToggleSec group="exam" field="disableSave" label="Disable Save (Ctrl+S)" />
+          </div>
+
+          {/* Keyboard Restrictions */}
+          <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: Text, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-keyboard" style={{ color: P, fontSize: 13 }} /> Keyboard Restrictions
+            </h4>
+            <p style={{ fontSize: 11, color: TextMuted, margin: '0 0 12px' }}>Input and interaction controls</p>
+            <ToggleSec group="keyboard" field="disableCopy" label="Disable Copy" />
+            <ToggleSec group="keyboard" field="disablePaste" label="Disable Paste" />
+            <ToggleSec group="keyboard" field="disableCut" label="Disable Cut" />
+            <ToggleSec group="keyboard" field="disableSelectAll" label="Disable Select All" />
+            <ToggleSec group="keyboard" field="disableRightClick" label="Disable Right Click" />
+            <ToggleSec group="keyboard" field="disableDragDrop" label="Disable Drag & Drop" />
+            <ToggleSec group="keyboard" field="disableTextSelection" label="Disable Text Selection" />
+          </div>
+
+          {/* DevTools Protection */}
+          <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: Text, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-code" style={{ color: P, fontSize: 13 }} /> DevTools Protection
+            </h4>
+            <p style={{ fontSize: 11, color: TextMuted, margin: '0 0 12px' }}>Developer tool detection</p>
+            <ToggleSec group="devtools" field="detectDevTools" label="Detect DevTools Opening" />
+            <ToggleSec group="devtools" field="detectConsole" label="Detect Console Inspection" />
+            <ToggleSec group="devtools" field="detectViewSource" label="Detect View Source" />
+            <ToggleSec group="devtools" field="detectDebugger" label="Detect Debugger Pause" />
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 24 }}>
+          {/* Submission Rules */}
+          <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: Text, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-paper-plane" style={{ color: P, fontSize: 13 }} /> Submission Rules
+            </h4>
+            <p style={{ fontSize: 11, color: TextMuted, margin: '0 0 12px' }}>Auto-submission and save behavior</p>
+            <ToggleSec group="submission" field="autoSubmitOnFullscreenExit" label="Auto Submit on Fullscreen Exit" />
+            <ToggleSec group="submission" field="autoSubmitAfterViolationLimit" label="Auto Submit After Violation Limit" />
+            <ToggleSec group="submission" field="autoSubmitOnTimerEnd" label="Auto Submit on Timer End" />
+            <ToggleSec group="submission" field="warnBeforeAutoSubmission" label="Warn Before Auto Submission" />
+            <div style={{ marginTop: 12 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: TextSec, display: 'block', marginBottom: 4 }}>Autosave Interval (seconds)</label>
+              <input type="number" min="3" max="60" value={sec?.submission?.autoSaveInterval ?? 10}
+                onChange={e => setGroup('submission', 'autoSaveInterval', Number(e.target.value))}
+                style={{ width: '100%', height: 36, padding: '0 10px', border: `1px solid ${Border}`, borderRadius: 8, fontSize: 13, color: Text, background: Card, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          </div>
+
+          {/* Violation & Idle */}
+          <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: Text, margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-gavel" style={{ color: P, fontSize: 13 }} /> Violation Configuration
+            </h4>
+            <p style={{ fontSize: 11, color: TextMuted, margin: '0 0 12px' }}>Violation limits and idle detection</p>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: TextSec, display: 'block', marginBottom: 4 }}>Maximum Violations</label>
+              <input type="number" min="1" max="10" value={sec?.violations?.maxViolations ?? 3}
+                onChange={e => setGroup('violations', 'maxViolations', Number(e.target.value))}
+                style={{ width: '100%', height: 36, padding: '0 10px', border: `1px solid ${Border}`, borderRadius: 8, fontSize: 13, color: Text, background: Card, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {['first', 'second', 'third', 'submit'].map((key, i) => (
+                <div key={key}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: TextMuted, display: 'block', marginBottom: 2 }}>
+                    {i < 3 ? `Warning ${i + 1}` : 'Auto Submit Label'}
+                  </label>
+                  <input value={sec?.violations?.warnings?.[key] ?? ''}
+                    onChange={e => setForm(p => ({ ...p, security: { ...p.security, violations: { ...p.security?.violations, warnings: { ...p.security?.violations?.warnings, [key]: e.target.value } } } }))}
+                    style={{ width: '100%', height: 30, padding: '0 8px', border: `1px solid ${Border}`, borderRadius: 6, fontSize: 11, color: Text, background: Card, outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${Border}` }}>
+              <h5 style={{ fontSize: 12, fontWeight: 700, color: Text, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <i className="fa-solid fa-clock" style={{ color: TextMuted }} /> Idle Detection
+              </h5>
+              <ToggleSec group="idleDetection" field="enabled" label="Enable Idle Detection" />
+              {sec?.idleDetection?.enabled && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: TextMuted, display: 'block', marginBottom: 2 }}>Idle Timeout (min)</label>
+                    <input type="number" min="1" max="30" value={sec?.idleDetection?.timeoutMinutes ?? 5}
+                      onChange={e => setGroup('idleDetection', 'timeoutMinutes', Number(e.target.value))}
+                      style={{ width: '100%', height: 30, padding: '0 8px', border: `1px solid ${Border}`, borderRadius: 6, fontSize: 11, color: Text, background: Card, outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: TextMuted, display: 'block', marginBottom: 2 }}>Auto Submit After (min)</label>
+                    <input type="number" min="1" max="60" value={sec?.idleDetection?.autoSubmitAfterMinutes ?? 10}
+                      onChange={e => setGroup('idleDetection', 'autoSubmitAfterMinutes', Number(e.target.value))}
+                      style={{ width: '100%', height: 30, padding: '0 8px', border: `1px solid ${Border}`, borderRadius: 6, fontSize: 11, color: Text, background: Card, outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Section>
+    );
+  }
+
   function renderPublishing() {
     const diff = DIFFICULTY[form.difficulty] || DIFFICULTY.easy;
+    const secLevel = getSecurityLevel(form.security);
+    const valErrors = validateChallenge(form);
+    const hasErrors = Object.keys(valErrors).length > 0;
+    const publishReady = !hasErrors;
+
+    const checklist = [
+      { key: 'title', label: 'Title provided', pass: !!form.title?.trim() },
+      { key: 'description', label: 'Description provided', pass: !!form.description?.trim() },
+      { key: 'constraints', label: 'Constraints provided', pass: !!form.constraints?.trim() },
+      { key: 'inputFormat', label: 'Input format provided', pass: !!form.inputFormat?.trim() },
+      { key: 'outputFormat', label: 'Output format provided', pass: !!form.outputFormat?.trim() },
+      { key: 'hiddenTestCases', label: 'At least 1 hidden test case', pass: (form.hiddenTestCases?.length || 0) > 0 },
+      { key: 'sampleTestCases', label: 'At least 1 sample test case', pass: (form.sampleTestCases?.length || 0) > 0 },
+      { key: 'supportedLanguages', label: 'At least 1 language supported', pass: (form.supportedLanguages?.length || 0) > 0 },
+      { key: 'security', label: 'Security configured', pass: !!form.security },
+      { key: 'timeLimit', label: 'Time limit valid (>= 1 min)', pass: Number(form.timeLimit) >= 1 },
+      { key: 'memoryLimit', label: 'Memory limit valid (>= 16 MB)', pass: Number(form.memoryLimit) >= 16 },
+    ];
     return (
       <Section title="Publish" desc="Review and publish your challenge.">
+        {/* Publish Checklist */}
+        <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24, marginBottom: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: Text, marginBottom: 12 }}>Publish Checklist</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {checklist.map(item => (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: item.pass ? '#f0fdf4' : '#fef2f2', borderRadius: 8 }}>
+                <i className={`fa-solid ${item.pass ? 'fa-check-circle' : 'fa-times-circle'}`} style={{ color: item.pass ? '#059669' : '#dc2626', fontSize: 13 }} />
+                <span style={{ fontSize: 13, color: item.pass ? '#065f46' : '#991b1b' }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+          {publishReady && (
+            <div style={{ marginTop: 12, padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #d1fae5', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-check-circle" style={{ color: '#059669' }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#065f46' }}>All checks passed. Ready to publish.</span>
+            </div>
+          )}
+          {hasErrors && (
+            <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fee2e2', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-times-circle" style={{ color: '#dc2626' }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#991b1b' }}>{Object.keys(valErrors).length} issue(s) must be fixed before publishing.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Security Summary */}
+        <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24, marginBottom: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: Text, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="fa-solid fa-shield-halved" style={{ color: P }} /> Security Summary
+          </h3>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 14px', borderRadius: 999, background: `${secLevel.color}15`, marginBottom: 12 }}>
+            <span>{secLevel.icon}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: secLevel.color }}>Level: {secLevel.label}</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {[
+              { label: 'Fullscreen', pass: form.security?.exam?.fullscreenRequired },
+              { label: 'Tab Switch', pass: form.security?.exam?.tabSwitchDetection },
+              { label: 'Copy Blocked', pass: form.security?.keyboard?.disableCopy },
+              { label: 'Paste Blocked', pass: form.security?.keyboard?.disablePaste },
+              { label: 'Right Click', pass: form.security?.keyboard?.disableRightClick },
+              { label: 'DevTools', pass: form.security?.devtools?.detectDevTools },
+              { label: 'Auto Submit', pass: form.security?.submission?.autoSubmitAfterViolationLimit },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
+                <i className={`fa-solid ${item.pass ? 'fa-check-circle' : 'fa-circle'}`} style={{ color: item.pass ? '#059669' : '#d1d5db', fontSize: 11 }} />
+                <span style={{ fontSize: 12, color: item.pass ? '#374151' : '#9ca3af' }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: TextSec }}>
+            Violation Limit: <strong style={{ color: Text }}>{form.security?.violations?.maxViolations || 3}</strong>
+          </div>
+        </div>
+
         <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 32, marginBottom: 24 }}>
           <h3 style={{ fontSize: 20, fontWeight: 700, color: Text, marginBottom: 24 }}>Summary</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -649,7 +918,7 @@ export default function ChallengeManagement() {
               <i className="fa-solid fa-trash" style={{ marginRight: 6 }} /> Delete
             </button>
           )}
-          <button onClick={handleSave} style={{ height: 44, padding: '0 32px', background: P, color: '#fff', border: 'none', borderRadius: RadiusSm, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={handleSave} disabled={!publishReady} style={{ height: 44, padding: '0 32px', background: publishReady ? P : '#d1d5db', color: publishReady ? '#fff' : '#9ca3af', border: 'none', borderRadius: RadiusSm, fontSize: 13, fontWeight: 600, cursor: publishReady ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 8 }}>
             <i className={`fa-solid ${form.status === 'published' ? 'fa-paper-plane' : 'fa-save'}`} />
             {form.status === 'published' ? 'Publish' : 'Save Draft'}
           </button>
@@ -715,6 +984,43 @@ export default function ChallengeManagement() {
                 {selectedSub.githubUrl && <p style={{ margin: 0 }}><strong style={{ color: Text }}>Repo:</strong> <a href={selectedSub.githubUrl} target="_blank" rel="noopener noreferrer" style={{ color: P }}>View</a></p>}
                 {selectedSub.demoUrl && <p style={{ margin: 0 }}><strong style={{ color: Text }}>Demo:</strong> <a href={selectedSub.demoUrl} target="_blank" rel="noopener noreferrer" style={{ color: P }}>View</a></p>}
               </div>
+
+              {/* Security Report */}
+              {selectedSub.securityLog && selectedSub.securityLog.length > 0 && (
+                <div style={{ marginBottom: 16, padding: 12, background: '#f8fafc', borderRadius: 10, border: '1px solid #e5e7eb' }}>
+                  <h4 style={{ fontSize: 12, fontWeight: 700, color: Text, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fa-solid fa-shield-halved" style={{ color: P }} /> Security Report
+                  </h4>
+                  {(() => {
+                    const report = getSecurityReport(selectedSub.securityLog);
+                    const rows = [
+                      { label: 'Violations', value: report.violations },
+                      { label: 'Tab Switches', value: report.tabSwitches },
+                      { label: 'Fullscreen Exits', value: report.fullscreenExits },
+                      { label: 'Copy Attempts', value: report.copyAttempts },
+                      { label: 'Paste Attempts', value: report.pasteAttempts },
+                      { label: 'DevTools', value: report.devtoolsOpened },
+                      { label: 'Auto Submitted', value: report.autoSubmitted ? 'Yes' : 'No' },
+                    ];
+                    if (report.totalTime > 0) {
+                      const min = Math.floor(report.totalTime / 60);
+                      const sec = report.totalTime % 60;
+                      rows.push({ label: 'Total Time', value: `${min}m ${sec}s` });
+                    }
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                        {rows.map((r, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #f3f4f6' }}>
+                            <span style={{ fontSize: 11, color: '#6b7280' }}>{r.label}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: r.value === 'Yes' || (typeof r.value === 'number' && r.value > 0) ? '#dc2626' : '#111827' }}>{r.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               <form onSubmit={handleReviewSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <label style={labelStyle()}>Decision</label>
@@ -797,7 +1103,7 @@ export default function ChallengeManagement() {
               }}>
                 <i className={`fa-solid ${item.icon}`} style={{ width: 16, textAlign: 'center', fontSize: 12 }} />
                 {item.label}
-                {item.step === 8 && pendingReviews.length > 0 && (
+                {item.step === 9 && pendingReviews.length > 0 && (
                   <span style={{ marginLeft: 'auto', background: '#dc2626', color: '#fff', borderRadius: 999, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
                     {pendingReviews.length}
                   </span>
@@ -811,7 +1117,7 @@ export default function ChallengeManagement() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {step === 0 && renderChallengeList()}
           {isFormStep && renderFormStep()}
-          {step === 8 && renderReviews()}
+          {step === 9 && renderReviews()}
         </div>
       </div>
     </div>

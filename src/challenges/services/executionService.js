@@ -129,9 +129,9 @@ export async function runCode({ code, language, input }) {
   };
 }
 
-export async function submitSolution({ challengeId, code, language, timeTaken }) {
+export async function submitSolution({ challengeId, code, language, timeTaken, securityLog, violationCount, autoSubmitted, startedAt }) {
   if (CLOUD_FN_BASE) {
-    return await callFunction('submitCode', { challengeId, code, language, timeTaken });
+    return await callFunction('submitCode', { challengeId, code, language, timeTaken, securityLog, violationCount, autoSubmitted, startedAt });
   }
 
   // Client-Side Fallback
@@ -234,7 +234,11 @@ export async function submitSolution({ challengeId, code, language, timeTaken })
     runtime: 0.04,
     memory: 9.6,
     attemptNumber: userSubs.length + 1,
-    submittedAt: new Date().toISOString()
+    submittedAt: new Date().toISOString(),
+    securityLog: securityLog || [],
+    violationCount: violationCount || 0,
+    autoSubmitted: autoSubmitted || false,
+    startedAt: startedAt || new Date().toISOString()
   };
 
   await db.insert('ChallengeSubmissions', submissionRecord);

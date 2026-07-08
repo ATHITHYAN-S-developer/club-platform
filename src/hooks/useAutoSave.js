@@ -1,37 +1,61 @@
-import { useEffect, useRef, useCallback } from 'react';
-import db from '../db';
+import { useRef, useCallback, useEffect } from 'react';
+import { saveDraft, loadDraft } from '../challenges/services/challengeService';
 
-export default function useAutoSave(quizId, userId, answers, options = {}) {
-  const { interval = 5000, onSaved, onError } = options;
-  const answersRef = useRef(answers);
-  answersRef.current = answers;
-  const lastSavedRef = useRef('');
+export default function useAutosave({ userId, challengeId, code, language, cursorPosition, scrollPosition, interval = 10 }) {
+  const timerRef = useRef(null);
+  const lastSavedRef = useRef(null);
+  const dirtyRef = useRef(false);
+  const codeRef = useRef(code);
+  const langRef = useRef(language);
+  const cursorRef = useRef(cursorPosition);
+  const scrollRef = useRef(scrollPosition);
+
+  codeRef.current = code;
+  langRef.current = language;
+  cursorRef.current = cursorPosition;
+  scrollRef.current = scrollPosition;
 
   const save = useCallback(async () => {
-    const current = answersRef.current;
-    const key = JSON.stringify(current);
-    if (key === lastSavedRef.current) return;
+    if (!userId || !challengeId) return;
+    dirtyRef.current = false;
+    lastSavedRef.current = Date.now();
     try {
-      const existing = await db.findOne('QuizAttempt', { quizId, userId, status: 'in-progress' });
-      if (existing) {
-        await db.update('QuizAttempt', existing.id, { answers: current, updatedAt: new Date().toISOString() });
-      } else {
-        await db.insert('QuizAttempt', {
-          quizId, userId, answers: current, status: 'in-progress', startedAt: new Date().toISOString(),
-        });
-      }
-      lastSavedRef.current = key;
-      onSaved?.();
+      await saveDraft(userId, challengeId, langRef.current, codeRef.current);
     } catch (err) {
-      onError?.(err);
+      console.warn('Autosave failed:', err);
     }
-  }, [quizId, userId, onSaved, onError]);
+  }, [userId, challengeId]);
+
+  const restore = useCallback(async () => {
+    if (!userId || !challengeId) return null;
+    try {
+      const draft = await loadDraft(userId, challengeId);
+      return draft;
+    } catch {
+      return null;
+    }
+  }, [userId, challengeId]);
+
+  const markDirty = useCallback(() => {
+    dirtyRef.current = true;
+  }, []);
 
   useEffect(() => {
-    if (!quizId || !userId) return;
-    const timer = setInterval(save, interval);
-    return () => clearInterval(timer);
-  }, [quizId, userId, interval, save]);
+    timerRef.current = setInterval(() => {
+      if (dirtyRef.current) save();
+    }, interval * 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [save, interval]);
 
-  return { save };
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (dirtyRef.current) save();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [save]);
+
+  return { save, restore, markDirty, lastSaved: lastSavedRef };
 }

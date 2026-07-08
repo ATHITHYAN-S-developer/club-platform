@@ -76,3 +76,187 @@ export const SCORING = {
     maxTotal: 100,
   },
 };
+
+export const DEFAULT_SECURITY = {
+  exam: {
+    fullscreenRequired: true,
+    tabSwitchDetection: true,
+    windowBlurDetection: true,
+    minimizeDetection: true,
+    disableRefreshWarning: true,
+    disablePrint: true,
+    disableSave: true,
+  },
+  keyboard: {
+    disableCopy: true,
+    disablePaste: true,
+    disableCut: true,
+    disableSelectAll: true,
+    disableRightClick: true,
+    disableDragDrop: true,
+    disableTextSelection: true,
+  },
+  devtools: {
+    detectDevTools: true,
+    detectConsole: true,
+    detectViewSource: true,
+    detectDebugger: true,
+  },
+  submission: {
+    autoSubmitOnFullscreenExit: true,
+    autoSubmitAfterViolationLimit: true,
+    autoSubmitOnTimerEnd: true,
+    autoSaveInterval: 10,
+    warnBeforeAutoSubmission: true,
+  },
+  violations: {
+    maxViolations: 3,
+    warnings: {
+      first: 'Warning 1',
+      second: 'Warning 2',
+      third: 'Final Warning',
+      submit: 'Auto Submit',
+    },
+  },
+  idleDetection: {
+    enabled: false,
+    timeoutMinutes: 5,
+    autoSubmitAfterMinutes: 10,
+  },
+};
+
+export const SECURITY_PRESETS = {
+  openPractice: {
+    label: 'Open Practice',
+    desc: 'Minimal restrictions for practice sessions',
+    level: 'basic',
+    config: {
+      exam: {
+        fullscreenRequired: false, tabSwitchDetection: false, windowBlurDetection: false,
+        minimizeDetection: false, disableRefreshWarning: false, disablePrint: false, disableSave: false,
+      },
+      keyboard: {
+        disableCopy: false, disablePaste: false, disableCut: false, disableSelectAll: false,
+        disableRightClick: false, disableDragDrop: false, disableTextSelection: false,
+      },
+      devtools: {
+        detectDevTools: false, detectConsole: false, detectViewSource: false, detectDebugger: false,
+      },
+      submission: {
+        autoSubmitOnFullscreenExit: false, autoSubmitAfterViolationLimit: false, autoSubmitOnTimerEnd: true,
+        autoSaveInterval: 10, warnBeforeAutoSubmission: false,
+      },
+      violations: { maxViolations: 5, warnings: { first: 'Warning 1', second: 'Warning 2', third: 'Final Warning', submit: 'Auto Submit' } },
+      idleDetection: { enabled: false, timeoutMinutes: 10, autoSubmitAfterMinutes: 20 },
+    },
+  },
+  interviewMode: {
+    label: 'Interview Mode',
+    desc: 'Standard proctoring for technical interviews',
+    level: 'standard',
+    config: {
+      exam: {
+        fullscreenRequired: true, tabSwitchDetection: true, windowBlurDetection: true,
+        minimizeDetection: true, disableRefreshWarning: true, disablePrint: true, disableSave: true,
+      },
+      keyboard: {
+        disableCopy: true, disablePaste: true, disableCut: true, disableSelectAll: true,
+        disableRightClick: true, disableDragDrop: true, disableTextSelection: true,
+      },
+      devtools: {
+        detectDevTools: true, detectConsole: true, detectViewSource: true, detectDebugger: true,
+      },
+      submission: {
+        autoSubmitOnFullscreenExit: true, autoSubmitAfterViolationLimit: true, autoSubmitOnTimerEnd: true,
+        autoSaveInterval: 10, warnBeforeAutoSubmission: true,
+      },
+      violations: { maxViolations: 3, warnings: { first: 'Warning 1', second: 'Warning 2', third: 'Final Warning', submit: 'Auto Submit' } },
+      idleDetection: { enabled: false, timeoutMinutes: 5, autoSubmitAfterMinutes: 10 },
+    },
+  },
+  collegeExam: {
+    label: 'College Exam',
+    desc: 'Strict proctoring for high-stakes exams',
+    level: 'strict',
+    config: {
+      exam: {
+        fullscreenRequired: true, tabSwitchDetection: true, windowBlurDetection: true,
+        minimizeDetection: true, disableRefreshWarning: true, disablePrint: true, disableSave: true,
+      },
+      keyboard: {
+        disableCopy: true, disablePaste: true, disableCut: true, disableSelectAll: true,
+        disableRightClick: true, disableDragDrop: true, disableTextSelection: true,
+      },
+      devtools: {
+        detectDevTools: true, detectConsole: true, detectViewSource: true, detectDebugger: true,
+      },
+      submission: {
+        autoSubmitOnFullscreenExit: true, autoSubmitAfterViolationLimit: true, autoSubmitOnTimerEnd: true,
+        autoSaveInterval: 5, warnBeforeAutoSubmission: true,
+      },
+      violations: { maxViolations: 2, warnings: { first: 'Warning 1', second: 'Final Warning', third: 'Auto Submit', submit: 'Auto Submit' } },
+      idleDetection: { enabled: true, timeoutMinutes: 3, autoSubmitAfterMinutes: 5 },
+    },
+  },
+  strictAssessment: {
+    label: 'Strict Assessment',
+    desc: 'Maximum security for certification exams',
+    level: 'strict',
+    config: {
+      exam: {
+        fullscreenRequired: true, tabSwitchDetection: true, windowBlurDetection: true,
+        minimizeDetection: true, disableRefreshWarning: true, disablePrint: true, disableSave: true,
+      },
+      keyboard: {
+        disableCopy: true, disablePaste: true, disableCut: true, disableSelectAll: true,
+        disableRightClick: true, disableDragDrop: true, disableTextSelection: true,
+      },
+      devtools: {
+        detectDevTools: true, detectConsole: true, detectViewSource: true, detectDebugger: true,
+      },
+      submission: {
+        autoSubmitOnFullscreenExit: true, autoSubmitAfterViolationLimit: true, autoSubmitOnTimerEnd: true,
+        autoSaveInterval: 5, warnBeforeAutoSubmission: true,
+      },
+      violations: { maxViolations: 2, warnings: { first: 'Warning 1', second: 'Auto Submit', third: 'Auto Submit', submit: 'Auto Submit' } },
+      idleDetection: { enabled: true, timeoutMinutes: 3, autoSubmitAfterMinutes: 5 },
+    },
+  },
+  enterpriseProctoring: {
+    label: 'Enterprise Proctoring',
+    desc: 'Full lockdown for enterprise certifications',
+    level: 'enterprise',
+    config: {
+      exam: {
+        fullscreenRequired: true, tabSwitchDetection: true, windowBlurDetection: true,
+        minimizeDetection: true, disableRefreshWarning: true, disablePrint: true, disableSave: true,
+      },
+      keyboard: {
+        disableCopy: true, disablePaste: true, disableCut: true, disableSelectAll: true,
+        disableRightClick: true, disableDragDrop: true, disableTextSelection: true,
+      },
+      devtools: {
+        detectDevTools: true, detectConsole: true, detectViewSource: true, detectDebugger: true,
+      },
+      submission: {
+        autoSubmitOnFullscreenExit: true, autoSubmitAfterViolationLimit: true, autoSubmitOnTimerEnd: true,
+        autoSaveInterval: 3, warnBeforeAutoSubmission: true,
+      },
+      violations: { maxViolations: 1, warnings: { first: 'Auto Submit', second: 'Auto Submit', third: 'Auto Submit', submit: 'Auto Submit' } },
+      idleDetection: { enabled: true, timeoutMinutes: 2, autoSubmitAfterMinutes: 3 },
+    },
+  },
+};
+
+export function getSecurityLevel(config) {
+  if (!config) return { label: 'Basic', color: '#10b981', icon: '🟢' };
+  const { exam, keyboard, devtools, submission, violations } = config;
+  const countEnabled = (obj) => obj ? Object.values(obj).filter(v => v === true).length : 0;
+  const score = countEnabled(exam) + countEnabled(keyboard) + countEnabled(devtools) +
+    countEnabled(submission) + (violations?.maxViolations <= 2 ? 2 : violations?.maxViolations <= 3 ? 1 : 0) +
+    (config.idleDetection?.enabled ? 2 : 0);
+  if (score >= 25) return { label: 'Enterprise', color: '#7c3aed', icon: '🔒' };
+  if (score >= 18) return { label: 'Strict', color: '#dc2626', icon: '🔴' };
+  if (score >= 10) return { label: 'Standard', color: '#f59e0b', icon: '🟡' };
+  return { label: 'Basic', color: '#10b981', icon: '🟢' };
+}
