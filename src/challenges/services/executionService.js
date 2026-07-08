@@ -18,27 +18,44 @@ async function callFunction(name, data) {
   return await res.json();
 }
 
-// Safe JavaScript Evaluator for Client-Side Fallback
-function evalJSCode(code, input) {
-  const lines = (input || '').toString().split('\n');
-  let lineIndex = 0;
-  const readline = () => lines[lineIndex++] ?? '';
+const PISTON_LANG_MAP = {
+  python: { lang: 'python', version: '3.10.0', ext: 'main.py' },
+  javascript: { lang: 'javascript', version: '18.15.0', ext: 'main.js' },
+  typescript: { lang: 'typescript', version: '5.0.3', ext: 'main.ts' },
+  cpp: { lang: 'c++', version: '10.2.0', ext: 'main.cpp' },
+  c: { lang: 'c', version: '10.2.0', ext: 'main.c' },
+  java: { lang: 'java', version: '15.0.2', ext: 'main.java' },
+  go: { lang: 'go', version: '1.16.2', ext: 'main.go' },
+  rust: { lang: 'rust', version: '1.68.2', ext: 'main.rs' }
+};
 
-  let output = '';
-  const consoleLog = (...args) => {
-    output += args.join(' ') + '\n';
-  };
-
-  const context = {
-    readline,
-    console: { log: consoleLog }
-  };
-
+async function executePistonCode(code, language, input) {
+  const mapped = PISTON_LANG_MAP[language] || { lang: language, version: '*', ext: 'main' };
   try {
-    const runner = new Function('readline', 'console', `${code}`);
-    runner(readline, context.console);
-    return { stdout: output.trim(), stderr: null };
+    const res = await fetch('https://emkc.org/api/v2/piston/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: mapped.lang,
+        version: mapped.version,
+        files: [
+          {
+            name: mapped.ext,
+            content: code
+          }
+        ],
+        stdin: input || ''
+      })
+    });
+    if (!res.ok) {
+      throw new Error(`Piston compiler error: ${res.status}`);
+    }
+    const data = await res.json();
+    const stdout = data.run?.stdout ?? '';
+    const stderr = data.run?.stderr ?? '';
+    return { stdout, stderr };
   } catch (err) {
+    console.error('Piston execution failed:', err);
     return { stdout: '', stderr: err.message };
   }
 }
@@ -48,24 +65,12 @@ export async function runCode({ code, language, input }) {
     return await callFunction('runCode', { code, language, input });
   }
 
-  // Client-Side Fallback
-  await new Promise(r => setTimeout(r, 600)); // Simulate network lag
-  if (language === 'javascript' || language === 'typescript') {
-    const result = evalJSCode(code, input);
-    return {
-      status: result.stderr ? 'failed' : 'passed',
-      stdout: result.stdout,
-      stderr: result.stderr,
-      time: 0.02,
-      memory: 8.2
-    };
-  }
-
-  // Non-JS Mock Evaluation
+  // Real code compilation using Piston API
+  const result = await executePistonCode(code, language, input);
   return {
-    status: 'passed',
-    stdout: 'Mock output for input: ' + input,
-    stderr: null,
+    status: result.stderr ? 'failed' : 'passed',
+    stdout: result.stdout,
+    stderr: result.stderr,
     time: 0.05,
     memory: 12.4
   };
@@ -107,21 +112,15 @@ export async function submitSolution({ challengeId, code, language, timeTaken })
     let actualOutput = '';
     let passed = false;
 
-    if (language === 'javascript' || language === 'typescript') {
-      const res = evalJSCode(code, tc.input);
-      if (res.stderr) {
-        hasCompilationError = true;
-        errorMsg = res.stderr;
-        actualOutput = res.stderr;
-      } else {
-        actualOutput = res.stdout;
-        const expectedClean = (tc.output || tc.expectedOutput || '').toString().trim();
-        passed = actualOutput.trim() === expectedClean;
-      }
+    const res = await executePistonCode(code, language, tc.input);
+    if (res.stderr) {
+      hasCompilationError = true;
+      errorMsg = res.stderr;
+      actualOutput = res.stderr;
     } else {
-      // Mock validation for non-JS languages
-      passed = code.trim().length > 20; // Assume passed if they wrote a reasonable length of code
-      actualOutput = tc.output || tc.expectedOutput || '';
+      actualOutput = res.stdout;
+      const expectedClean = (tc.output || tc.expectedOutput || '').toString().trim();
+      passed = actualOutput.trim() === expectedClean;
     }
 
     if (passed) totalPassed++;

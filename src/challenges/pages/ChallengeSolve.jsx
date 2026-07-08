@@ -1,159 +1,91 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getChallenge, loadDraft, saveDraft } from '../services/challengeService';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import db from '../../db';
+import { DIFFICULTY, LANGUAGES } from '../config/challengeConfig';
 import { runCode, submitSolution } from '../services/executionService';
-import { DIFFICULTY } from '../config/challengeConfig';
-import CodeEditor from '../components/CodeEditor';
-import LanguageSelector from '../components/LanguageSelector';
-import OutputPanel from '../components/OutputPanel';
-import ChallengeTimer from '../components/ChallengeTimer';
 
 export default function ChallengeSolve({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [language, setLanguage] = useState('python');
   const [code, setCode] = useState('');
-  const [results, setResults] = useState(null);
-  const [runtime, setRuntime] = useState(null);
-  const [memory, setMemory] = useState(null);
-  const [compilationError, setCompilationError] = useState(null);
+  const [language, setLanguage] = useState('javascript');
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState(null);
-  const [startTime] = useState(new Date().toISOString());
-  const [showSplash, setShowSplash] = useState(false);
-  const [solveTab, setSolveTab] = useState('problem');
-  const autosaveRef = useRef(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const editorContainerRef = useRef(null);
+  const [output, setOutput] = useState(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [startTime] = useState(Date.now());
 
   useEffect(() => {
-    const load = async () => {
+    async function load() {
       try {
-        const c = await getChallenge(id);
-        if (!c) return;
-        setChallenge(c);
-        const diff = DIFFICULTY[c.difficulty] || DIFFICULTY.easy;
-        if (user) {
-          const draft = await loadDraft(user.id, id);
-          if (draft?.code) {
-            setCode(draft.code);
-            setLanguage(draft.language || 'python');
-          } else if (c.starterCode?.['python']) {
-            setCode(c.starterCode['python']);
-          }
-        } else if (c.starterCode?.['python']) {
-          setCode(c.starterCode['python']);
+        const ch = await db.findOne('Challenges', { id });
+        if (!ch || ch.status !== 'published') {
+          setError('Challenge not found.');
+          setLoading(false);
+          return;
         }
+        setChallenge(ch);
+        const langMap = {};
+        ch.starterCode && Object.keys(ch.starterCode).forEach(k => { langMap[k] = ch.starterCode[k]; });
+        const firstLang = ch.supportedLanguages?.[0] || 'javascript';
+        setLanguage(firstLang);
+        if (langMap[firstLang]) setCode(langMap[firstLang]);
+        else if (langMap.javascript) setCode(langMap.javascript);
       } catch (e) {
-        console.error('Load challenge error', e);
+        setError('Failed to load challenge.');
       } finally {
         setLoading(false);
       }
-    };
+    }
     load();
-  }, [id, user]);
+  }, [id]);
 
-  useEffect(() => {
-    if (autosaveRef.current) clearInterval(autosaveRef.current);
-    if (!user || !id) return;
-    autosaveRef.current = setInterval(() => {
-      saveDraft(user.id, id, language, code);
-    }, 20000);
-    return () => { if (autosaveRef.current) clearInterval(autosaveRef.current); };
-  }, [user, id, language, code]);
-
-  const handleLanguageChange = useCallback((newLang) => {
-    setLanguage(newLang);
-    if (challenge?.starterCode?.[newLang] && !confirm('Switch language? Your current code will be replaced with the starter code for ' + newLang + '.')) return;
-    setCode(challenge?.starterCode?.[newLang] || '');
-  }, [challenge]);
-
-  const handleRun = async () => {
-    if (!code.trim()) return;
+  const handleRun = useCallback(async () => {
     setRunning(true);
-    setResults(null);
-    setCompilationError(null);
+    setOutput(null);
+    setResult(null);
     try {
-      const sampleInput = challenge?.sampleTestCases?.[0]?.input || '';
-      const res = await runCode({ code, language, input: sampleInput });
-      setResults([{ status: res.status === 'passed' ? 'passed' : 'failed', actual: res.stdout || res.stderr, expected: challenge?.sampleTestCases?.[0]?.output, isHidden: false, runtime: res.time }]);
-      setRuntime(res.time);
-      setMemory(res.memory);
-      if (res.stderr) setCompilationError(res.stderr);
+      const res = await runCode({ code, language, input: challenge?.sampleTestCases?.[0]?.input || '' });
+      setOutput(res);
     } catch (e) {
-      setResults([{ status: 'error', actual: e.message, expected: '', isHidden: false }]);
+      setOutput({ status: 'failed', stdout: '', stderr: e.message });
     } finally {
       setRunning(false);
     }
-  };
+  }, [code, language, challenge]);
 
-  const handleSubmit = async () => {
-    if (!code.trim() || submitting) return;
+  const handleSubmit = useCallback(async () => {
+    if (!user) { alert('You must be signed in to submit.'); return; }
     setSubmitting(true);
-    setResults(null);
-    setCompilationError(null);
+    setResult(null);
     try {
-      const timeTaken = (new Date() - new Date(startTime)) / 1000;
+      const timeTaken = Math.round((Date.now() - startTime) / 1000);
       const res = await submitSolution({ challengeId: id, code, language, timeTaken });
-      setSubmissionResult(res);
-      setResults(res.results || []);
-      setRuntime(res.runtime);
-      setMemory(res.memory);
-      setShowSplash(true);
-      if (user) saveDraft(user.id, id, language, code);
+      setResult(res);
     } catch (e) {
-      setResults([{ status: 'error', actual: e.message, expected: '', isHidden: false }]);
+      setResult({ status: 'failed', error: e.message });
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleKeyDown = useCallback((e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      if (submitting || running) return;
-      if (results) handleSubmit(); else handleRun();
-    }
-  }, [code, language, submitting, running, results]);
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
+  }, [code, language, id, user, startTime]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="relative w-10 h-10">
-          <div className="absolute inset-0 border-2 border-[var(--orange)] border-t-transparent rounded-full animate-spin" />
-          <div className="absolute inset-2 border-2 border-[var(--orange)]/30 border-b-transparent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.6s' }} />
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 68px)' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin .65s linear infinite' }}></div>
       </div>
     );
   }
 
-  if (!challenge) {
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-[var(--text-muted)]">
-        <div className="w-16 h-16 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center mb-4">
-          <i className="fa-solid fa-circle-exclamation text-2xl" />
-        </div>
-        <p className="text-lg font-medium">Challenge not found</p>
-        <Link to="/challenges" className="mt-3 text-[var(--orange)] hover:underline text-sm">Back to challenges</Link>
+      <div style={{ maxWidth: 1600, width: '96%', margin: '0 auto', padding: 64, textAlign: 'center' }}>
+        <i className="fas fa-exclamation-triangle" style={{ fontSize: 32, color: '#f59e0b', marginBottom: 16 }}></i>
+        <p style={{ fontSize: 16, color: '#6b7280' }}>{error}</p>
+        <button onClick={() => navigate('/challenges')} style={{ marginTop: 16, padding: '10px 24px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Back to Challenges</button>
       </div>
     );
   }
@@ -161,331 +93,144 @@ export default function ChallengeSolve({ user }) {
   const diff = DIFFICULTY[challenge.difficulty] || DIFFICULTY.easy;
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--bg)]">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)] bg-[var(--card)]/90 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/challenges')}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all cursor-pointer border border-[var(--border)] bg-[var(--surface)]"
-          >
-            <i className="fa-solid fa-arrow-left text-xs" />
-          </motion.button>
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="text-sm font-bold text-[var(--text)]">{challenge.title}</span>
-            <span
-              className="px-2 py-0.5 rounded-md text-[10px] font-bold"
-              style={{ background: `${diff.color}15`, color: diff.color }}
+    <div className="chl-solve">
+      {/* Left: Description */}
+      <div className="chl-solve-desc">
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <span className={`chl-diff chl-diff-${challenge.difficulty}`}>{diff.label}</span>
+            <span style={{ fontSize: 13, color: '#9ca3af' }}>{challenge.xpReward || 100} XP</span>
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>{challenge.title}</h1>
+        </div>
+
+        <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.7, marginBottom: 24, whiteSpace: 'pre-wrap' }}>{challenge.description}</p>
+
+        {challenge.constraints && (
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Constraints</h3>
+            <pre style={{ fontSize: 13, color: '#6b7280', background: '#f8fafc', padding: 16, borderRadius: 8, border: '1px solid #e5e7eb', whiteSpace: 'pre-wrap', fontFamily: "'JetBrains Mono', monospace" }}>{challenge.constraints}</pre>
+          </div>
+        )}
+
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Sample Test Cases</h3>
+          {challenge.sampleTestCases?.map((tc, i) => (
+            <div key={i} style={{ marginBottom: 12, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <div style={{ marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em' }}>Input:</span>
+                <pre style={{ fontSize: 13, color: '#111827', margin: '4px 0 0', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{tc.input}</pre>
+              </div>
+              <div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em' }}>Output:</span>
+                <pre style={{ fontSize: 13, color: '#111827', margin: '4px 0 0', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{tc.output || tc.expectedOutput}</pre>
+              </div>
+              {tc.explanation && (
+                <p style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}><strong style={{ color: '#374151' }}>Explanation:</strong> {tc.explanation}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {challenge.tags?.map(tag => (
+            <span key={tag} style={{ fontSize: 12, color: '#6b7280', background: '#f3f4f6', padding: '4px 12px', borderRadius: 999 }}>{tag}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Right: Editor */}
+      <div className="chl-solve-editor">
+        <div className="chl-solve-topbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <select
+              value={language}
+              onChange={e => {
+                setLanguage(e.target.value);
+                const starter = challenge.starterCode?.[e.target.value];
+                if (starter) setCode(starter);
+              }}
+              style={{ padding: '6px 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 13, background: '#fff', color: '#111827' }}
             >
-              {diff.label}
-            </span>
-            {challenge.category && (
-              <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[var(--surface)] px-2 py-0.5 rounded-md">{challenge.category}</span>
-            )}
+              {LANGUAGES.filter(l => challenge.supportedLanguages?.includes(l.id)).map(l => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleRun}
+              disabled={running}
+              style={{ padding: '8px 20px', background: '#f3f4f6', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              {running ? <span style={{ width: 14, height: 14, border: '2px solid #9ca3af', borderTopColor: '#111827', borderRadius: '50%', display: 'inline-block', animation: 'spin .65s linear infinite' }}></span> : <i className="fas fa-play"></i>}
+              Run
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              style={{ padding: '8px 20px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              {submitting ? <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin .65s linear infinite' }}></span> : <i className="fas fa-paper-plane"></i>}
+              Submit
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <ChallengeTimer startTime={startTime} timeLimit={challenge.timeLimit || diff.timeLimit} onExpire={handleSubmit} />
-          <span className="text-xs font-bold text-yellow-500 flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/10 px-2.5 py-1.5 rounded-lg border border-yellow-200/30 dark:border-yellow-800/30">
-            <i className="fa-solid fa-star text-[10px]" />
-            {challenge.xpReward || diff.baseXp} XP
-          </span>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={toggleFullscreen}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-all cursor-pointer border border-[var(--border)] bg-[var(--surface)]"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            <i className={`fa-solid ${isFullscreen ? 'fa-compress' : 'fa-expand'} text-xs`} />
-          </motion.button>
-        </div>
-      </div>
+        <textarea
+          value={code}
+          onChange={e => setCode(e.target.value)}
+          style={{
+            flex: 1, width: '100%', border: 'none', outline: 'none', resize: 'none',
+            padding: 24, fontFamily: "'JetBrains Mono', monospace", fontSize: 14, lineHeight: 1.6,
+            color: '#111827', background: '#fff', tabSize: 2
+          }}
+          spellCheck={false}
+        />
 
-      {/* Mobile Tab Switcher */}
-      <div className="flex lg:hidden border-b border-[var(--border)] bg-[var(--surface-2)]">
-        {[
-          { id: 'problem', label: 'Problem', icon: 'fa-book-open' },
-          { id: 'code', label: 'Code', icon: 'fa-code' },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setSolveTab(tab.id)}
-            className="flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 cursor-pointer"
-            style={{
-              borderColor: solveTab === tab.id ? 'var(--orange)' : 'transparent',
-              color: solveTab === tab.id ? 'var(--orange)' : 'var(--text-muted)'
-            }}
-          >
-            <i className={`fa-solid ${tab.icon} mr-1.5`} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Main Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-        {/* Problem Panel */}
-        <div className={`w-full lg:w-1/2 overflow-y-auto border-r border-[var(--border)] bg-[var(--bg)] ${solveTab === 'problem' ? 'block' : 'hidden lg:block'}`}>
-          <div className="p-6 max-w-[680px] mx-auto space-y-6">
+        {/* Output */}
+        <div className="chl-solve-output">
+          {result ? (
             <div>
-              <h1 className="text-2xl font-bold text-[var(--text)] mb-1">{challenge.title}</h1>
-              <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] flex-wrap">
-                <span style={{ color: diff.color, fontWeight: 600 }}>{diff.label}</span>
-                <span>{challenge.category}</span>
-                {challenge.tags?.map(t => (
-                  <span key={t} className="px-2 py-0.5 bg-[var(--surface)] rounded-md border border-[var(--border)]">#{t}</span>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: result.status === 'passed' ? '#059669' : '#dc2626' }}>
+                  <i className={`fas ${result.status === 'passed' ? 'fa-check-circle' : 'fa-times-circle'}`} style={{ marginRight: 6 }}></i>
+                  {result.status === 'passed' ? 'Accepted' : 'Failed'}
+                </span>
+                {result.xpEarned > 0 && (
+                  <span style={{ fontSize: 13, color: '#4f46e5', fontWeight: 600 }}>+{result.xpEarned} XP</span>
+                )}
               </div>
-            </div>
-
-            {challenge.description && (
-              <section>
-                <h3 className="text-sm font-bold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <i className="fa-solid fa-align-left text-[var(--orange)] text-xs" />
-                  Description
-                </h3>
-                <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">{challenge.description}</div>
-              </section>
-            )}
-
-            {challenge.constraints && (
-              <section>
-                <h3 className="text-sm font-bold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <i className="fa-solid fa-ruler-combined text-[var(--orange)] text-xs" />
-                  Constraints
-                </h3>
-                <pre className="text-sm text-[var(--text-secondary)] bg-[var(--surface)] p-3 rounded-xl font-mono whitespace-pre-wrap border border-[var(--border)]">{challenge.constraints}</pre>
-              </section>
-            )}
-
-            {challenge.inputFormat && (
-              <section>
-                <h3 className="text-sm font-bold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <i className="fa-solid fa-arrow-right-to-bracket text-[var(--orange)] text-xs" />
-                  Input Format
-                </h3>
-                <p className="text-sm text-[var(--text-secondary)]">{challenge.inputFormat}</p>
-              </section>
-            )}
-
-            {challenge.outputFormat && (
-              <section>
-                <h3 className="text-sm font-bold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <i className="fa-solid fa-arrow-right-from-bracket text-[var(--orange)] text-xs" />
-                  Output Format
-                </h3>
-                <p className="text-sm text-[var(--text-secondary)]">{challenge.outputFormat}</p>
-              </section>
-            )}
-
-            {challenge.sampleTestCases?.length > 0 && (
-              <section>
-                <h3 className="text-sm font-bold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <i className="fa-solid fa-vial text-[var(--orange)] text-xs" />
-                  Sample Test Cases
-                </h3>
-                <div className="space-y-3">
-                  {challenge.sampleTestCases.map((tc, i) => (
-                    <div key={i} className="rounded-xl border border-[var(--border)] overflow-hidden">
-                      <div className="px-3 py-1.5 bg-[var(--surface)] text-xs font-semibold text-[var(--text-muted)] border-b border-[var(--border)]">
-                        Sample #{i + 1}
-                      </div>
-                      <div className="grid grid-cols-2 divide-x divide-[var(--border)]">
-                        <div className="p-3">
-                          <p className="text-[11px] font-bold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Input</p>
-                          <pre className="text-sm font-mono text-[var(--text)] whitespace-pre-wrap">{tc.input}</pre>
-                        </div>
-                        <div className="p-3">
-                          <p className="text-[11px] font-bold text-[var(--text-muted)] mb-1 uppercase tracking-wider">Output</p>
-                          <pre className="text-sm font-mono text-[var(--text)] whitespace-pre-wrap">{tc.output}</pre>
-                        </div>
-                      </div>
-                      {tc.explanation && (
-                        <div className="px-3 py-2 border-t border-[var(--border)] text-xs text-[var(--text-muted)] italic">
-                          {tc.explanation}
-                        </div>
-                      )}
-                    </div>
+              {result.results && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {result.results.slice(0, 6).map((tc, i) => (
+                    <span key={i} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: tc.passed ? '#d1fae5' : '#fee2e2', color: tc.passed ? '#059669' : '#dc2626' }}>
+                      {tc.isHidden ? 'Hidden' : `Test ${i + 1}`}: {tc.passed ? 'Pass' : 'Fail'}
+                    </span>
                   ))}
                 </div>
-              </section>
-            )}
-          </div>
-        </div>
-
-        {/* Code Panel */}
-        <div ref={editorContainerRef} className={`w-full lg:w-1/2 flex flex-col min-w-0 ${solveTab === 'code' ? 'flex' : 'hidden lg:flex'}`}>
-          {/* Editor Toolbar */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--surface)]">
-            <div className="flex items-center gap-3">
-              <LanguageSelector value={language} onChange={handleLanguageChange} />
-              <span className="text-xs text-[var(--text-muted)] hidden sm:flex items-center gap-1">
-                <i className="fa-regular fa-floppy-disk" />
-                Autosave
-              </span>
+              )}
+              {result.score && (
+                <p style={{ fontSize: 13, color: '#6b7280' }}>Score: {result.score.finalScore} (Accuracy: {result.score.details?.accuracyPercent}% | Speed: {result.score.details?.speedPercent}%)</p>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[var(--text-muted)] hidden md:inline font-mono bg-[var(--surface-2)] px-2 py-1 rounded-md border border-[var(--border)]">Ctrl+Enter</span>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleRun}
-                disabled={running || submitting}
-                className="flex items-center gap-2 px-4 py-1.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-sm font-semibold text-[var(--text)] hover:bg-[var(--surface)] disabled:opacity-50 transition-all cursor-pointer"
-              >
-                {running ? (
-                  <div className="w-3.5 h-3.5 border-2 border-[var(--text-muted)] border-t-transparent rounded-full animate-spin" />
-                ) : <i className="fa-solid fa-play text-xs" />}
-                Run
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleSubmit}
-                disabled={submitting || running}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all cursor-pointer border-none"
-                style={{
-                  backgroundColor: submitting ? 'var(--text-muted)' : 'var(--orange)',
-                  color: '#fff'
-                }}
-              >
-                {submitting ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : <i className="fa-solid fa-check" />}
-                {submitting ? 'Submitting...' : 'Submit'}
-              </motion.button>
+          ) : output ? (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: output.status === 'passed' ? '#059669' : '#dc2626' }}>
+                  <i className={`fas ${output.status === 'passed' ? 'fa-check-circle' : 'fa-times-circle'}`} style={{ marginRight: 6 }}></i>
+                  {output.status === 'passed' ? 'Run Successful' : 'Run Failed'}
+                </span>
+              </div>
+              {output.stdout && <pre style={{ fontSize: 13, color: '#111827', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.stdout}</pre>}
+              {output.stderr && <pre style={{ fontSize: 13, color: '#dc2626', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.stderr}</pre>}
+              <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Time: {output.time}s · Memory: {output.memory}MB</p>
             </div>
-          </div>
-
-          {/* Editor */}
-          <div className="flex-1 min-h-0">
-            <CodeEditor language={language} value={code} onChange={setCode} />
-          </div>
-
-          {/* Output Panel */}
-          <div className="h-48 border-t border-[var(--border)] bg-[var(--bg)]">
-            <OutputPanel
-              results={results}
-              runtime={runtime}
-              memory={memory}
-              compilationError={compilationError}
-              loading={running || submitting}
-            />
-          </div>
+          ) : (
+            <p style={{ fontSize: 13, color: '#9ca3af' }}>Run your code to see output here.</p>
+          )}
         </div>
       </div>
-
-      {/* Result Splash */}
-      <AnimatePresence>
-        {showSplash && submissionResult && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-            onClick={() => setShowSplash(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85, y: 30 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-              onClick={e => e.stopPropagation()}
-              className="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-8 max-w-md w-full mx-4 text-center shadow-2xl overflow-hidden relative"
-            >
-              {/* Background glow */}
-              <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl pointer-events-none ${
-                submissionResult.score?.finalScore >= 700 ? 'bg-yellow-500/20' : 'bg-[var(--orange)]/10'
-              }`} />
-
-              <div className="relative z-10">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 200, delay: 0.15 }}
-                  className={`text-5xl mb-4 ${submissionResult.score?.finalScore >= 700 ? 'text-yellow-500' : 'text-[var(--text-muted)]'}`}
-                >
-                  {submissionResult.score?.finalScore >= 700 ? '🏆' : submissionResult.score?.finalScore >= 400 ? '⭐' : '💪'}
-                </motion.div>
-
-                <motion.h2
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-2xl font-bold text-[var(--text)] mb-2"
-                >
-                  {submissionResult.score?.finalScore >= 700 ? 'Excellent!' : submissionResult.score?.finalScore >= 400 ? 'Good Job!' : 'Keep Trying!'}
-                </motion.h2>
-
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3, type: 'spring', stiffness: 150 }}
-                  className="text-5xl font-extrabold mb-4"
-                  style={{ color: 'var(--orange)', fontFamily: 'Inter, sans-serif' }}
-                >
-                  {submissionResult.score?.finalScore?.toLocaleString() || 0}
-                  <span className="text-sm font-medium text-[var(--text-muted)] block mt-1">Total Score</span>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-2 text-sm text-[var(--text-secondary)] mb-6"
-                >
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-[var(--surface)]">
-                    <span>Accuracy (70%)</span>
-                    <span className="font-bold text-[var(--text)]">{submissionResult.score?.accuracyScore || 0} / 700</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-[var(--surface)]">
-                    <span>Speed (30%)</span>
-                    <span className="font-bold text-[var(--text)]">{submissionResult.score?.speedScore || 0} / 300</span>
-                  </div>
-                  {submissionResult.score?.bonusPoints > 0 && (
-                    <div className="flex justify-between items-center p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400">
-                      <span>Bonuses</span>
-                      <span className="font-bold">+{submissionResult.score.bonusPoints}</span>
-                    </div>
-                  )}
-                  {submissionResult.score?.penaltyPoints > 0 && (
-                    <div className="flex justify-between items-center p-2 rounded-lg bg-red-50 dark:bg-red-900/10 text-red-500">
-                      <span>Penalties</span>
-                      <span className="font-bold">-{submissionResult.score.penaltyPoints}</span>
-                    </div>
-                  )}
-                  <div className="border-t border-[var(--border)] pt-2 flex justify-between text-base font-bold">
-                    <span>Total XP Earned</span>
-                    <span style={{ color: 'var(--orange)' }}>+{submissionResult.xpEarned || 0}</span>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="flex gap-3 justify-center"
-                >
-                  <button
-                    onClick={() => setShowSplash(false)}
-                    className="px-5 py-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text)] hover:bg-[var(--surface-2)] transition-all cursor-pointer"
-                  >
-                    Close
-                  </button>
-                  <Link
-                    to="/challenges"
-                    className="px-5 py-2.5 bg-[var(--orange)] text-white rounded-xl text-sm font-bold cursor-pointer inline-flex items-center gap-1.5 hover:brightness-110 transition-all"
-                  >
-                    <i className="fa-solid fa-arrow-left" /> Back to Challenges
-                  </Link>
-                </motion.div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
