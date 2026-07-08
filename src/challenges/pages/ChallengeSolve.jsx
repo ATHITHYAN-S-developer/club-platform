@@ -48,8 +48,14 @@ export default function ChallengeSolve({ user }) {
     setOutput(null);
     setResult(null);
     try {
-      const res = await runCode({ code, language, input: challenge?.sampleTestCases?.[0]?.input || '' });
-      setOutput(res);
+      const sampleInput = challenge?.sampleTestCases?.[0]?.input || '';
+      const sampleOutput = challenge?.sampleTestCases?.[0]?.output || challenge?.sampleTestCases?.[0]?.expectedOutput || '';
+      const res = await runCode({ code, language, input: sampleInput });
+      setOutput({
+        ...res,
+        testcaseInput: sampleInput,
+        expectedOutput: sampleOutput
+      });
     } catch (e) {
       setOutput({ status: 'failed', stdout: '', stderr: e.message });
     } finally {
@@ -220,16 +226,44 @@ export default function ChallengeSolve({ user }) {
               )}
             </div>
           ) : output ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: output.status === 'passed' ? '#059669' : '#dc2626' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 750, fontSize: 14, color: output.status === 'passed' ? '#059669' : '#dc2626' }}>
                   <i className={`fas ${output.status === 'passed' ? 'fa-check-circle' : 'fa-times-circle'}`} style={{ marginRight: 6 }}></i>
                   {output.status === 'passed' ? 'Run Successful' : 'Run Failed'}
                 </span>
               </div>
-              {output.stdout && <pre style={{ fontSize: 13, color: '#111827', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.stdout}</pre>}
-              {output.stderr && <pre style={{ fontSize: 13, color: '#dc2626', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.stderr}</pre>}
-              <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Time: {output.time}s · Memory: {output.memory}MB</p>
+
+              {output.testcaseInput !== undefined && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                  <div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em' }}>Input:</span>
+                    <pre style={{ fontSize: 12, color: '#111827', margin: '4px 0 0', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.testcaseInput}</pre>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em' }}>Expected Output:</span>
+                    <pre style={{ fontSize: 12, color: '#111827', margin: '4px 0 0', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.expectedOutput}</pre>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.05em' }}>Your Output:</span>
+                {output.stdout ? (
+                  <pre style={{ fontSize: 13, color: '#111827', background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e5e7eb', marginTop: 4, fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.stdout}</pre>
+                ) : (
+                  <pre style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic', background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e5e7eb', marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>No standard output returned.</pre>
+                )}
+              </div>
+
+              {output.stderr && (
+                <div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '.05em' }}>Error Message:</span>
+                  <pre style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', padding: 12, borderRadius: 8, border: '1px solid #fee2e2', marginTop: 4, fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'pre-wrap' }}>{output.stderr}</pre>
+                </div>
+              )}
+              
+              <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>Time: {output.time}s · Memory: {output.memory}MB</p>
             </div>
           ) : (
             <p style={{ fontSize: 13, color: '#9ca3af' }}>Run your code to see output here.</p>
