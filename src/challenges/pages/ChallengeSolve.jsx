@@ -192,13 +192,18 @@ export default function ChallengeSolve({ user }) {
         <div className="chl-solve-output">
           {result ? (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: result.status === 'passed' ? '#059669' : '#dc2626' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: 15, color: result.status === 'passed' ? '#059669' : '#dc2626' }}>
                   <i className={`fas ${result.status === 'passed' ? 'fa-check-circle' : 'fa-times-circle'}`} style={{ marginRight: 6 }}></i>
                   {result.status === 'passed' ? 'Accepted' : 'Failed'}
                 </span>
+                {result.results && (
+                  <span style={{ fontSize: 12, fontWeight: 700, background: result.status === 'passed' ? '#d1fae5' : '#fee2e2', color: result.status === 'passed' ? '#065f46' : '#991b1b', padding: '4px 10px', borderRadius: 6 }}>
+                    {result.results.filter(r => r.passed).length} / {result.results.length} Test Cases Passed
+                  </span>
+                )}
                 {result.xpEarned > 0 && (
-                  <span style={{ fontSize: 13, color: '#4f46e5', fontWeight: 600 }}>+{result.xpEarned} XP</span>
+                  <span style={{ fontSize: 13, color: '#4f46e5', fontWeight: 700 }}>+{result.xpEarned} XP</span>
                 )}
               </div>
               {result.results && (
