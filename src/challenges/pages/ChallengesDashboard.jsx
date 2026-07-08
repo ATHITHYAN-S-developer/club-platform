@@ -179,60 +179,16 @@ export default function ChallengesDashboard({ user }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" style={{ fontFamily: 'Inter, sans-serif' }}>
       
-      {/* 🚀 Hero Section */}
+      {/* 🚀 UpLabs Styled Hero Section */}
       <HeroSection 
-        user={user} 
-        level={level} 
-        userRank={userRank} 
-        onStartClick={handleStartSolving} 
+        dailyChallenge={dailyChallenge}
+        onSolveDaily={() => {
+          if (dailyChallenge) {
+            setSelectedChallenge(dailyChallenge);
+            setIsModalOpen(true);
+          }
+        }}
       />
-
-      {/* 📅 Premium Daily Challenge Banner */}
-      {dailyChallenge && (
-        <div className="rounded-3xl border border-slate-800 bg-[#0f172a] p-6 sm:p-8 relative overflow-hidden shadow-2xl">
-          {/* Glowing background shapes */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-[#ff5500]/10 to-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#ff5500]/5 rounded-full blur-2xl pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 rounded-full text-[10px] font-black bg-[#ff5500] text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  Daily Challenge
-                </span>
-                <span className="text-xs font-semibold text-slate-400">
-                  <i className="fa-solid fa-calendar mr-1.5" />
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                </span>
-              </div>
-              <h2 className="text-2xl font-black text-white tracking-tight">{dailyChallenge.title}</h2>
-              <p className="text-sm text-slate-300 leading-relaxed line-clamp-2">{dailyChallenge.description}</p>
-            </div>
-            
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <button
-                onClick={() => {
-                  setSelectedChallenge(dailyChallenge);
-                  setIsModalOpen(true);
-                }}
-                className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-2xl font-black text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#ff5500]/20 transition-all cursor-pointer border-none"
-                style={{ backgroundColor: 'var(--orange)', color: '#ffffff' }}
-              >
-                <i className="fa-solid fa-play" style={{ color: '#ffffff' }} />
-                Solve Now
-              </button>
-              <div className="flex flex-col items-center justify-center p-2 px-4 rounded-2xl bg-slate-800/40 border border-slate-700/30 text-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reward</span>
-                <span className="text-sm font-black text-yellow-400 flex items-center gap-1 mt-0.5">
-                  <i className="fa-solid fa-star text-xs animate-spin-slow" />
-                  {dailyChallenge.xpReward || 150} XP
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 🔍 Search and Sticky Filters Component */}
       <div ref={listRef}>
@@ -253,38 +209,42 @@ export default function ChallengesDashboard({ user }) {
         />
       </div>
 
-      {/* 💻 Main Layout Split: Left (75%) & Right (25%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* 💻 UpLabs Style Main Layout: Full-Width List & Sidebar below */}
+      <div className="space-y-6">
         
-        {/* Left Side: Challenge Cards Grid */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* Header */}
+        <div className="border-b border-[var(--border-light)] pb-3">
+          <h2 className="text-xl font-black text-[var(--text)] tracking-tight">Active Challenges</h2>
+          <p className="text-xs text-[var(--text-muted)] font-semibold mt-1 uppercase tracking-wider">{filteredAndSortedChallenges.length} Challenges</p>
+        </div>
+
+        {/* Challenge Cards Rows Stack with explicit gaps */}
+        <div className="flex flex-col gap-6">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {[...Array(6)].map((_, i) => (
-                <SkeletonCard key={i} />
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-[var(--card)] border border-[var(--border)] rounded-2xl h-24" />
               ))}
             </div>
           ) : filteredAndSortedChallenges.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {filteredAndSortedChallenges.map(c => {
-                const sub = submissions.find(s => s.challengeId === c.id);
-                return (
-                  <div 
-                    key={c.id} 
-                    onClick={() => {
-                      setSelectedChallenge(c);
-                      setIsModalOpen(true);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <ChallengeCard
-                      challenge={c}
-                      userSubmission={sub}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            filteredAndSortedChallenges.map(c => {
+              const sub = submissions.find(s => s.challengeId === c.id);
+              return (
+                <div 
+                  key={c.id} 
+                  onClick={() => {
+                    setSelectedChallenge(c);
+                    setIsModalOpen(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <ChallengeCard
+                    challenge={c}
+                    userSubmission={sub}
+                  />
+                </div>
+              );
+            })
           ) : (
             /* Empty State Layout */
             <div className="text-center py-16 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-4">
@@ -304,16 +264,16 @@ export default function ChallengesDashboard({ user }) {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Right Side: Sticky Leaderboard & Progress Sidebar */}
-        <div className="lg:col-span-1">
-          <LeaderboardSidebar
-            users={users}
-            submissions={submissions}
-            user={user}
-          />
-        </div>
-
+      {/* 📊 Leaderboard & Achievements Sections Below list (Full-Width Columns) */}
+      <div className="border-t border-[var(--border)] pt-8 mt-12">
+        <h2 className="text-xl font-black text-[var(--text)] tracking-tight mb-6">🏆 Community & Insights</h2>
+        <LeaderboardSidebar
+          users={users}
+          submissions={submissions}
+          user={user}
+        />
       </div>
 
       {/* 📊 Modern Footer Quick Stats Summary */}
