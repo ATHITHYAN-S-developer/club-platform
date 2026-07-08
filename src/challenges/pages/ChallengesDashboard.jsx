@@ -96,32 +96,45 @@ export default function ChallengesDashboard({ user }) {
         </div>
       )}
 
-      {/* Daily Challenge */}
+      {/* Premium Dark Glassmorphic Daily Challenge Banner */}
       {dailyChallenge && (
-        <div className="rounded-2xl border border-[var(--orange)]/30 bg-gradient-to-br from-[var(--orange)]/5 to-transparent p-6 mb-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--orange)]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--orange)] text-white">DAILY</span>
-              <span className="text-xs font-medium text-[var(--text-muted)]">
-                <i className="fa-solid fa-calendar mr-1" />
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-              </span>
+        <div className="rounded-3xl border border-slate-800 bg-[#0f172a] p-6 sm:p-8 mb-8 relative overflow-hidden shadow-2xl">
+          {/* Glowing background shapes */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-[#ff5500]/10 to-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#ff5500]/5 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 rounded-full text-[10px] font-black bg-[#ff5500] text-white tracking-widest uppercase flex items-center gap-1.5 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  Daily Challenge
+                </span>
+                <span className="text-xs font-semibold text-slate-400">
+                  <i className="fa-solid fa-calendar mr-1.5" />
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight">{dailyChallenge.title}</h2>
+              <p className="text-sm text-slate-300 leading-relaxed line-clamp-2">{dailyChallenge.description}</p>
             </div>
-            <h2 className="text-xl font-bold text-[var(--text)] mb-1">{dailyChallenge.title}</h2>
-            <p className="text-sm text-[var(--text-muted)] mb-4 line-clamp-2">{dailyChallenge.description}</p>
-            <div className="flex items-center gap-3">
+            
+            <div className="flex items-center gap-4 flex-shrink-0">
               <Link
                 to={`/challenges/${dailyChallenge.id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-bold text-sm hover:brightness-110 transition-all"
-                style={{ backgroundColor: 'var(--orange)', color: '#ffffff', border: 'none' }}
+                className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-2xl font-black text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#ff5500]/20 transition-all cursor-pointer"
+                style={{ backgroundColor: 'var(--orange)', border: 'none' }}
               >
                 <i className="fa-solid fa-play" style={{ color: '#ffffff' }} />
                 Solve Now
               </Link>
-              <span className="text-xs text-[var(--text-muted)]">
-                <i className="fa-solid fa-star text-yellow-500 mr-1" />{dailyChallenge.xpReward || 100} XP
-              </span>
+              <div className="flex flex-col items-center justify-center p-2 px-4 rounded-2xl bg-slate-800/40 border border-slate-700/30 text-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reward</span>
+                <span className="text-sm font-black text-yellow-400 flex items-center gap-1 mt-0.5">
+                  <i className="fa-solid fa-star text-xs animate-spin-slow" />
+                  {dailyChallenge.xpReward || 150} XP
+                </span>
+              </div>
             </div>
           </div>
         </div>

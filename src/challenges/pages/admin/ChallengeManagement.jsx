@@ -298,238 +298,274 @@ export default function ChallengeManagement() {
       </div>
 
       {isFormOpen ? (
-        /* Create & Edit Challenge Form */
-        <form onSubmit={handleSave} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 space-y-6">
+        /* Redesigned Premium Create & Edit Challenge Form */
+        <form onSubmit={handleSave} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 md:p-8 space-y-8 shadow-sm">
           <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-4">
-            <h3 className="text-base font-black text-[var(--text)]">{editingId ? '✏️ Edit Coding Challenge' : '🚀 Create New Coding Challenge'}</h3>
-            <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--text-secondary)]">Cancel</button>
+            <div>
+              <h3 className="text-lg font-black text-[var(--text)]">{editingId ? '✏️ Edit Coding Challenge' : '🚀 Create New Coding Challenge'}</h3>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">Fill in the specifications below to define your challenge parameters.</p>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setIsFormOpen(false)} 
+              className="px-4 py-2 bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface)] transition-colors rounded-xl text-xs font-bold text-[var(--text-secondary)]"
+            >
+              Cancel
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* Left Info Fields */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Challenge Title *</label>
+          {/* Section 1: Basic Information */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--orange)] border-b border-[var(--border-light)] pb-1.5">1. Basic Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-2">
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Challenge Title *</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                  placeholder="e.g., Two Sum Challenge"
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] transition-colors"
                   value={form.title}
                   onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                   required
                 />
               </div>
-
               <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Problem Description * (Supports Markdown)</label>
-                <textarea
-                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] min-h-[140px]"
-                  value={form.description}
-                  onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Difficulty *</label>
+                <select
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] cursor-pointer transition-colors"
+                  value={form.difficulty}
+                  onChange={e => setForm(p => ({ ...p, difficulty: e.target.value }))}
+                >
+                  {DIFFICULTIES.map(d => (
+                    <option key={d} value={d}>{DIFFICULTY[d].label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Category *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Coding, Algorithms"
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] transition-colors"
+                  value={form.category}
+                  onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
                   required
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Difficulty *</label>
-                  <select
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] cursor-pointer"
-                    value={form.difficulty}
-                    onChange={e => setForm(p => ({ ...p, difficulty: e.target.value }))}
-                  >
-                    {DIFFICULTIES.map(d => (
-                      <option key={d} value={d}>{DIFFICULTY[d].label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Category *</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
-                    value={form.category}
-                    onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">XP Reward *</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
-                    value={form.xpReward}
-                    onChange={e => setForm(p => ({ ...p, xpReward: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Time Limit (mins) *</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
-                    value={form.timeLimit}
-                    onChange={e => setForm(p => ({ ...p, timeLimit: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Memory Limit (MB) *</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
-                    value={form.memoryLimit}
-                    onChange={e => setForm(p => ({ ...p, memoryLimit: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Tags (comma-separated)</label>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">XP Reward *</label>
+                <input
+                  type="number"
+                  placeholder="100"
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] transition-colors"
+                  value={form.xpReward}
+                  onChange={e => setForm(p => ({ ...p, xpReward: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Tags (comma-separated)</label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] transition-colors"
                   value={form.tags}
                   onChange={e => setForm(p => ({ ...p, tags: e.target.value }))}
                   placeholder="arrays, hashmap, strings"
                 />
               </div>
+            </div>
 
-              {/* Supported Languages Selector */}
+            <div>
+              <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Problem Description * (Supports Markdown)</label>
+              <textarea
+                className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] min-h-[140px] leading-relaxed transition-colors"
+                placeholder="Describe the challenge statement clearly..."
+                value={form.description}
+                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Section 2: Technical Limits & Formats */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--orange)] border-b border-[var(--border-light)] pb-1.5">2. Technical Specifications & Specs</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] mb-2 block">Supported Languages</label>
-                <div className="grid grid-cols-3 gap-2 p-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl">
-                  {LANGUAGES.map(l => {
-                    const isChecked = form.supportedLanguages.includes(l.id);
-                    return (
-                      <label key={l.id} className="flex items-center gap-1.5 text-xs text-[var(--text)] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {
-                            const updated = isChecked
-                              ? form.supportedLanguages.filter(id => id !== l.id)
-                              : [...form.supportedLanguages, l.id];
-                            setForm(p => ({ ...p, supportedLanguages: updated }));
-                          }}
-                        />
-                        {l.name}
-                      </label>
-                    );
-                  })}
-                </div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Time Limit (mins) *</label>
+                <input
+                  type="number"
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                  value={form.timeLimit}
+                  onChange={e => setForm(p => ({ ...p, timeLimit: e.target.value }))}
+                  required
+                />
               </div>
+              <div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Memory Limit (MB) *</label>
+                <input
+                  type="number"
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                  value={form.memoryLimit}
+                  onChange={e => setForm(p => ({ ...p, memoryLimit: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Publish Status</label>
+                <select
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] font-semibold cursor-pointer"
+                  value={form.status}
+                  onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                >
+                  <option value="draft">Draft (Hidden)</option>
+                  <option value="published">Published (Visible)</option>
+                </select>
+              </div>
+            </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                <label className="flex items-center gap-2 text-xs font-bold text-[var(--text)] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.isDailyChallenge}
-                    onChange={e => setForm(p => ({ ...p, isDailyChallenge: e.target.checked }))}
-                  />
-                  Make Daily Challenge
-                </label>
-                {form.isDailyChallenge && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Constraints</label>
+                <textarea
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] font-mono min-h-[80px]"
+                  value={form.constraints}
+                  onChange={e => setForm(p => ({ ...p, constraints: e.target.value }))}
+                  placeholder="e.g., 2 <= nums.length <= 10^4"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Input Format</label>
+                <textarea
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] min-h-[80px]"
+                  value={form.inputFormat}
+                  onChange={e => setForm(p => ({ ...p, inputFormat: e.target.value }))}
+                  placeholder="Description of the input parameters..."
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[var(--text)] mb-1.5 block">Output Format</label>
+                <textarea
+                  className="w-full px-3.5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] min-h-[80px]"
+                  value={form.outputFormat}
+                  onChange={e => setForm(p => ({ ...p, outputFormat: e.target.value }))}
+                  placeholder="Description of the return parameters..."
+                />
+              </div>
+            </div>
+
+            {/* Daily schedule card row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+              <label className="flex items-center gap-2 text-xs font-bold text-[var(--text)] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isDailyChallenge}
+                  onChange={e => setForm(p => ({ ...p, isDailyChallenge: e.target.checked }))}
+                />
+                Schedule as Daily Challenge
+              </label>
+              {form.isDailyChallenge && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--text-muted)] font-medium">Daily Date:</span>
                   <input
                     type="date"
-                    className="px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)] outline-none"
+                    className="px-3.5 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)] outline-none"
                     value={form.challengeDate}
                     onChange={e => setForm(p => ({ ...p, challengeDate: e.target.value }))}
                     required
                   />
-                )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 3: Supported Languages & Template Editor */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--orange)] border-b border-[var(--border-light)] pb-1.5">3. Supported Languages & Code Templates</h4>
+            
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[var(--text)] block">Enable Languages</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-xl">
+                {LANGUAGES.map(l => {
+                  const isChecked = form.supportedLanguages.includes(l.id);
+                  return (
+                    <label key={l.id} className="flex items-center gap-2 text-xs text-[var(--text)] font-semibold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const updated = isChecked
+                            ? form.supportedLanguages.filter(id => id !== l.id)
+                            : [...form.supportedLanguages, l.id];
+                          setForm(p => ({ ...p, supportedLanguages: updated }));
+                        }}
+                      />
+                      {l.name}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Right Form Fields (Starter Code Tabs, Constraints & Test Cases) */}
-            <div className="space-y-4">
-              
-              {/* Constraints, Input, Output Formats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="sm:col-span-3">
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Constraints</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] font-mono"
-                    value={form.constraints}
-                    onChange={e => setForm(p => ({ ...p, constraints: e.target.value }))}
-                    placeholder="e.g. 1 <= nums.length <= 10^5"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Input Format</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
-                    value={form.inputFormat}
-                    onChange={e => setForm(p => ({ ...p, inputFormat: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Output Format</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
-                    value={form.outputFormat}
-                    onChange={e => setForm(p => ({ ...p, outputFormat: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Publishing Status</label>
-                  <select
-                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] cursor-pointer font-bold text-green-600"
-                    value={form.status}
-                    onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
-                  >
-                    <option value="draft" style={{ color: 'var(--text)' }}>Draft</option>
-                    <option value="published" style={{ color: '#10b981' }}>Published</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Starter Code Multi-Language Manager */}
-              <div className="border border-[var(--border)] rounded-xl p-4 bg-[var(--surface)] space-y-3">
-                <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-2">
-                  <span className="text-xs font-black text-[var(--text)]">Starter Code Template</span>
+            {/* Starter Code Editor Tabs Box */}
+            <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface)]">
+              <div className="px-4 py-2 border-b border-[var(--border-light)] flex flex-wrap justify-between items-center gap-2">
+                <span className="text-xs font-extrabold text-[var(--text)]">Starter Code Template Editor</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-[var(--text-muted)] font-medium">Select Language:</span>
                   <select
                     value={activeLangTab}
                     onChange={e => setActiveLangTab(e.target.value)}
-                    className="px-2.5 py-1 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)]"
+                    className="px-2.5 py-1 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)] outline-none font-bold"
                   >
                     {form.supportedLanguages.map(langId => (
                       <option key={langId} value={langId}>{LANGUAGES.find(l => l.id === langId)?.name || langId}</option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-[var(--text-muted)] mb-1 block uppercase">Starter Code for {activeLangTab}</label>
-                  <textarea
-                    className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)] min-h-[100px]"
-                    value={form.starterCode?.[activeLangTab] || ''}
-                    onChange={e => setForm(p => ({
-                      ...p,
-                      starterCode: {
-                        ...p.starterCode,
-                        [activeLangTab]: e.target.value
-                      }
-                    }))}
-                    placeholder={`Write starter code skeleton for ${activeLangTab} here...`}
-                  />
-                </div>
               </div>
+              <div className="p-4 bg-[var(--card)]">
+                <label className="text-[10px] font-bold text-[var(--orange)] mb-1.5 block uppercase tracking-wider">Starter Template ({activeLangTab.toUpperCase()})</label>
+                <textarea
+                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)] min-h-[140px] leading-relaxed"
+                  value={form.starterCode?.[activeLangTab] || ''}
+                  onChange={e => setForm(p => ({
+                    ...p,
+                    starterCode: {
+                      ...p.starterCode,
+                      [activeLangTab]: e.target.value
+                    }
+                  }))}
+                  placeholder={`Write the function signature or starting skeleton code for students in ${activeLangTab}...`}
+                />
+              </div>
+            </div>
+          </div>
 
-              {/* Sample Test Case */}
-              <div className="border border-[var(--border)] rounded-xl p-4 space-y-3 bg-[var(--surface)]">
-                <span className="text-xs font-black text-[var(--text)]">Sample Test Case</span>
-                <div className="grid grid-cols-2 gap-3">
+          {/* Section 4: Test Cases */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--orange)] border-b border-[var(--border-light)] pb-1.5">4. Grading Test Cases</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Sample Test Case Card */}
+              <div className="border border-[var(--border)] rounded-xl p-5 space-y-4 bg-[var(--surface)]">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-[var(--text)] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    Sample Test Case (Visible to Students)
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Input</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block uppercase tracking-wider">Input</label>
                     <textarea
+                      rows={2}
                       className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      placeholder="Input parameters..."
                       value={form.sampleTestCases[0]?.input}
                       onChange={e => setForm(p => {
                         const copy = [...p.sampleTestCases];
@@ -540,9 +576,11 @@ export default function ChallengeManagement() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Output</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block uppercase tracking-wider">Output</label>
                     <textarea
+                      rows={2}
                       className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      placeholder="Expected output value..."
                       value={form.sampleTestCases[0]?.output}
                       onChange={e => setForm(p => {
                         const copy = [...p.sampleTestCases];
@@ -552,30 +590,38 @@ export default function ChallengeManagement() {
                       required
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Explanation</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs outline-none text-[var(--text)]"
-                    value={form.sampleTestCases[0]?.explanation || ''}
-                    onChange={e => setForm(p => {
-                      const copy = [...p.sampleTestCases];
-                      copy[0] = { ...copy[0], explanation: e.target.value };
-                      return { ...p, sampleTestCases: copy };
-                    })}
-                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block uppercase tracking-wider">Explanation (Optional)</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs outline-none text-[var(--text)]"
+                      placeholder="Explain how output is derived..."
+                      value={form.sampleTestCases[0]?.explanation || ''}
+                      onChange={e => setForm(p => {
+                        const copy = [...p.sampleTestCases];
+                        copy[0] = { ...copy[0], explanation: e.target.value };
+                        return { ...p, sampleTestCases: copy };
+                      })}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Hidden Test Case */}
-              <div className="border border-[var(--border)] rounded-xl p-4 space-y-3 bg-[var(--surface)]">
-                <span className="text-xs font-black text-[var(--text)]">Hidden Test Case (For grading verification)</span>
-                <div className="grid grid-cols-2 gap-3">
+              {/* Hidden Test Case Card */}
+              <div className="border border-[var(--border)] rounded-xl p-5 space-y-4 bg-[var(--surface)]">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-[var(--text)] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    Hidden Test Case (Used for evaluation)
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Input</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block uppercase tracking-wider">Input</label>
                     <textarea
+                      rows={2}
                       className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      placeholder="Hidden Input parameters..."
                       value={form.hiddenTestCases[0]?.input}
                       onChange={e => setForm(p => {
                         const copy = [...p.hiddenTestCases];
@@ -586,9 +632,11 @@ export default function ChallengeManagement() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Expected Output</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block uppercase tracking-wider">Expected Output</label>
                     <textarea
+                      rows={2}
                       className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      placeholder="Expected output value..."
                       value={form.hiddenTestCases[0]?.expectedOutput}
                       onChange={e => setForm(p => {
                         const copy = [...p.hiddenTestCases];
@@ -600,29 +648,41 @@ export default function ChallengeManagement() {
                   </div>
                 </div>
               </div>
-            </div>
 
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-[var(--border-light)] pt-4">
-            <button type="button" onClick={() => setIsFormOpen(false)} className="px-5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--text-secondary)] cursor-pointer">Cancel</button>
-            <button type="submit" className="px-5 py-2 text-white rounded-xl text-xs font-extrabold cursor-pointer" style={{ backgroundColor: 'var(--orange)', border: 'none' }}>Save Challenge</button>
+          <div className="flex justify-end gap-3 border-t border-[var(--border-light)] pt-6">
+            <button 
+              type="button" 
+              onClick={() => setIsFormOpen(false)} 
+              className="px-5 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--text-secondary)] cursor-pointer hover:bg-[var(--surface)] transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="px-5 py-2.5 text-white rounded-xl text-xs font-extrabold cursor-pointer hover:brightness-110 transition-all" 
+              style={{ backgroundColor: 'var(--orange)', border: 'none' }}
+            >
+              Save Coding Challenge
+            </button>
           </div>
         </form>
       ) : tab === 'manage' ? (
         /* Challenges Manager List Table */
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-wider">
-                  <th className="py-3 px-5">Challenge Name</th>
-                  <th className="py-3 px-5">Difficulty</th>
-                  <th className="py-3 px-5">Category</th>
-                  <th className="py-3 px-5 text-center">Reward (XP)</th>
-                  <th className="py-3 px-5 text-center font-semibold">Daily Challenge</th>
-                  <th className="py-3 px-5 text-center">Status</th>
-                  <th className="py-3 px-5 text-center w-36">Actions</th>
+                  <th className="py-3.5 px-5">Challenge Name</th>
+                  <th className="py-3.5 px-5">Difficulty</th>
+                  <th className="py-3.5 px-5">Category</th>
+                  <th className="py-3.5 px-5 text-center">Reward (XP)</th>
+                  <th className="py-3.5 px-5 text-center font-semibold">Daily Challenge</th>
+                  <th className="py-3.5 px-5 text-center">Status</th>
+                  <th className="py-3.5 px-5 text-center w-36">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -636,34 +696,34 @@ export default function ChallengeManagement() {
                   challenges.map((c) => {
                     const diffObj = DIFFICULTY[c.difficulty] || DIFFICULTY.easy;
                     return (
-                      <tr key={c.id} className="hover:bg-[var(--surface)]">
-                        <td className="py-3.5 px-5 font-bold text-sm text-[var(--text)]">
+                      <tr key={c.id} className="hover:bg-[var(--surface)] transition-colors">
+                        <td className="py-4 px-5 font-bold text-sm text-[var(--text)]">
                           {c.title}
                         </td>
-                        <td className="py-3.5 px-5">
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: `${diffObj.color}15`, color: diffObj.color }}>
+                        <td className="py-4 px-5">
+                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: `${diffObj.color}15`, color: diffObj.color }}>
                             {diffObj.label}
                           </span>
                         </td>
-                        <td className="py-3.5 px-5 text-xs text-[var(--text-secondary)]">
+                        <td className="py-4 px-5 text-xs text-[var(--text-secondary)]">
                           {c.category}
                         </td>
-                        <td className="py-3.5 px-5 text-center text-sm font-semibold text-[var(--text)]">
+                        <td className="py-4 px-5 text-center text-sm font-semibold text-[var(--text)]">
                           {c.xpReward} XP
                         </td>
-                        <td className="py-3.5 px-5 text-center text-xs">
+                        <td className="py-4 px-5 text-center text-xs">
                           {c.isDailyChallenge ? (
                             <span className="text-yellow-500 font-bold">⭐ {c.challengeDate}</span>
                           ) : 'No'}
                         </td>
-                        <td className="py-3.5 px-5 text-center">
+                        <td className="py-4 px-5 text-center">
                           <span className={`inline-flex px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
                             c.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
                           }`}>
                             {c.status.toUpperCase()}
                           </span>
                         </td>
-                        <td className="py-3.5 px-5">
+                        <td className="py-4 px-5">
                           <div className="flex gap-1.5 justify-center">
                             <button
                               onClick={() => handleToggleStatus(c)}
@@ -691,7 +751,7 @@ export default function ChallengeManagement() {
                               className="w-7 h-7 bg-red-50 border border-red-200 rounded-md flex items-center justify-center text-xs text-red-600 hover:bg-red-100 cursor-pointer"
                               title="Delete"
                             >
-                              <i className="fa-solid fa-trash animate-pulse" style={{ color: '#ef4444' }} />
+                              <i className="fa-solid fa-trash" style={{ color: '#ef4444' }} />
                             </button>
                           </div>
                         </td>
