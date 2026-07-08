@@ -860,9 +860,18 @@ export default function ChallengeManagement() {
             </div>
           )}
           {hasErrors && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fee2e2', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <i className="fa-solid fa-times-circle" style={{ color: '#dc2626' }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#991b1b' }}>{Object.keys(valErrors).length} issue(s) must be fixed before publishing.</span>
+            <div style={{ marginTop: 12, padding: '12px 16px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fee2e2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <i className="fa-solid fa-times-circle" style={{ color: '#dc2626' }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#991b1b' }}>{Object.keys(valErrors).length} issue(s) must be fixed before publishing.</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 24, listStyle: 'disc' }}>
+                {Object.entries(valErrors).map(([key, msg]) => (
+                  <li key={key} style={{ fontSize: 13, color: '#991b1b', marginBottom: 4, lineHeight: 1.5 }}>
+                    <strong style={{ fontWeight: 700 }}>{key}:</strong> {msg}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
