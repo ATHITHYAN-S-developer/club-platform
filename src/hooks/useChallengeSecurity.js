@@ -105,15 +105,7 @@ export default function useChallengeSecurity({ config, onViolation, onAutoSubmit
     };
   }, [monitoring]);
 
-  useEffect(() => {
-    if (!monitoring) return;
-    const handleMouseLeave = () => {
-      if (isTerminated) return;
-      handleViolation('mouse_leave');
-    };
-    document.addEventListener('mouseleave', handleMouseLeave);
-    return () => document.removeEventListener('mouseleave', handleMouseLeave);
-  }, [monitoring, handleViolation, isTerminated]);
+  // Removed mouseleave detection to prevent false positives when moving cursor to browser chrome
 
   useEffect(() => {
     if (!monitoring || !config?.idleDetection?.enabled) return;

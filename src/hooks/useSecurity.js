@@ -75,10 +75,9 @@ export default function useSecurity({ onViolation } = {}) {
   }, []);
 
   const handleBeforeUnload = useCallback((e) => {
-    trigger('refresh');
     e.preventDefault();
     e.returnValue = '';
-  }, [trigger]);
+  }, []);
 
   const handleResize = useCallback(() => {
     const threshold = 160;

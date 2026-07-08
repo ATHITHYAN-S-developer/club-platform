@@ -51,6 +51,10 @@ function ProtectedRoute({ children, roleRequired, user, authLoading }) {
 export default function App() {
   const location = useLocation();
   const isFullscreenPage = location.pathname === '/auth' || location.pathname === '/signup';
+  const isExamMode = location.pathname.startsWith('/challenges/') && 
+                     location.pathname !== '/challenges' && 
+                     location.pathname !== '/challenges/leaderboard' && 
+                     location.pathname !== '/challenges/profile';
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -77,7 +81,7 @@ export default function App() {
 
   const appContent = (
     <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column', position: 'relative' }}>
-      <Header user={user} />
+      {!isExamMode && <Header user={user} />}
       <div className={`main-content ${location.pathname === '/' ? 'home-main-content' : ''} ${location.pathname.startsWith('/quiz') ? 'quiz-main-content' : ''}`}>
         {authLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -113,7 +117,7 @@ export default function App() {
           </Suspense>
         )}
       </div>
-      <Footer />
+      {!isExamMode && <Footer />}
       <div id="toast-container" className="toast-container">
         {toasts.map((toast) => (
           <Toast key={toast.id} id={toast.id} title={toast.title} message={toast.message} type={toast.type} onClose={removeToast} />

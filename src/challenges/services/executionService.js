@@ -129,14 +129,12 @@ export async function runCode({ code, language, input }) {
   };
 }
 
-export async function submitSolution({ challengeId, code, language, timeTaken, securityLog, violationCount, autoSubmitted, startedAt }) {
+export async function gradeSolution({ challengeId, code, language, timeTaken }) {
   if (CLOUD_FN_BASE) {
-    return await callFunction('submitCode', { challengeId, code, language, timeTaken, securityLog, violationCount, autoSubmitted, startedAt });
+    return await callFunction('gradeCode', { challengeId, code, language, timeTaken });
   }
 
-  // Client-Side Fallback
-  await new Promise(r => setTimeout(r, 600)); // Simulate execution lag
-
+  // Client-Side Fallback:
   // 1. Fetch full challenge details (including hidden test cases) directly
   const challenge = await db.findOne('Challenges', { id: challengeId });
   if (!challenge) {
@@ -212,7 +210,36 @@ export async function submitSolution({ challengeId, code, language, timeTaken, s
   const xpEarned = totalPassed === allCases.length ? (challenge.xpReward || 100) : 0;
   const status = totalPassed === allCases.length ? 'passed' : 'failed';
 
-  // 4. Save submission record
+  return {
+    status,
+    results: testCaseResults,
+    score: scoreData,
+    xpEarned,
+    runtime: 0.04,
+    memory: 9.6,
+    attemptNumber: userSubs.length + 1
+  };
+}
+
+export async function saveSubmissionRecord({ challengeId, code, language, timeTaken, gradeResult, securityLog, violationCount, autoSubmitted, startedAt }) {
+  if (CLOUD_FN_BASE) {
+    return await callFunction('saveSubmission', { challengeId, code, language, timeTaken, gradeResult, securityLog, violationCount, autoSubmitted, startedAt });
+  }
+
+  const sessionUser = JSON.parse(localStorage.getItem('aether_user_session'));
+  if (!sessionUser) {
+    throw new Error('You must be signed in to finalize submissions.');
+  }
+
+  const challenge = await db.findOne('Challenges', { id: challengeId });
+  if (!challenge) {
+    throw new Error('Challenge not found in local catalog.');
+  }
+
+  const status = gradeResult.status;
+  const xpEarned = gradeResult.xpEarned || 0;
+
+  // 1. Save submission record
   const subId = 'sub_' + Date.now();
   const submissionRecord = {
     id: subId,
@@ -225,15 +252,15 @@ export async function submitSolution({ challengeId, code, language, timeTaken, s
     code,
     status,
     results: {
-      testCaseResults,
-      totalPassed,
-      totalFailed: allCases.length - totalPassed
+      testCaseResults: gradeResult.results,
+      totalPassed: gradeResult.results.filter(r => r.passed).length,
+      totalFailed: gradeResult.results.filter(r => !r.passed).length
     },
-    score: scoreData,
+    score: gradeResult.score,
     timeTaken,
-    runtime: 0.04,
-    memory: 9.6,
-    attemptNumber: userSubs.length + 1,
+    runtime: gradeResult.runtime || 0.04,
+    memory: gradeResult.memory || 9.6,
+    attemptNumber: gradeResult.attemptNumber || 1,
     submittedAt: new Date().toISOString(),
     securityLog: securityLog || [],
     violationCount: violationCount || 0,
@@ -243,9 +270,8 @@ export async function submitSolution({ challengeId, code, language, timeTaken, s
 
   await db.insert('ChallengeSubmissions', submissionRecord);
 
-  // 5. Update student achievements and XP
+  // 2. Update student achievements, XP, streak, badges
   if (status === 'passed') {
-    // 5.1 Streak incrementation
     const todayStr = new Date().toDateString();
     const lastChallengeDate = sessionUser.lastChallengeDate;
     let streak = sessionUser.currentStreak || 0;
@@ -262,7 +288,6 @@ export async function submitSolution({ challengeId, code, language, timeTaken, s
       }
     }
 
-    // 5.2 Badge checks
     const badges = [...(sessionUser.badges || [])];
     if (badges.indexOf('first_challenge') === -1) {
       badges.push('first_challenge');
@@ -273,14 +298,13 @@ export async function submitSolution({ challengeId, code, language, timeTaken, s
     if (streak >= 30 && badges.indexOf('streak_30') === -1) {
       badges.push('streak_30');
     }
-    if (isFirstAttempt && badges.indexOf('first_attempt') === -1) {
+    if (gradeResult.attemptNumber === 1 && badges.indexOf('first_attempt') === -1) {
       badges.push('first_attempt');
     }
     if (challenge.difficulty === 'hard' && badges.indexOf('perfect_score') === -1) {
       badges.push('perfect_score');
     }
 
-    // 5.3 Write updates back to user doc
     const updatedXP = (sessionUser.xp || 0) + xpEarned;
     const updatedChallengeXP = (sessionUser.challengeXp || 0) + xpEarned;
     
@@ -294,13 +318,11 @@ export async function submitSolution({ challengeId, code, language, timeTaken, s
 
     await db.update('Users', sessionUser.id, userUpdates);
     
-    // Sync local storage session
     localStorage.setItem('aether_user_session', JSON.stringify({
       ...sessionUser,
       ...userUpdates
     }));
 
-    // Create a local notification
     await db.insert('Notifications', {
       id: 'nt_sub_' + Date.now(),
       userId: sessionUser.id,
@@ -312,14 +334,21 @@ export async function submitSolution({ challengeId, code, language, timeTaken, s
   }
 
   return {
+    success: true,
+    submissionId: subId,
     status,
-    results: testCaseResults,
-    score: scoreData,
-    xpEarned,
-    runtime: 0.04,
-    memory: 9.6
+    xpEarned
   };
 }
+
+export async function submitAndFinalize({ challengeId, code, language, timeTaken, securityLog, violationCount, autoSubmitted, startedAt }) {
+  const gradeResult = await gradeSolution({ challengeId, code, language, timeTaken });
+  return await saveSubmissionRecord({
+    challengeId, code, language, timeTaken, gradeResult, securityLog, violationCount, autoSubmitted, startedAt
+  });
+}
+
+export const submitSolution = submitAndFinalize;
 
 export async function reviewManualSubmission({ submissionId, approved, feedback, xpAward }) {
   if (CLOUD_FN_BASE) {
