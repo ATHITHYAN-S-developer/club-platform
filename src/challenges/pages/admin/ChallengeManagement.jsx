@@ -156,7 +156,24 @@ export default function ChallengeManagement() {
       starterCode: c.starterCode || { python: '', javascript: '' },
       solutionCode: c.solutionCode || { python: '', javascript: '' },
       supportedLanguages: c.supportedLanguages || ['python', 'javascript'],
-      security: c.security || JSON.parse(JSON.stringify(DEFAULT_SECURITY)),
+      security: {
+        ...DEFAULT_SECURITY,
+        ...(c.security || {}),
+        violations: {
+          ...DEFAULT_SECURITY.violations,
+          ...(c.security?.violations || {}),
+          maxViolations: c.security?.violations?.maxViolations ?? DEFAULT_SECURITY.violations.maxViolations,
+        },
+        submission: {
+          ...DEFAULT_SECURITY.submission,
+          ...(c.security?.submission || {}),
+          autoSaveInterval: c.security?.submission?.autoSaveInterval ?? DEFAULT_SECURITY.submission.autoSaveInterval,
+        },
+      },
+      maxAttempts: c.maxAttempts ?? 0,
+      memoryLimit: c.memoryLimit ?? 256,
+      xpReward: c.xpReward ?? 100,
+      timeLimit: c.timeLimit ?? 10,
     });
     setActiveLangTab('python');
     setStep(1);
@@ -1159,7 +1176,7 @@ function SpecCard({ label, value, onChange, icon, unit }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <input type="number" style={{ flex: 1, height: 48, padding: '0 14px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 16, fontWeight: 700, color: '#111827', background: '#fff', outline: 'none' }}
-          value={value} onChange={e => onChange(e.target.value)} />
+          value={value ?? ''} onChange={e => onChange(e.target.value)} />
         <span style={{ fontSize: 14, fontWeight: 600, color: '#9ca3af' }}>{unit}</span>
       </div>
     </div>
@@ -1171,7 +1188,7 @@ function TextAreaCard({ label, value, onChange, placeholder }) {
     <div style={{ background: '#fff', border: `1px solid #e5e7eb`, borderRadius: '16px', padding: 24 }}>
       <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>{label}</span>
       <textarea style={{ width: '100%', minHeight: 100, padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, color: '#111827', background: '#fff', outline: 'none', resize: 'vertical', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box' }}
-        placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} />
+        placeholder={placeholder} value={value ?? ''} onChange={e => onChange(e.target.value)} />
     </div>
   );
 }

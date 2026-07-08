@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import db from '../../db';
-import { DIFFICULTY, CHALLENGE_TYPES, calculateLevel } from '../config/challengeConfig';
+import { DIFFICULTY, CHALLENGE_TYPES, calculateLevel, getSecurityLevel } from '../config/challengeConfig';
 
 const difficultyKeys = ['easy', 'medium', 'hard'];
 const typeKeys = Object.keys(CHALLENGE_TYPES);
@@ -70,6 +70,12 @@ export default function ChallengesDashboard({ user }) {
     return new Set(submissions.filter(s => s.status === 'passed').map(s => s.challengeId));
   }, [submissions]);
 
+  const attemptCounts = useMemo(() => {
+    const map = {};
+    submissions.forEach(s => { map[s.challengeId] = (map[s.challengeId] || 0) + 1; });
+    return map;
+  }, [submissions]);
+
   if (loading) {
     return (
       <div className="chl-container" style={{ textAlign: 'center', paddingTop: 96 }}>
@@ -77,14 +83,6 @@ export default function ChallengesDashboard({ user }) {
       </div>
     );
   }
-
-  const attemptCounts = useMemo(() => {
-    const map = {};
-    submissions.forEach(s => {
-      map[s.challengeId] = (map[s.challengeId] || 0) + 1;
-    });
-    return map;
-  }, [submissions]);
 
   return (
     <div className="chl-container">
@@ -248,6 +246,7 @@ export default function ChallengesDashboard({ user }) {
             const limitReached = maxAttempts > 0 && userAttempts >= maxAttempts;
             const todayStr = new Date().toISOString().split('T')[0];
             const isDaily = ch.isDailyChallenge && ch.challengeDate?.startsWith(todayStr);
+            const secLevel = ch.security ? getSecurityLevel(ch.security) : null;
             return (
               <div
                 key={ch.id}
@@ -275,6 +274,11 @@ export default function ChallengesDashboard({ user }) {
                   <span style={{ fontSize: 12, color: '#9ca3af' }}>{type.label}</span>
                   {isDaily && (
                     <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: 999 }}>🔥 Daily</span>
+                  )}
+                  {secLevel && secLevel.label !== 'Basic' && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: secLevel.color, background: `${secLevel.color}15`, padding: '2px 8px', borderRadius: 999 }}>
+                      {secLevel.icon} {secLevel.label}
+                    </span>
                   )}
                 </div>
                 <h3 style={{ fontSize: 20, fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>{ch.title}</h3>

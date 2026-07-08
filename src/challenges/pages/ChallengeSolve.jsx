@@ -156,8 +156,8 @@ export default function ChallengeSolve({ user }) {
         ch.starterCode && Object.keys(ch.starterCode).forEach(k => { langMap[k] = ch.starterCode[k]; });
         const firstLang = ch.supportedLanguages?.[0] || 'javascript';
         setLanguage(firstLang);
-        if (langMap[firstLang]) setCode(langMap[firstLang]);
-        else if (langMap.javascript) setCode(langMap.javascript);
+        if (langMap[firstLang] !== undefined) setCode(langMap[firstLang]);
+        else if (langMap.javascript !== undefined) setCode(langMap.javascript);
 
         const draft = await autosave.restore();
         if (draft && draft.code) {
@@ -606,7 +606,7 @@ export default function ChallengeSolve({ user }) {
                     onChange={e => {
                       setLanguage(e.target.value);
                       const starter = challenge.starterCode?.[e.target.value];
-                      if (starter) setCode(starter);
+                      if (starter !== undefined) setCode(starter);
                     }}
                     style={{ padding: '6px 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 13, background: '#fff', color: '#111827' }}
                   >

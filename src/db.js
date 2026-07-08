@@ -518,7 +518,7 @@ class FirebaseDatabase {
     try {
       const docRef = doc(firestore, collectionName, id);
       const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) throw new Error(`Record ${id} not found in ${collectionName}`);
+      if (!docSnap.exists()) { const e = new Error(`Record ${id} not found in ${collectionName}`); e.code = 'NOT_FOUND'; throw e; }
       const updatedData = { ...updates, updatedAt: new Date().toISOString() };
       await updateDoc(docRef, updatedData);
       const finalDoc = { ...docSnap.data(), ...updatedData, id };
@@ -532,7 +532,7 @@ class FirebaseDatabase {
       console.warn(`update(${collectionName}, ${id}) failed, using fallback:`, error.message);
       const items = getLocalStorageCollection(collectionName);
       const idx = items.findIndex(item => item.id === id);
-      if (idx === -1) throw new Error(`Record ${id} not found in fallback`);
+      if (idx === -1) { const e = new Error(`Record ${id} not found in fallback`); e.code = 'NOT_FOUND'; throw e; }
       const finalDoc = { ...items[idx], ...updates, id, updatedAt: new Date().toISOString() };
       items[idx] = finalDoc;
       setLocalStorageCollection(collectionName, items);

@@ -60,10 +60,18 @@ export function subscribeUserSubmissions(userId, callback) {
 
 export async function saveDraft(userId, challengeId, language, code) {
   const id = `${userId}_${challengeId}`;
-  return await db.update(COLLECTIONS.drafts, id, {
+  const draft = {
     userId, challengeId, language, code,
     updatedAt: new Date().toISOString(),
-  });
+  };
+  try {
+    return await db.update(COLLECTIONS.drafts, id, draft);
+  } catch (error) {
+    if (error.code === 'NOT_FOUND') {
+      return await db.insert(COLLECTIONS.drafts, { id, ...draft });
+    }
+    throw error;
+  }
 }
 
 export async function loadDraft(userId, challengeId) {
