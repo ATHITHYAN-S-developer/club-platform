@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { DIFFICULTY, CHALLENGE_TYPES } from '../config/challengeConfig';
 
 export default function ChallengeCard({ challenge, userSubmission }) {
@@ -10,10 +9,8 @@ export default function ChallengeCard({ challenge, userSubmission }) {
   const daysLeft = dueDate ? Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
 
   return (
-    <Link
-      to={`/challenges/${challenge.id}`}
+    <div
       className="block rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--orange)]/5 hover:border-[var(--orange)]/30 group relative overflow-hidden text-none"
-      style={{ textDecoration: 'none' }}
     >
       {/* Brand left accent border bar */}
       <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: diff.color }} />
@@ -80,6 +77,6 @@ export default function ChallengeCard({ challenge, userSubmission }) {
           </span>
         )}
       </div>
-    </Link>
+    </div>
   );
 }
