@@ -139,6 +139,18 @@ export default function ChallengeSolve({ user }) {
           setLoading(false);
           return;
         }
+
+        // Check attempt limit
+        if (ch.maxAttempts && ch.maxAttempts > 0 && user) {
+          const subs = await db.find('ChallengeSubmissions');
+          const userAttempts = subs.filter(s => s.userId === user.id && s.challengeId === id).length;
+          if (userAttempts >= ch.maxAttempts) {
+            setError(`You have used all ${ch.maxAttempts} attempt${ch.maxAttempts > 1 ? 's' : ''} for this challenge.`);
+            setLoading(false);
+            return;
+          }
+        }
+
         setChallenge(ch);
         const langMap = {};
         ch.starterCode && Object.keys(ch.starterCode).forEach(k => { langMap[k] = ch.starterCode[k]; });

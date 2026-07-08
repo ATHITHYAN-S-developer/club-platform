@@ -78,6 +78,14 @@ export default function ChallengesDashboard({ user }) {
     );
   }
 
+  const attemptCounts = useMemo(() => {
+    const map = {};
+    submissions.forEach(s => {
+      map[s.challengeId] = (map[s.challengeId] || 0) + 1;
+    });
+    return map;
+  }, [submissions]);
+
   return (
     <div className="chl-container">
       {/* Header */}
@@ -152,15 +160,27 @@ export default function ChallengesDashboard({ user }) {
             const diff = DIFFICULTY[ch.difficulty] || DIFFICULTY.easy;
             const type = CHALLENGE_TYPES[ch.challengeType] || CHALLENGE_TYPES.coding;
             const done = completedIds.has(ch.id);
+            const userAttempts = attemptCounts[ch.id] || 0;
+            const maxAttempts = ch.maxAttempts || 0;
+            const limitReached = maxAttempts > 0 && userAttempts >= maxAttempts;
             return (
               <div
                 key={ch.id}
                 className="chl-card"
-                style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}
-                onClick={() => navigate(`/challenges/${ch.id}`)}
+                style={{ cursor: limitReached ? 'not-allowed' : 'pointer', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative', opacity: limitReached ? 0.65 : 1 }}
+                onClick={() => {
+                  if (limitReached) {
+                    window.showToast?.('Limit Reached', `You have used all ${maxAttempts} attempt${maxAttempts > 1 ? 's' : ''} for this challenge.`, 'warning');
+                    return;
+                  }
+                  navigate(`/challenges/${ch.id}`);
+                }}
               >
-                {done && (
+                {done && !limitReached && (
                   <span style={{ position: 'absolute', top: 12, right: 12, fontSize: 11, fontWeight: 700, color: '#059669', background: '#d1fae5', padding: '2px 8px', borderRadius: 999 }}>Done</span>
+                )}
+                {limitReached && (
+                  <span style={{ position: 'absolute', top: 12, right: 12, fontSize: 11, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '2px 8px', borderRadius: 999 }}>Limit Reached</span>
                 )}
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span className={`chl-diff chl-diff-${ch.difficulty}`}>
@@ -174,7 +194,14 @@ export default function ChallengesDashboard({ user }) {
                   {ch.description?.replace(/[#*`]/g, '').substring(0, 120)}
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#4f46e5' }}>+{ch.xpReward || 100} XP</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#4f46e5' }}>+{ch.xpReward || 100} XP</span>
+                    {maxAttempts > 0 && (
+                      <span style={{ fontSize: 12, color: limitReached ? '#dc2626' : '#6b7280', fontWeight: 600 }}>
+                        {userAttempts}/{maxAttempts} attempts
+                      </span>
+                    )}
+                  </div>
                   {ch.tags?.length > 0 && (
                     <div style={{ display: 'flex', gap: 4 }}>
                       {ch.tags.slice(0, 2).map(tag => (

@@ -75,6 +75,7 @@ export default function ChallengeManagement() {
     timeLimit: 10,
     memoryLimit: 256,
     xpReward: 100,
+    maxAttempts: 0,
     isDailyChallenge: false,
     challengeDate: '',
     status: 'draft',
@@ -641,6 +642,7 @@ export default function ChallengeManagement() {
           <SpecCard label="XP Reward" value={form.xpReward} onChange={v => setForm(p => ({ ...p, xpReward: v }))} icon="fa-star" unit="XP" />
           <SpecCard label="Time Limit (minutes)" value={form.timeLimit} onChange={v => setForm(p => ({ ...p, timeLimit: v }))} icon="fa-clock" unit="min" />
           <SpecCard label="Memory Limit (MB)" value={form.memoryLimit} onChange={v => setForm(p => ({ ...p, memoryLimit: v }))} icon="fa-microchip" unit="MB" />
+          <SpecCard label="Max Attempts (0 = Unlimited)" value={form.maxAttempts} onChange={v => setForm(p => ({ ...p, maxAttempts: v }))} icon="fa-rotate" unit="tries" />
           <div style={{ background: Card, border: `1px solid ${Border}`, borderRadius: Radius, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: `${P}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P, fontSize: 14 }}><i className="fa-solid fa-eye"></i></div>
