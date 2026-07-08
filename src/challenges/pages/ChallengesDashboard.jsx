@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import db from '../../db';
 import { getChallenges, getUserSubmissions, getUserRank } from '../services/challengeService';
-import { DIFFICULTY } from '../config/challengeConfig';
+import { DIFFICULTY, calculateLevel } from '../config/challengeConfig';
 
 export default function ChallengesDashboard({ user }) {
   const navigate = useNavigate();
