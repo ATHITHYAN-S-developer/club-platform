@@ -7,9 +7,12 @@ export default function ChallengeManagement() {
   const [challenges, setChallenges] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('manage'); // 'manage' | 'reviews' | 'analytics'
+  const [tab, setTab] = useState('manage'); // 'manage' | 'reviews'
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  
+  // Selected language for editing starter code inside the form
+  const [activeLangTab, setActiveLangTab] = useState('python');
 
   // Form states
   const [form, setForm] = useState({
@@ -23,9 +26,9 @@ export default function ChallengeManagement() {
     outputFormat: '',
     sampleTestCases: [{ input: '', output: '', explanation: '' }],
     hiddenTestCases: [{ input: '', expectedOutput: '' }],
-    starterCode: { python: '', javascript: '' },
-    solutionCode: { python: '', javascript: '' },
-    supportedLanguages: ['python', 'javascript'],
+    starterCode: { python: '', javascript: '', cpp: '', java: '', go: '', rust: '' },
+    solutionCode: { python: '', javascript: '', cpp: '', java: '', go: '', rust: '' },
+    supportedLanguages: ['python', 'javascript', 'cpp', 'java', 'go', 'rust'],
     timeLimit: 10,
     memoryLimit: 256,
     xpReward: 100,
@@ -78,16 +81,17 @@ export default function ChallengeManagement() {
       outputFormat: '',
       sampleTestCases: [{ input: '', output: '', explanation: '' }],
       hiddenTestCases: [{ input: '', expectedOutput: '' }],
-      starterCode: { python: '', javascript: '' },
-      solutionCode: { python: '', javascript: '' },
-      supportedLanguages: ['python', 'javascript'],
+      starterCode: { python: '', javascript: '', cpp: '', java: '', go: '', rust: '' },
+      solutionCode: { python: '', javascript: '', cpp: '', java: '', go: '', rust: '' },
+      supportedLanguages: ['python', 'javascript', 'cpp', 'java', 'go', 'rust'],
       timeLimit: 10,
       memoryLimit: 256,
       xpReward: 100,
       isDailyChallenge: false,
-      challengeDate: '',
+      challengeDate: new Date().toISOString().split('T')[0],
       status: 'draft'
     });
+    setActiveLangTab('python');
     setIsFormOpen(true);
   };
 
@@ -97,16 +101,30 @@ export default function ChallengeManagement() {
       ...c,
       tags: Array.isArray(c.tags) ? c.tags.join(', ') : c.tags || '',
       sampleTestCases: c.sampleTestCases || [{ input: '', output: '', explanation: '' }],
-      hiddenTestCases: c.hiddenTestCases || [{ input: '', expectedOutput: '' }]
+      hiddenTestCases: c.hiddenTestCases || [{ input: '', expectedOutput: '' }],
+      starterCode: c.starterCode || { python: '', javascript: '' },
+      solutionCode: c.solutionCode || { python: '', javascript: '' },
+      supportedLanguages: c.supportedLanguages || ['python', 'javascript']
     });
     setIsFormOpen(true);
   };
 
   const handleDelete = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
+    if (!window.confirm(`Are you sure you want to permanently delete challenge "${title}"?`)) return;
     try {
       await db.delete('Challenges', id);
       window.showToast('Deleted', 'Challenge deleted successfully.', 'info');
+      loadData();
+    } catch (err) {
+      window.showToast('Error', err.message, 'error');
+    }
+  };
+
+  const handleToggleStatus = async (c) => {
+    const nextStatus = c.status === 'published' ? 'draft' : 'published';
+    try {
+      await updateChallenge(c.id, { status: nextStatus });
+      window.showToast('Status Updated', `Challenge set to ${nextStatus}.`, 'success');
       loadData();
     } catch (err) {
       window.showToast('Error', err.message, 'error');
@@ -232,36 +250,47 @@ export default function ChallengeManagement() {
   return (
     <div className="space-y-6" style={{ fontFamily: 'Inter, sans-serif' }}>
       
-      {/* Tab Selector / Actions */}
-      <div className="bg-[var(--surface)] border border-[var(--border-light)] rounded-2xl p-5 flex flex-wrap justify-between items-center gap-4">
+      {/* Header Cards & Tab Selectors */}
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-extrabold text-[var(--text)]">Coding Challenge Dashboard</h2>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">Configure test cases, grade projects, and review student activity</p>
+          <h2 className="text-xl font-extrabold text-[var(--text)] tracking-tight">Coding Challenge Dashboard</h2>
+          <p className="text-xs text-[var(--text-muted)] mt-1">Configure test cases, publish tasks, and evaluate submissions</p>
         </div>
         {!isFormOpen && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setTab('manage')}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${tab === 'manage' ? 'bg-[var(--orange)] text-white' : 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)]'}`}
-            >
-              Manage Tasks
-            </button>
-            <button
-              onClick={() => setTab('reviews')}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${tab === 'reviews' ? 'bg-[var(--orange)] text-white' : 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)]'}`}
-            >
-              Manual Reviews
-              {pendingReviews.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] w-4.5 h-4.5 flex items-center justify-center font-bold">
-                  {pendingReviews.length}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="flex bg-[var(--surface)] p-1 rounded-xl border border-[var(--border)]">
+              <button
+                onClick={() => setTab('manage')}
+                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                style={{
+                  backgroundColor: tab === 'manage' ? 'var(--orange)' : 'transparent',
+                  color: tab === 'manage' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                Manage Tasks
+              </button>
+              <button
+                onClick={() => setTab('reviews')}
+                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer relative"
+                style={{
+                  backgroundColor: tab === 'reviews' ? 'var(--orange)' : 'transparent',
+                  color: tab === 'reviews' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                Manual Reviews
+                {pendingReviews.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] w-4.5 h-4.5 flex items-center justify-center font-bold">
+                    {pendingReviews.length}
+                  </span>
+                )}
+              </button>
+            </div>
             <button
               onClick={handleCreateNew}
-              className="px-4 py-1.5 bg-[var(--orange)] text-white rounded-xl text-xs font-bold cursor-pointer hover:brightness-115 transition-all"
+              className="px-4 py-2 text-white rounded-xl text-xs font-extrabold cursor-pointer hover:brightness-110 transition-all flex items-center gap-1.5"
+              style={{ backgroundColor: 'var(--orange)', border: 'none' }}
             >
-              <i className="fa-solid fa-plus mr-1" />
+              <i className="fa-solid fa-plus" />
               New Challenge
             </button>
           </div>
@@ -272,28 +301,43 @@ export default function ChallengeManagement() {
         /* Create & Edit Challenge Form */
         <form onSubmit={handleSave} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 space-y-6">
           <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-4">
-            <h3 className="text-sm font-black text-[var(--text)]">{editingId ? 'Edit Coding Challenge' : 'Create New Coding Challenge'}</h3>
+            <h3 className="text-base font-black text-[var(--text)]">{editingId ? '✏️ Edit Coding Challenge' : '🚀 Create New Coding Challenge'}</h3>
             <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--text-secondary)]">Cancel</button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
             {/* Left Info Fields */}
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Challenge Title *</label>
-                <input className="form-input form-input-sm" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required />
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                  value={form.title}
+                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  required
+                />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Problem Description *</label>
-                <textarea className="form-input form-input-sm min-h-[100px]" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required />
+                <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Problem Description * (Supports Markdown)</label>
+                <textarea
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] min-h-[140px]"
+                  value={form.description}
+                  onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Difficulty *</label>
-                  <select className="form-input form-input-sm" value={form.difficulty} onChange={e => setForm(p => ({ ...p, difficulty: e.target.value }))}>
+                  <select
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] cursor-pointer"
+                    value={form.difficulty}
+                    onChange={e => setForm(p => ({ ...p, difficulty: e.target.value }))}
+                  >
                     {DIFFICULTIES.map(d => (
                       <option key={d} value={d}>{DIFFICULTY[d].label}</option>
                     ))}
@@ -301,56 +345,180 @@ export default function ChallengeManagement() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Category *</label>
-                  <input className="form-input form-input-sm" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} required />
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                    value={form.category}
+                    onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
+                    required
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">XP Reward *</label>
-                  <input type="number" className="form-input form-input-sm" value={form.xpReward} onChange={e => setForm(p => ({ ...p, xpReward: e.target.value }))} required />
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                    value={form.xpReward}
+                    onChange={e => setForm(p => ({ ...p, xpReward: e.target.value }))}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Time Limit (mins) *</label>
-                  <input type="number" className="form-input form-input-sm" value={form.timeLimit} onChange={e => setForm(p => ({ ...p, timeLimit: e.target.value }))} required />
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                    value={form.timeLimit}
+                    onChange={e => setForm(p => ({ ...p, timeLimit: e.target.value }))}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Memory Limit (MB) *</label>
-                  <input type="number" className="form-input form-input-sm" value={form.memoryLimit} onChange={e => setForm(p => ({ ...p, memoryLimit: e.target.value }))} required />
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                    value={form.memoryLimit}
+                    onChange={e => setForm(p => ({ ...p, memoryLimit: e.target.value }))}
+                    required
+                  />
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Tags (comma-separated)</label>
-                <input className="form-input form-input-sm" value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} placeholder="arrays, search, hashmap" />
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                  value={form.tags}
+                  onChange={e => setForm(p => ({ ...p, tags: e.target.value }))}
+                  placeholder="arrays, hashmap, strings"
+                />
               </div>
 
-              <div className="flex items-center gap-6 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+              {/* Supported Languages Selector */}
+              <div>
+                <label className="text-xs font-bold text-[var(--text-secondary)] mb-2 block">Supported Languages</label>
+                <div className="grid grid-cols-3 gap-2 p-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl">
+                  {LANGUAGES.map(l => {
+                    const isChecked = form.supportedLanguages.includes(l.id);
+                    return (
+                      <label key={l.id} className="flex items-center gap-1.5 text-xs text-[var(--text)] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const updated = isChecked
+                              ? form.supportedLanguages.filter(id => id !== l.id)
+                              : [...form.supportedLanguages, l.id];
+                            setForm(p => ({ ...p, supportedLanguages: updated }));
+                          }}
+                        />
+                        {l.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                 <label className="flex items-center gap-2 text-xs font-bold text-[var(--text)] cursor-pointer">
-                  <input type="checkbox" checked={form.isDailyChallenge} onChange={e => setForm(p => ({ ...p, isDailyChallenge: e.target.checked }))} />
+                  <input
+                    type="checkbox"
+                    checked={form.isDailyChallenge}
+                    onChange={e => setForm(p => ({ ...p, isDailyChallenge: e.target.checked }))}
+                  />
                   Make Daily Challenge
                 </label>
                 {form.isDailyChallenge && (
-                  <input type="date" className="form-input form-input-sm max-w-[150px]" value={form.challengeDate} onChange={e => setForm(p => ({ ...p, challengeDate: e.target.value }))} required />
+                  <input
+                    type="date"
+                    className="px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)] outline-none"
+                    value={form.challengeDate}
+                    onChange={e => setForm(p => ({ ...p, challengeDate: e.target.value }))}
+                    required
+                  />
                 )}
               </div>
             </div>
 
-            {/* Right Form Fields (Constraints & Test Cases) */}
+            {/* Right Form Fields (Starter Code Tabs, Constraints & Test Cases) */}
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Constraints</label>
-                <textarea className="form-input form-input-sm font-mono text-xs" value={form.constraints} onChange={e => setForm(p => ({ ...p, constraints: e.target.value }))} placeholder="e.g. 1 <= N <= 10^5" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              
+              {/* Constraints, Input, Output Formats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-3">
+                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Constraints</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] font-mono"
+                    value={form.constraints}
+                    onChange={e => setForm(p => ({ ...p, constraints: e.target.value }))}
+                    placeholder="e.g. 1 <= nums.length <= 10^5"
+                  />
+                </div>
                 <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Input Format</label>
-                  <textarea className="form-input form-input-sm font-mono text-xs" value={form.inputFormat} onChange={e => setForm(p => ({ ...p, inputFormat: e.target.value }))} />
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                    value={form.inputFormat}
+                    onChange={e => setForm(p => ({ ...p, inputFormat: e.target.value }))}
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Output Format</label>
-                  <textarea className="form-input form-input-sm font-mono text-xs" value={form.outputFormat} onChange={e => setForm(p => ({ ...p, outputFormat: e.target.value }))} />
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]"
+                    value={form.outputFormat}
+                    onChange={e => setForm(p => ({ ...p, outputFormat: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-secondary)] mb-1 block">Publishing Status</label>
+                  <select
+                    className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] cursor-pointer font-bold text-green-600"
+                    value={form.status}
+                    onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                  >
+                    <option value="draft" style={{ color: 'var(--text)' }}>Draft</option>
+                    <option value="published" style={{ color: '#10b981' }}>Published</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Starter Code Multi-Language Manager */}
+              <div className="border border-[var(--border)] rounded-xl p-4 bg-[var(--surface)] space-y-3">
+                <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-2">
+                  <span className="text-xs font-black text-[var(--text)]">Starter Code Template</span>
+                  <select
+                    value={activeLangTab}
+                    onChange={e => setActiveLangTab(e.target.value)}
+                    className="px-2.5 py-1 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)]"
+                  >
+                    {form.supportedLanguages.map(langId => (
+                      <option key={langId} value={langId}>{LANGUAGES.find(l => l.id === langId)?.name || langId}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-[var(--text-muted)] mb-1 block uppercase">Starter Code for {activeLangTab}</label>
+                  <textarea
+                    className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)] min-h-[100px]"
+                    value={form.starterCode?.[activeLangTab] || ''}
+                    onChange={e => setForm(p => ({
+                      ...p,
+                      starterCode: {
+                        ...p.starterCode,
+                        [activeLangTab]: e.target.value
+                      }
+                    }))}
+                    placeholder={`Write starter code skeleton for ${activeLangTab} here...`}
+                  />
                 </div>
               </div>
 
@@ -360,50 +528,75 @@ export default function ChallengeManagement() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Input</label>
-                    <textarea className="form-input form-input-sm font-mono text-xs" value={form.sampleTestCases[0]?.input} onChange={e => setForm(p => {
-                      const copy = [...p.sampleTestCases];
-                      copy[0] = { ...copy[0], input: e.target.value };
-                      return { ...p, sampleTestCases: copy };
-                    })} required />
+                    <textarea
+                      className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      value={form.sampleTestCases[0]?.input}
+                      onChange={e => setForm(p => {
+                        const copy = [...p.sampleTestCases];
+                        copy[0] = { ...copy[0], input: e.target.value };
+                        return { ...p, sampleTestCases: copy };
+                      })}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Output</label>
-                    <textarea className="form-input form-input-sm font-mono text-xs" value={form.sampleTestCases[0]?.output} onChange={e => setForm(p => {
-                      const copy = [...p.sampleTestCases];
-                      copy[0] = { ...copy[0], output: e.target.value };
-                      return { ...p, sampleTestCases: copy };
-                    })} required />
+                    <textarea
+                      className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      value={form.sampleTestCases[0]?.output}
+                      onChange={e => setForm(p => {
+                        const copy = [...p.sampleTestCases];
+                        copy[0] = { ...copy[0], output: e.target.value };
+                        return { ...p, sampleTestCases: copy };
+                      })}
+                      required
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Explanation</label>
-                  <input className="form-input form-input-sm text-xs" value={form.sampleTestCases[0]?.explanation || ''} onChange={e => setForm(p => {
-                    const copy = [...p.sampleTestCases];
-                    copy[0] = { ...copy[0], explanation: e.target.value };
-                    return { ...p, sampleTestCases: copy };
-                  })} />
+                  <input
+                    type="text"
+                    className="w-full px-3 py-1.5 bg-[var(--card)] border border-[var(--border)] rounded-lg text-xs outline-none text-[var(--text)]"
+                    value={form.sampleTestCases[0]?.explanation || ''}
+                    onChange={e => setForm(p => {
+                      const copy = [...p.sampleTestCases];
+                      copy[0] = { ...copy[0], explanation: e.target.value };
+                      return { ...p, sampleTestCases: copy };
+                    })}
+                  />
                 </div>
               </div>
 
               {/* Hidden Test Case */}
               <div className="border border-[var(--border)] rounded-xl p-4 space-y-3 bg-[var(--surface)]">
-                <span className="text-xs font-black text-[var(--text)]">Hidden Test Case *</span>
+                <span className="text-xs font-black text-[var(--text)]">Hidden Test Case (For grading verification)</span>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Input</label>
-                    <textarea className="form-input form-input-sm font-mono text-xs" value={form.hiddenTestCases[0]?.input} onChange={e => setForm(p => {
-                      const copy = [...p.hiddenTestCases];
-                      copy[0] = { ...copy[0], input: e.target.value };
-                      return { ...p, hiddenTestCases: copy };
-                    })} required />
+                    <textarea
+                      className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      value={form.hiddenTestCases[0]?.input}
+                      onChange={e => setForm(p => {
+                        const copy = [...p.hiddenTestCases];
+                        copy[0] = { ...copy[0], input: e.target.value };
+                        return { ...p, hiddenTestCases: copy };
+                      })}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-0.5 block">Expected Output</label>
-                    <textarea className="form-input form-input-sm font-mono text-xs" value={form.hiddenTestCases[0]?.expectedOutput} onChange={e => setForm(p => {
-                      const copy = [...p.hiddenTestCases];
-                      copy[0] = { ...copy[0], expectedOutput: e.target.value };
-                      return { ...p, hiddenTestCases: copy };
-                    })} required />
+                    <textarea
+                      className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-xl text-xs font-mono outline-none text-[var(--text)]"
+                      value={form.hiddenTestCases[0]?.expectedOutput}
+                      onChange={e => setForm(p => {
+                        const copy = [...p.hiddenTestCases];
+                        copy[0] = { ...copy[0], expectedOutput: e.target.value };
+                        return { ...p, hiddenTestCases: copy };
+                      })}
+                      required
+                    />
                   </div>
                 </div>
               </div>
@@ -412,8 +605,8 @@ export default function ChallengeManagement() {
           </div>
 
           <div className="flex justify-end gap-3 border-t border-[var(--border-light)] pt-4">
-            <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--text-secondary)]">Cancel</button>
-            <button type="submit" className="px-4 py-1.5 bg-[var(--orange)] text-white rounded-xl text-xs font-bold">Save Challenge</button>
+            <button type="button" onClick={() => setIsFormOpen(false)} className="px-5 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-xs font-bold text-[var(--text-secondary)] cursor-pointer">Cancel</button>
+            <button type="submit" className="px-5 py-2 text-white rounded-xl text-xs font-extrabold cursor-pointer" style={{ backgroundColor: 'var(--orange)', border: 'none' }}>Save Challenge</button>
           </div>
         </form>
       ) : tab === 'manage' ? (
@@ -427,9 +620,9 @@ export default function ChallengeManagement() {
                   <th className="py-3 px-5">Difficulty</th>
                   <th className="py-3 px-5">Category</th>
                   <th className="py-3 px-5 text-center">Reward (XP)</th>
-                  <th className="py-3 px-5 text-center">Daily</th>
+                  <th className="py-3 px-5 text-center font-semibold">Daily Challenge</th>
                   <th className="py-3 px-5 text-center">Status</th>
-                  <th className="py-3 px-5 text-center w-28">Actions</th>
+                  <th className="py-3 px-5 text-center w-36">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -473,25 +666,32 @@ export default function ChallengeManagement() {
                         <td className="py-3.5 px-5">
                           <div className="flex gap-1.5 justify-center">
                             <button
+                              onClick={() => handleToggleStatus(c)}
+                              className="w-7 h-7 bg-[var(--surface-2)] border border-[var(--border)] rounded-md flex items-center justify-center text-xs text-[var(--text-secondary)] hover:border-[var(--orange)] cursor-pointer"
+                              title={c.status === 'published' ? 'Draft' : 'Publish'}
+                            >
+                              <i className={`fa-solid ${c.status === 'published' ? 'fa-eye-slash' : 'fa-eye'}`} />
+                            </button>
+                            <button
                               onClick={() => handleEdit(c)}
-                              className="w-7 h-7 bg-[var(--surface-2)] hover:border-[var(--orange)] border border-[var(--border)] rounded-md flex items-center justify-center text-xs text-[var(--text-secondary)] cursor-pointer"
+                              className="w-7 h-7 bg-[var(--surface-2)] border border-[var(--border)] rounded-md flex items-center justify-center text-xs text-[var(--text-secondary)] hover:border-[var(--orange)] cursor-pointer"
                               title="Edit"
                             >
                               <i className="fa-solid fa-pen" />
                             </button>
                             <button
                               onClick={() => handleDuplicate(c)}
-                              className="w-7 h-7 bg-[var(--surface-2)] hover:border-[var(--orange)] border border-[var(--border)] rounded-md flex items-center justify-center text-xs text-[var(--text-secondary)] cursor-pointer"
+                              className="w-7 h-7 bg-[var(--surface-2)] border border-[var(--border)] rounded-md flex items-center justify-center text-xs text-[var(--text-secondary)] hover:border-[var(--orange)] cursor-pointer"
                               title="Duplicate"
                             >
                               <i className="fa-solid fa-copy" />
                             </button>
                             <button
                               onClick={() => handleDelete(c.id, c.title)}
-                              className="w-7 h-7 bg-red-50 hover:bg-red-100 border-none rounded-md flex items-center justify-center text-xs text-red-600 cursor-pointer"
+                              className="w-7 h-7 bg-red-50 border border-red-200 rounded-md flex items-center justify-center text-xs text-red-600 hover:bg-red-100 cursor-pointer"
                               title="Delete"
                             >
-                              <i className="fa-solid fa-trash" />
+                              <i className="fa-solid fa-trash animate-pulse" style={{ color: '#ef4444' }} />
                             </button>
                           </div>
                         </td>
@@ -510,58 +710,60 @@ export default function ChallengeManagement() {
             <div className="px-5 py-4 border-b border-[var(--border)] bg-[var(--surface)]">
               <h3 className="text-sm font-bold text-[var(--text)]">Submissions Pending Manual Grading</h3>
             </div>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-wider">
-                  <th className="py-3 px-5">Student</th>
-                  <th className="py-3 px-5">Task Details</th>
-                  <th className="py-3 px-5 text-center">Submitted At</th>
-                  <th className="py-3 px-5 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {pendingReviews.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-sm text-[var(--text-muted)]">
-                      No project submissions are currently awaiting manual grading.
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-wider">
+                    <th className="py-3 px-5">Student</th>
+                    <th className="py-3 px-5">Task Details</th>
+                    <th className="py-3 px-5 text-center">Submitted At</th>
+                    <th className="py-3 px-5 text-center">Action</th>
                   </tr>
-                ) : (
-                  pendingReviews.map((s) => (
-                    <tr key={s.id} className="hover:bg-[var(--surface)]">
-                      <td className="py-3.5 px-5">
-                        <div className="font-bold text-sm text-[var(--text)]">{s.userName}</div>
-                        <div className="text-[11px] text-[var(--text-secondary)]">{s.userEmail}</div>
-                      </td>
-                      <td className="py-3.5 px-5 text-xs text-[var(--text-secondary)]">
-                        {s.taskTitle || 'Coding Solution'}
-                      </td>
-                      <td className="py-3.5 px-5 text-center text-xs text-[var(--text-secondary)]">
-                        {new Date(s.submittedAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-3.5 px-5 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedSub(s);
-                            setReviewForm({
-                              status: 'Approved',
-                              score: 80,
-                              comments: '',
-                              strengths: '',
-                              improvements: '',
-                              suggestions: ''
-                            });
-                          }}
-                          className="px-3 py-1 bg-[var(--orange)] text-white rounded-lg text-xs font-bold cursor-pointer"
-                        >
-                          Grade
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {pendingReviews.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-sm text-[var(--text-muted)]">
+                        No project submissions are currently awaiting manual grading.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    pendingReviews.map((s) => (
+                      <tr key={s.id} className="hover:bg-[var(--surface)]">
+                        <td className="py-3.5 px-5">
+                          <div className="font-bold text-sm text-[var(--text)]">{s.userName}</div>
+                          <div className="text-[11px] text-[var(--text-secondary)]">{s.userEmail}</div>
+                        </td>
+                        <td className="py-3.5 px-5 text-xs text-[var(--text-secondary)]">
+                          {s.taskTitle || 'Coding Solution'}
+                        </td>
+                        <td className="py-3.5 px-5 text-center text-xs text-[var(--text-secondary)]">
+                          {new Date(s.submittedAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3.5 px-5 text-center">
+                          <button
+                            onClick={() => {
+                              setSelectedSub(s);
+                              setReviewForm({
+                                status: 'Approved',
+                                score: 80,
+                                comments: '',
+                                strengths: '',
+                                improvements: '',
+                                suggestions: ''
+                              });
+                            }}
+                            className="px-3 py-1 bg-[var(--orange)] text-white rounded-lg text-xs font-bold cursor-pointer"
+                          >
+                            Grade
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Grading Drawer Form */}
@@ -598,7 +800,7 @@ export default function ChallengeManagement() {
               <form onSubmit={handleReviewSubmit} className="space-y-3">
                 <div>
                   <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block">Decision</label>
-                  <select className="form-input form-input-sm" value={reviewForm.status} onChange={e => setReviewForm(p => ({ ...p, status: e.target.value }))}>
+                  <select className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)] cursor-pointer" value={reviewForm.status} onChange={e => setReviewForm(p => ({ ...p, status: e.target.value }))}>
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
                   </select>
@@ -606,30 +808,30 @@ export default function ChallengeManagement() {
 
                 <div>
                   <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block">Score (0 - 1000)</label>
-                  <input type="number" min="0" max="1000" className="form-input form-input-sm" value={reviewForm.score} onChange={e => setReviewForm(p => ({ ...p, score: Number(e.target.value) }))} required />
+                  <input type="number" min="0" max="1000" className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]" value={reviewForm.score} onChange={e => setReviewForm(p => ({ ...p, score: Number(e.target.value) }))} required />
                 </div>
 
                 <div>
                   <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block">Review Comments</label>
-                  <textarea className="form-input form-input-sm" value={reviewForm.comments} onChange={e => setReviewForm(p => ({ ...p, comments: e.target.value }))} placeholder="Grade summary..." />
+                  <textarea className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]" value={reviewForm.comments} onChange={e => setReviewForm(p => ({ ...p, comments: e.target.value }))} placeholder="Grade summary..." />
                 </div>
 
                 <div>
                   <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block">Strengths</label>
-                  <input className="form-input form-input-sm" value={reviewForm.strengths} onChange={e => setReviewForm(p => ({ ...p, strengths: e.target.value }))} />
+                  <input className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]" value={reviewForm.strengths} onChange={e => setReviewForm(p => ({ ...p, strengths: e.target.value }))} />
                 </div>
 
                 <div>
                   <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block">Improvements</label>
-                  <input className="form-input form-input-sm" value={reviewForm.improvements} onChange={e => setReviewForm(p => ({ ...p, improvements: e.target.value }))} />
+                  <input className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]" value={reviewForm.improvements} onChange={e => setReviewForm(p => ({ ...p, improvements: e.target.value }))} />
                 </div>
 
                 <div>
                   <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1 block">Suggestions</label>
-                  <input className="form-input form-input-sm" value={reviewForm.suggestions} onChange={e => setReviewForm(p => ({ ...p, suggestions: e.target.value }))} />
+                  <input className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm outline-none focus:border-[var(--orange)] text-[var(--text)]" value={reviewForm.suggestions} onChange={e => setReviewForm(p => ({ ...p, suggestions: e.target.value }))} />
                 </div>
 
-                <button type="submit" className="w-full py-2 bg-[var(--orange)] text-white text-xs font-bold rounded-xl cursor-pointer">
+                <button type="submit" className="w-full py-2 text-white text-xs font-bold rounded-xl cursor-pointer" style={{ backgroundColor: 'var(--orange)', border: 'none' }}>
                   Submit Grade Evaluation
                 </button>
               </form>

@@ -305,7 +305,8 @@ export default function ChallengesProfile({ user }) {
           <button
             type="submit"
             disabled={updatingSocials}
-            className="px-5 py-2 bg-[var(--orange)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer inline-flex items-center justify-center"
+            className="px-5 py-2 text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer inline-flex items-center justify-center"
+            style={{ backgroundColor: 'var(--orange)', border: 'none' }}
           >
             {updatingSocials ? 'Saving...' : 'Save Profiles'}
           </button>

@@ -24,6 +24,7 @@ export default function ChallengeSolve({ user }) {
   const [submissionResult, setSubmissionResult] = useState(null);
   const [startTime] = useState(new Date().toISOString());
   const [showSplash, setShowSplash] = useState(false);
+  const [solveTab, setSolveTab] = useState('problem');
   const autosaveRef = useRef(null);
 
   useEffect(() => {
@@ -165,10 +166,38 @@ export default function ChallengeSolve({ user }) {
         </div>
       </div>
 
+      {/* Mobile Tab Switcher */}
+      <div className="flex lg:hidden border-b border-[var(--border)] bg-[var(--surface-2)]">
+        <button
+          type="button"
+          onClick={() => setSolveTab('problem')}
+          className="flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 cursor-pointer"
+          style={{
+            borderColor: solveTab === 'problem' ? 'var(--orange)' : 'transparent',
+            color: solveTab === 'problem' ? 'var(--orange)' : 'var(--text-muted)'
+          }}
+        >
+          <i className="fa-solid fa-book-open mr-1.5" />
+          Problem Description
+        </button>
+        <button
+          type="button"
+          onClick={() => setSolveTab('code')}
+          className="flex-1 py-3 text-center text-xs font-bold transition-all border-b-2 cursor-pointer"
+          style={{
+            borderColor: solveTab === 'code' ? 'var(--orange)' : 'transparent',
+            color: solveTab === 'code' ? 'var(--orange)' : 'var(--text-muted)'
+          }}
+        >
+          <i className="fa-solid fa-code mr-1.5" />
+          Code Workspace
+        </button>
+      </div>
+
       {/* Main Layout */}
-      <div className="flex h-[calc(100vh-112px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-148px)] lg:h-[calc(100vh-112px)] overflow-hidden">
         {/* Problem Panel */}
-        <div className="w-1/2 min-w-[400px] overflow-y-auto border-r border-[var(--border)] bg-[var(--bg)] p-6">
+        <div className={`w-full lg:w-1/2 overflow-y-auto border-r border-[var(--border)] bg-[var(--bg)] p-6 ${solveTab === 'problem' ? 'block' : 'hidden lg:block'}`}>
           <div className="max-w-[680px] mx-auto space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-[var(--text)] mb-1">{challenge.title}</h1>
@@ -240,7 +269,7 @@ export default function ChallengeSolve({ user }) {
         </div>
 
         {/* Code Panel */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={`w-full lg:w-1/2 flex flex-col min-w-0 ${solveTab === 'code' ? 'flex' : 'hidden lg:flex'}`}>
           {/* Editor Toolbar */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center gap-3">
@@ -278,7 +307,7 @@ export default function ChallengeSolve({ user }) {
             <CodeEditor language={language} value={code} onChange={setCode} />
           </div>
 
-          {/* Output */}
+          {/* Output Panel */}
           <div className="h-48 border-t border-[var(--border)] bg-[var(--bg)]">
             <OutputPanel
               results={results}

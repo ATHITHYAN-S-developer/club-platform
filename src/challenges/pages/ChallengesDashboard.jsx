@@ -60,14 +60,14 @@ export default function ChallengesDashboard({ user }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-extrabold text-[var(--text)]" style={{ fontFamily: 'Inter, sans-serif' }}>Coding Challenges</h1>
           <p className="text-sm text-[var(--text-muted)] mt-1">Solve challenges, earn XP, and climb the leaderboard</p>
         </div>
         <Link
           to="/challenges/leaderboard"
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text)] hover:border-[var(--orange)] transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text)] hover:border-[var(--orange)] transition-all w-fit"
         >
           <i className="fa-solid fa-trophy text-yellow-500" />
           Leaderboard
@@ -76,7 +76,7 @@ export default function ChallengesDashboard({ user }) {
 
       {/* Stats Row */}
       {user && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total XP', value: (user.challengeXp || 0).toLocaleString(), icon: 'fa-star', color: '#f59e0b' },
             { label: 'Level', value: level.name, icon: 'fa-ranking-star', color: '#8b5cf6' },
@@ -84,12 +84,12 @@ export default function ChallengesDashboard({ user }) {
             { label: 'Rank', value: userRank ? `#${userRank.rank}` : '—', icon: 'fa-trophy', color: '#10b981' },
           ].map((stat, i) => (
             <div key={i} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: `${stat.color}15`, color: stat.color }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: `${stat.color}15`, color: stat.color }}>
                 <i className={`fa-solid ${stat.icon}`} />
               </div>
-              <div>
-                <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">{stat.label}</p>
-                <p className="text-lg font-bold text-[var(--text)]">{stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wide truncate">{stat.label}</p>
+                <p className="text-base font-extrabold text-[var(--text)] truncate">{stat.value}</p>
               </div>
             </div>
           ))}
@@ -113,9 +113,10 @@ export default function ChallengesDashboard({ user }) {
             <div className="flex items-center gap-3">
               <Link
                 to={`/challenges/${dailyChallenge.id}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--orange)] text-white rounded-xl font-bold text-sm hover:brightness-110 transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-bold text-sm hover:brightness-110 transition-all"
+                style={{ backgroundColor: 'var(--orange)', color: '#ffffff', border: 'none' }}
               >
-                <i className="fa-solid fa-play" />
+                <i className="fa-solid fa-play" style={{ color: '#ffffff' }} />
                 Solve Now
               </Link>
               <span className="text-xs text-[var(--text-muted)]">

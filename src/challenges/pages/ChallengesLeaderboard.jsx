@@ -159,19 +159,31 @@ export default function ChallengesLeaderboard({ user }) {
           <div className="flex bg-[var(--surface)] p-1 rounded-xl border border-[var(--border)]">
             <button
               onClick={() => setCategoryFilter('overall')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${categoryFilter === 'overall' ? 'bg-[var(--orange)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              style={{
+                backgroundColor: categoryFilter === 'overall' ? 'var(--orange)' : 'transparent',
+                color: categoryFilter === 'overall' ? '#ffffff' : 'var(--text-secondary)'
+              }}
             >
               Overall
             </button>
             <button
               onClick={() => setCategoryFilter('coding')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${categoryFilter === 'coding' ? 'bg-[var(--orange)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              style={{
+                backgroundColor: categoryFilter === 'coding' ? 'var(--orange)' : 'transparent',
+                color: categoryFilter === 'coding' ? '#ffffff' : 'var(--text-secondary)'
+              }}
             >
               Coding
             </button>
             <button
               onClick={() => setCategoryFilter('quiz')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${categoryFilter === 'quiz' ? 'bg-[var(--orange)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              style={{
+                backgroundColor: categoryFilter === 'quiz' ? 'var(--orange)' : 'transparent',
+                color: categoryFilter === 'quiz' ? '#ffffff' : 'var(--text-secondary)'
+              }}
             >
               Quiz
             </button>
@@ -180,19 +192,31 @@ export default function ChallengesLeaderboard({ user }) {
           <div className="flex bg-[var(--surface)] p-1 rounded-xl border border-[var(--border)]">
             <button
               onClick={() => setTimeFilter('alltime')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeFilter === 'alltime' ? 'bg-[var(--orange)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              style={{
+                backgroundColor: timeFilter === 'alltime' ? 'var(--orange)' : 'transparent',
+                color: timeFilter === 'alltime' ? '#ffffff' : 'var(--text-secondary)'
+              }}
             >
               All Time
             </button>
             <button
               onClick={() => setTimeFilter('weekly')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeFilter === 'weekly' ? 'bg-[var(--orange)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              style={{
+                backgroundColor: timeFilter === 'weekly' ? 'var(--orange)' : 'transparent',
+                color: timeFilter === 'weekly' ? '#ffffff' : 'var(--text-secondary)'
+              }}
             >
               Weekly
             </button>
             <button
               onClick={() => setTimeFilter('monthly')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeFilter === 'monthly' ? 'bg-[var(--orange)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text)]'}`}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              style={{
+                backgroundColor: timeFilter === 'monthly' ? 'var(--orange)' : 'transparent',
+                color: timeFilter === 'monthly' ? '#ffffff' : 'var(--text-secondary)'
+              }}
             >
               Monthly
             </button>
