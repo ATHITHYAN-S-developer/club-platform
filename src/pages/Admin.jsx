@@ -6,6 +6,7 @@ import StudentManagement from './admin/StudentManagement';
 import AnalyticsTab from './admin/AnalyticsTab';
 import SecuritySettings from './admin/SecuritySettings';
 import AnnouncementAdmin from './admin/AnnouncementAdmin';
+import ChallengeManagement from '../challenges/pages/admin/ChallengeManagement';
 
 const SIDEBAR_SECTIONS = [
   {
@@ -26,6 +27,7 @@ const SIDEBAR_SECTIONS = [
       { id: 'announcements', label: 'Announcements', icon: 'fa-bullhorn' },
       { id: 'messages',    label: 'Messages',      icon: 'fa-envelope' },
       { id: 'quizzes',     label: 'Quizzes',       icon: 'fa-question-circle' },
+      { id: 'challenges',  label: 'Challenges',    icon: 'fa-laptop-code' },
       { id: 'students',    label: 'Students',      icon: 'fa-graduation-cap' },
       { id: 'security',    label: 'Security',      icon: 'fa-shield-halved' },
       { id: 'badges',      label: 'Badges',        icon: 'fa-medal' },
@@ -1564,6 +1566,7 @@ export default function Admin({ user }) {
           {tab === 'announcements' && <AnnouncementAdmin />}
           {tab === 'messages'     && <MessagesTab />}
           {tab === 'quizzes'      && <QuizManagement />}
+          {tab === 'challenges'   && <ChallengeManagement />}
           {tab === 'students'     && <StudentManagement />}
           {tab === 'security'     && <SecuritySettings />}
           {tab === 'badges'       && <BadgeManagementTab />}

@@ -21,6 +21,7 @@ export default function Sidebar({ user, isCollapsed, toggleCollapse, isMobileOpe
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
     { to: '/events', label: 'Events', icon: 'fa-calendar-days' },
+    { to: '/challenges', label: 'Challenges', icon: 'fa-laptop-code' },
     { to: '/quiz', label: 'Weekly Quiz', icon: 'fa-brain' },
     { to: '/winners', label: 'Weekly Winners', icon: 'fa-trophy' },
     { to: '/join', label: 'Join Club', icon: 'fa-hand-fist' },

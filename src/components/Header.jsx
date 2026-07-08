@@ -44,6 +44,7 @@ export default function Header({ user }) {
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
     { to: '/events', label: 'Events', icon: 'fa-calendar-days' },
+    { to: '/challenges', label: 'Challenges', icon: 'fa-laptop-code' },
     { to: '/quiz', label: 'Quiz', icon: 'fa-brain' },
     { to: '/careers', label: 'Careers', icon: 'fa-diagram-project' },
     { to: '/leaderboard', label: 'Leaderboard', icon: 'fa-ranking-star' },
@@ -56,6 +57,7 @@ export default function Header({ user }) {
     { to: '/announcements', label: 'Announcements', icon: 'fa-bullhorn' },
     { to: '/members', label: 'Members', icon: 'fa-users' },
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
+    { to: '/challenges', label: 'Challenges', icon: 'fa-laptop-code' },
     { to: '/events', label: 'Events', icon: 'fa-calendar-days' },
   ];
 
@@ -117,6 +119,9 @@ export default function Header({ user }) {
                 <span className="dropdown-user-name">{user.name}</span>
                 <span className="dropdown-user-role">{user.role}</span>
               </div>
+              <Link to="/challenges/profile" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
+                <i className="fa-solid fa-user-gear"></i> Challenge Profile
+              </Link>
               {user.role === 'admin' && (
                 <Link to="/admin" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                   <i className="fa-solid fa-crown"></i> Admin Panel

@@ -26,6 +26,10 @@ const MyBadges = lazy(() => import('./pages/MyBadges'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const AnnouncementDetails = lazy(() => import('./pages/AnnouncementDetails'));
 const MyRegistrations = lazy(() => import('./pages/MyRegistrations'));
+const ChallengesDashboard = lazy(() => import('./challenges/pages/ChallengesDashboard'));
+const ChallengeSolve = lazy(() => import('./challenges/pages/ChallengeSolve'));
+const ChallengesLeaderboard = lazy(() => import('./challenges/pages/ChallengesLeaderboard'));
+const ChallengesProfile = lazy(() => import('./challenges/pages/ChallengesProfile'));
 
 function PageLoading() {
   return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}><Loading /></div>;
@@ -99,6 +103,10 @@ export default function App() {
               <Route path="/announcements" element={<Announcements user={user} />} />
               <Route path="/announcements/:id" element={<AnnouncementDetails user={user} />} />
               <Route path="/my-registrations" element={<ProtectedRoute user={user} authLoading={authLoading}><MyRegistrations user={user} /></ProtectedRoute>} />
+              <Route path="/challenges" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesDashboard user={user} /></ProtectedRoute>} />
+              <Route path="/challenges/:id" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengeSolve user={user} /></ProtectedRoute>} />
+              <Route path="/challenges/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesLeaderboard user={user} /></ProtectedRoute>} />
+              <Route path="/challenges/profile" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesProfile user={user} /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><Admin user={user} /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -133,6 +133,60 @@ const initialCollections = {
     { id: 'win_2', name: 'Alice Johnson', department: 'Computer Science', achievement: 'Fastest Deduplication Algorithm optimization (Task #2)', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', certificate: 'https://example.com/cert/deduplication-opt' },
   ],
   Tasks: [],
+  Challenges: [
+    {
+      id: 'chal_1',
+      title: 'Two Sum Challenge',
+      description: 'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\nYou can return the answer in any order.',
+      difficulty: 'easy',
+      category: 'Coding',
+      tags: ['arrays', 'hashmap', 'search'],
+      constraints: '2 <= nums.length <= 10^4\n-10^9 <= nums[i] <= 10^9\n-10^9 <= target <= 10^9',
+      inputFormat: 'The first line contains N (the number of elements in the array).\nThe second line contains N space-separated integers.\nThe third line contains the target sum.',
+      outputFormat: 'Print the indices of the two integers that add up to target, separated by a space.',
+      sampleTestCases: [
+        {
+          input: '4\n2 7 11 15\n9',
+          output: '0 1',
+          explanation: 'Because nums[0] + nums[1] == 2 + 7 == 9, we return 0 1.'
+        }
+      ],
+      hiddenTestCases: [
+        {
+          input: '3\n3 2 4\n6',
+          expectedOutput: '1 2'
+        },
+        {
+          input: '2\n3 3\n6',
+          expectedOutput: '0 1'
+        }
+      ],
+      starterCode: {
+        python: 'def solve(readline):\n    # Read input\n    n = int(readline())\n    nums = list(map(int, readline().split()))\n    target = int(readline())\n    \n    # Implement Two Sum logic here\n    # Print output space-separated indices\n    pass\n',
+        javascript: '// Complete the function\n// Use readline() to read lines and console.log() to print outputs\nconst n = parseInt(readline());\nconst nums = readline().split(\' \').map(Number);\nconst target = parseInt(readline());\n\n// Write your solution here\n'
+      },
+      supportedLanguages: ['python', 'javascript'],
+      timeLimit: 10,
+      memoryLimit: 256,
+      xpReward: 150,
+      isDailyChallenge: true,
+      challengeDate: new Date().toISOString().split('T')[0],
+      status: 'published',
+      createdAt: '2026-07-08T00:00:00Z',
+      updatedAt: '2026-07-08T00:00:00Z'
+    }
+  ],
+  ChallengeSubmissions: [],
+  ChallengeLeaderboard: [
+    {
+      id: 'cl_overall',
+      period: 'overall',
+      rankings: [
+        { userId: 'u_1', userName: 'Athithyan S', photo: 'https://ui-avatars.com/api/?name=Athithyan+S&background=ff5500&color=fff', totalScore: 920, accuracy: 100, avgTime: 120, attempts: 1, streak: 8, badges: ['first_challenge', 'streak_7'] },
+        { userId: 'u_2', userName: 'Mithres P', photo: 'https://ui-avatars.com/api/?name=Mithres+P&background=ff5500&color=fff', totalScore: 840, accuracy: 100, avgTime: 180, attempts: 1, streak: 4, badges: ['first_challenge'] }
+      ]
+    }
+  ],
   ContactMessages: [],
   CoreMembers: [
     { id: 'core_1', name: 'Athi', role: 'President', department: 'Computer Science', year: '4', email: 'Athi9080@.com', github: 'https://github.com', linkedin: 'https://www.linkedin.com/company/mindcraft-ai-vcet', photo: 'https://ui-avatars.com/api/?name=Athi&background=ff5500&color=fff' },
