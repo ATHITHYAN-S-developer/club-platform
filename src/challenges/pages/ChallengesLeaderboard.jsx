@@ -92,6 +92,7 @@ export default function ChallengesLeaderboard({ user }) {
             <p style={{ fontSize: 14 }}>No rankings yet for this period.</p>
           </div>
         ) : (
+          <div style={{ overflowX: 'auto' }}>
           <table className="chl-lb-table">
             <thead>
               <tr>
@@ -145,12 +146,14 @@ export default function ChallengesLeaderboard({ user }) {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
       {/* User row */}
       {userRank && userRank.rank > 10 && (
         <div style={{ marginTop: 24, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
           <table className="chl-lb-table">
             <tbody>
               <tr className="chl-lb-row-user">
@@ -174,6 +177,7 @@ export default function ChallengesLeaderboard({ user }) {
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

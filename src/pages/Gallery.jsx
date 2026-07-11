@@ -114,7 +114,7 @@ export default function Gallery() {
         @media (max-width: 1024px) { .fs-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 900px) { .rs-hero-section { padding: 6rem 1.5rem 3rem 1.5rem !important; } .rs-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); } }
         @media (max-width: 640px) { .fs-grid { grid-template-columns: 1fr; } .fs-card.span-2 { grid-column: span 1; } }
-        @media (max-width: 600px) { .rs-hero-section { padding: 5rem 1.2rem 2.5rem 1.2rem !important; min-height: auto !important; } .shard-tl { width: 180px !important; height: 180px !important; } .shard-br { width: 220px !important; height: 220px !important; } .rs-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 600px) { .rs-hero-section { padding: 5rem 1.2rem 2.5rem 1.2rem !important; min-height: auto !important; } .shard-tl { width: 180px !important; height: 180px !important; } .shard-br { width: 220px !important; height: 220px !important; } .rs-grid { grid-template-columns: 1fr; } .lb-close { top: 1rem !important; right: 1rem !important; background: rgba(0,0,0,0.5); } }
       `}</style>
 
       <section className="rs-hero-section">

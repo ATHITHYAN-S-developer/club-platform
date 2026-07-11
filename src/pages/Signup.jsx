@@ -326,13 +326,13 @@ export default function Signup({ user }) {
 
             <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Grid row 1 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="signup-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <CardInput id="name" placeholder="Full Name *" value={form.name} onChange={set('name')} icon="fa-solid fa-user" required onFocus={() => focusField('name')} onBlur={blurField} />
                 <CardInput id="className" placeholder="Class *" value={form.className} onChange={set('className')} icon="fa-solid fa-chalkboard" required onFocus={() => focusField('className')} onBlur={blurField} />
               </div>
 
               {/* Grid row 2 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="signup-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <CardInput id="registerNumber" placeholder="Register Number *" value={form.registerNumber} onChange={set('registerNumber')} icon="fa-solid fa-id-card" required onFocus={() => focusField('registerNumber')} onBlur={blurField} />
                 <CardInput type="tel" id="phone" placeholder="Phone Number *" value={form.phone} onChange={set('phone')} icon="fa-solid fa-phone" required onFocus={() => focusField('phone')} onBlur={blurField} />
               </div>
@@ -578,6 +578,9 @@ export default function Signup({ user }) {
           }
           .auth-form-scroll {
             padding: 2.5rem 1.8rem !important;
+          }
+          .signup-field-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>

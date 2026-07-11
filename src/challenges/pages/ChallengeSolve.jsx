@@ -55,6 +55,7 @@ export default function ChallengeSolve({ user }) {
   const [pendingSubmission, setPendingSubmission] = useState(null);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [autoSubmitReason, setAutoSubmitReason] = useState(null); // 'timer_expired' or 'violation_limit'
+  const [mobilePanel, setMobilePanel] = useState('problem');
 
   const secConfig = challenge?.security || DEFAULT_SECURITY;
   const timeLimit = challenge?.timeLimit || DIFFICULTY[challenge?.difficulty]?.timeLimit || 10;
@@ -549,7 +550,11 @@ export default function ChallengeSolve({ user }) {
           )}
 
           {/* Main workspace layout */}
-          <div className="chl-solve" style={{ flex: 1, minHeight: 0, height: 'auto', position: 'relative' }}>
+          <div className="chl-solve-mobile-tabs">
+            <button className={`chl-solve-mobile-tab ${mobilePanel === 'problem' ? 'active' : ''}`} onClick={() => setMobilePanel('problem')}><i className="fas fa-file-alt"></i> Problem</button>
+            <button className={`chl-solve-mobile-tab ${mobilePanel === 'code' ? 'active' : ''}`} onClick={() => setMobilePanel('code')}><i className="fas fa-code"></i> Code</button>
+          </div>
+          <div className={`chl-solve ${mobilePanel === 'problem' ? 'mobile-show-problem' : 'mobile-show-code'}`} style={{ flex: 1, minHeight: 0, height: 'auto', position: 'relative' }}>
             
             {/* Left: Problem Details */}
             <div className="chl-solve-desc">

@@ -33,7 +33,7 @@ export default function Members() {
   });
 
   return (
-    <div style={{ background: '#ffffff', color: '#0f1117', minHeight: '100vh', overflowX: 'hidden', position: 'relative', margin: '-2.5rem -3.5rem', padding: 0 }}>
+    <div className="members-page-root" style={{ background: '#ffffff', color: '#0f1117', minHeight: '100vh', overflowX: 'hidden', position: 'relative', margin: '-2.5rem -3.5rem', padding: 0 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
         @keyframes marquee-ltr {
@@ -67,6 +67,7 @@ export default function Members() {
           clip-path: polygon(100% 100%, 100% 0, 0 100%); z-index: 0;
         }
         @media (max-width: 900px) {
+          .members-page-root { margin: 0 !important; }
           .rs-hero-section { padding: 6rem 1.5rem 3rem 1.5rem !important; }
           .team-row-container { flex-direction: column !important; text-align: center !important; }
           .team-info-container { align-items: center !important; text-align: center !important; }

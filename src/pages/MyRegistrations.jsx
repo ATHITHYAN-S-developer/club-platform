@@ -121,6 +121,13 @@ export default function MyRegistrations({ user }) {
 
   return (
     <div className="main-content">
+      <style>{`
+        @media (max-width: 768px) {
+          .myreg-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+          .myreg-tabs::-webkit-scrollbar { display: none; }
+          .myreg-tabs button { white-space: nowrap; flex-shrink: 0; font-size: 0.78rem !important; padding: 0.5rem 0.8rem !important; }
+        }
+      `}</style>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         
         {/* Header */}
@@ -131,7 +138,7 @@ export default function MyRegistrations({ user }) {
         </div>
 
         {/* Tab Selection */}
-        <div style={{
+        <div className="myreg-tabs" style={{
           display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)',
           marginBottom: '2rem', paddingBottom: '0.2rem',
         }}>

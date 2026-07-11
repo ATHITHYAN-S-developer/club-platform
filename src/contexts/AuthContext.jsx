@@ -19,10 +19,6 @@ export function AuthProvider({ children }) {
     return await db.login(email, password);
   };
 
-  const loginWithGoogle = async () => {
-    return await db.loginWithGoogle();
-  };
-
   const register = async (name, email, password, ...extra) => {
     return await db.register(name, email, password, ...extra);
   };
@@ -34,7 +30,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, loading, login, loginWithGoogle, register, logout,
+      user, loading, login, register, logout,
       isAdmin: user?.role === 'admin',
     }}>
       {children}

@@ -2459,6 +2459,23 @@ body.quiz-active .navbar {
   .chl-solve { grid-template-columns: 1fr; }
   .chl-profile-layout { grid-template-columns: 1fr; }
 }
+.chl-solve-mobile-tabs { display: none; }
+@media (max-width: 900px) {
+  .chl-solve-mobile-tabs {
+    display: flex; gap: 0; background: #f3f4f6; border-radius: 8px; overflow: hidden; margin-bottom: 0;
+  }
+  .chl-solve-mobile-tab {
+    flex: 1; padding: 10px 16px; border: none; background: transparent;
+    font-size: 13px; font-weight: 600; color: #6b7280; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .chl-solve-mobile-tab.active { background: #4f46e5; color: #fff; }
+  .chl-solve { grid-template-columns: 1fr !important; }
+  .chl-solve > * { display: none; }
+  .chl-solve.mobile-show-problem > .chl-solve-desc { display: block !important; }
+  .chl-solve.mobile-show-code > .chl-solve-editor { display: flex !important; }
+}
 @media (max-width: 768px) {
   .chl-container { padding: 16px; width: 100%; }
   .chl-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }

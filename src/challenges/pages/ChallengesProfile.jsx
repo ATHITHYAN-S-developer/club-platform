@@ -97,7 +97,7 @@ export default function ChallengesProfile({ user }) {
         {/* Right Content */}
         <div>
           {/* Stats Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16, marginBottom: 32 }}>
             <div className="chl-card">
               <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Passed</div>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#059669' }}>{totalPassed}</div>
@@ -139,6 +139,7 @@ export default function ChallengesProfile({ user }) {
               </div>
             ) : (
               <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
                 <table className="chl-lb-table">
                   <thead>
                     <tr>
@@ -165,6 +166,7 @@ export default function ChallengesProfile({ user }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>

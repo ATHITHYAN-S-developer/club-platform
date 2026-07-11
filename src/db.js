@@ -6,8 +6,6 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup
 } from "firebase/auth";
 import {
   getFirestore,
@@ -668,24 +666,8 @@ class FirebaseDatabase {
           userProfile = await this.findOne('Users', { id: firebaseUser.uid });
           if (!userProfile) {
             userProfile = await this.findOne('Users', { email: firebaseUser.email });
-            if (userProfile) {
-              const oldId = userProfile.id;
-              userProfile.id = firebaseUser.uid;
-              try {
-                await setDoc(doc(firestore, 'Users', firebaseUser.uid), userProfile);
-                try {
-                  await deleteDoc(doc(firestore, 'Users', oldId));
-                } catch (delErr) {
-                  console.warn("Could not delete old user doc:", delErr);
-                }
-              } catch (e) {
-                console.warn("Firestore link failed, updating locally:", e);
-                const localData = getLocalStorageCollection('Users');
-                const filtered = localData.filter(u => u.id !== oldId && u.id !== firebaseUser.uid);
-                filtered.push(userProfile);
-                setLocalStorageCollection('Users', filtered);
-              }
-            } else {
+          }
+          if (!userProfile) {
               userProfile = {
                 id: firebaseUser.uid,
                 name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
@@ -701,7 +683,6 @@ class FirebaseDatabase {
                 verified: true
               };
               await this.insert('Users', userProfile);
-            }
           }
           localStorage.setItem('aether_user_session', JSON.stringify(userProfile));
           localStorage.setItem('aether_jwt_token', `firebase.${btoa(JSON.stringify(userProfile))}.signature`);
@@ -1007,6 +988,9 @@ class FirebaseDatabase {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       let userProfile = await this.findOne('Users', { id: userCredential.user.uid });
       if (!userProfile) {
+        userProfile = await this.findOne('Users', { email: userCredential.user.email });
+      }
+      if (!userProfile) {
         userProfile = {
           id: userCredential.user.uid,
           name: email.split('@')[0], email,
@@ -1041,61 +1025,15 @@ class FirebaseDatabase {
           localStorage.setItem('aether_user_session', JSON.stringify(userProfile));
           localStorage.setItem('aether_jwt_token', `firebase.${btoa(JSON.stringify(userProfile))}.signature`);
           return { user: userProfile };
-        } catch { throw new Error('Could not create account. Please try again.'); }
+        } catch (createErr) {
+          if (createErr.code === 'auth/email-already-in-use') throw new Error('Account already exists. Please check your password.');
+          throw new Error('Could not create account. Please try again.');
+        }
       }
 
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') throw new Error('Invalid email or password.');
       if (err.code === 'auth/too-many-requests') throw new Error('Too many attempts. Please try again later.');
       throw new Error(err.message || 'Login failed.');
-    }
-  }
-
-  async loginWithGoogle() {
-    try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      const firebaseUser = userCredential.user;
-      let userProfile = await this.findOne('Users', { id: firebaseUser.uid });
-      if (!userProfile) {
-        userProfile = await this.findOne('Users', { email: firebaseUser.email });
-        if (userProfile) {
-          const oldId = userProfile.id;
-          userProfile.id = firebaseUser.uid;
-          try {
-            await setDoc(doc(firestore, 'Users', firebaseUser.uid), userProfile);
-            try {
-              await deleteDoc(doc(firestore, 'Users', oldId));
-            } catch (delErr) {
-              console.warn("Could not delete old user doc:", delErr);
-            }
-          } catch (e) {
-            console.warn("Firestore link failed, updating locally:", e);
-            const localData = getLocalStorageCollection('Users');
-            const filtered = localData.filter(u => u.id !== oldId && u.id !== firebaseUser.uid);
-            filtered.push(userProfile);
-            setLocalStorageCollection('Users', filtered);
-          }
-        } else {
-          await signOut(auth);
-          throw new Error('NOT_REGISTERED');
-        }
-      }
-      if (firebaseUser.photoURL && userProfile.photo !== firebaseUser.photoURL) {
-        userProfile.photo = firebaseUser.photoURL;
-        try {
-          await setDoc(doc(firestore, 'Users', userProfile.id), { photo: firebaseUser.photoURL }, { merge: true });
-        } catch {
-          const localData = getLocalStorageCollection('Users');
-          const idx = localData.findIndex(u => u.id === userProfile.id);
-          if (idx !== -1) { localData[idx].photo = firebaseUser.photoURL; setLocalStorageCollection('Users', localData); }
-        }
-      }
-      localStorage.setItem('aether_user_session', JSON.stringify(userProfile));
-      localStorage.setItem('aether_jwt_token', `firebase.${btoa(JSON.stringify(userProfile))}.signature`);
-      return { user: userProfile };
-    } catch (error) {
-      if (error.code === 'auth/popup-closed-by-user') throw new Error('Sign-in popup was closed.');
-      throw new Error(error.message || 'Google sign-in failed.');
     }
   }
 
