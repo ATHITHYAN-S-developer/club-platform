@@ -263,7 +263,7 @@ export default function AnnouncementAdmin() {
     <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.5rem' }}>
       
       {/* Header tab controls */}
-      <div style={{ display: 'flex', justifyItem: 'center', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
+      <div className="ann-header-row" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
         <div>
           <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)', margin: 0 }}>
             📢 Event & Announcement Manager
@@ -368,7 +368,7 @@ export default function AnnouncementAdmin() {
             <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
               1. Basic Information
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="ann-grid-2" style={{ marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Announcement Title *</label>
                 <input className="form-input" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required placeholder="e.g. LLM Hackathon 2026" style={{ width: '100%' }} />
@@ -386,7 +386,7 @@ export default function AnnouncementAdmin() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="ann-grid-3" style={{ marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Priority *</label>
                 <select className="form-input" value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} style={{ width: '100%' }}>
@@ -469,7 +469,7 @@ export default function AnnouncementAdmin() {
             <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
               2. Event Coordinates & Venue
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="ann-grid-2" style={{ marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Event Date (YYYY-MM-DD)</label>
                 <input className="form-input" type="date" value={form.date || ''} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} style={{ width: '100%' }} />
@@ -480,7 +480,7 @@ export default function AnnouncementAdmin() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="ann-grid-2">
               <div>
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Venue</label>
                 <input className="form-input" value={form.venue || ''} onChange={e => setForm(p => ({ ...p, venue: e.target.value }))} placeholder="e.g. Seminar Hall A / Google Meet" style={{ width: '100%' }} />
@@ -494,7 +494,7 @@ export default function AnnouncementAdmin() {
 
           {/* Section: Registration Controls */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.25rem' }}>
-            <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', display: 'flex', justifyItem: 'center', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 className="ann-section-header" style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
               <span>3. Registration Controls</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <input type="checkbox" id="regEnabled" checked={form.registrationEnabled} onChange={e => setForm(p => ({ ...p, registrationEnabled: e.target.checked }))} />
@@ -504,7 +504,7 @@ export default function AnnouncementAdmin() {
 
             {form.registrationEnabled && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <div className="ann-grid-3">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Seat Limit (Max Capacity)</label>
                     <input className="form-input" type="number" min="1" value={form.seatsLimit || 100} onChange={e => setForm(p => ({ ...p, seatsLimit: parseInt(e.target.value) }))} style={{ width: '100%' }} />
@@ -529,7 +529,7 @@ export default function AnnouncementAdmin() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="ann-grid-2">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Registration Open Date</label>
                     <input className="form-input" type="date" value={form.registrationOpenDate || ''} onChange={e => setForm(p => ({ ...p, registrationOpenDate: e.target.value }))} style={{ width: '100%' }} />
@@ -559,7 +559,7 @@ export default function AnnouncementAdmin() {
                   </div>
 
                   {/* Add Field Inputs */}
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', background: 'var(--card)', border: '1px dashed var(--border)', padding: '0.85rem', borderRadius: 10 }}>
+                  <div className="ann-custom-fields">
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Field Label</label>
                       <input className="form-input form-input-sm" value={customField.label} onChange={e => setCustomField(p => ({ ...p, label: e.target.value }))} placeholder="e.g. GitHub Profile" style={{ width: '100%' }} />

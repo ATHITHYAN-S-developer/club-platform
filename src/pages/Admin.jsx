@@ -1484,6 +1484,15 @@ export default function Admin({ user }) {
           .admin-sidebar-section, .admin-sidebar-divider, .admin-sidebar-user, .admin-sidebar-toggle { display: none !important; }
           .admin-sidebar-btn { padding: 0.4rem 0.6rem !important; font-size: 0.75rem !important; width: auto !important; border-radius: 8px !important; }
         }
+        .ann-header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+        .ann-section-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .ann-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .ann-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+        .ann-custom-fields { display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap; background: var(--card); border: 1px dashed var(--border); padding: 0.85rem; border-radius: 10; }
+        @media (max-width: 768px) {
+          .ann-grid-2 { grid-template-columns: 1fr !important; }
+          .ann-grid-3 { grid-template-columns: 1fr !important; }
+        }
       `}</style>
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>

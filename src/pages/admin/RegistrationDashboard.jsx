@@ -252,7 +252,7 @@ export default function RegistrationDashboard({ announcement }) {
       </div>
 
       {/* Interactive Charts Panels (Visual HSL Graphs) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="ann-grid-2" style={{ gap: '1.5rem' }}>
         {/* Department chart */}
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.25rem' }}>
           <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem' }}>Department-wise Participation</h4>
@@ -307,7 +307,7 @@ export default function RegistrationDashboard({ announcement }) {
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
         
         {/* Table Filters & Search */}
-        <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyItem: 'center', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', width: 240 }}>
             <i className="fas fa-search" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.8rem' }} />
             <input
@@ -319,7 +319,7 @@ export default function RegistrationDashboard({ announcement }) {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {['All', 'Registered', 'Checked In', 'Waitlisted', 'Absent'].map(tab => (
               <button
                 key={tab}
