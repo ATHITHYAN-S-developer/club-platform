@@ -12,17 +12,19 @@ const MARQUEE_ITEMS = [
 ];
 
 const REPO_CATEGORIES = [
-  'All', 'Python', 'Deep Learning', 'Power BI',
-  'Tableau', 'SQL', 'Statistics', 'NLP', 'Excel',
-  'Dashboard', 'Streamlit',
-  'Classification', 'Regression', 'Clustering',
-  'Association Rules', 'Recommendation', 'Model Validation',
-  'Web App', 'Reinforcement Learning'
+  'All', 'Python Fundamentals', 'Statistics',
+  'Machine Learning: Classification', 'Machine Learning: Regression',
+  'Machine Learning: Clustering', 'Deep Learning', 'Computer Vision',
+  'Natural Language Processing (NLP)', 'Recommendation Systems',
+  'Association Rule Mining', 'Reinforcement Learning',
+  'Streamlit Apps', 'Flask Web Apps',
+  'Power BI', 'Tableau', 'Excel'
 ];
 
 export default function Resources() {
   const [repoSearch, setRepoSearch] = useState('');
   const [activeRepoCat, setActiveRepoCat] = useState('All');
+  const [sortBy, setSortBy] = useState('default');
   const heroRef = useRef(null);
   const [heroVisible, setHeroVisible] = useState(false);
 
@@ -34,16 +36,26 @@ export default function Resources() {
     return () => obs.disconnect();
   }, []);
 
-  // Filter repos
-  const filteredRepos = reposData.filter(r => {
-    const matchSearch = r.title.toLowerCase().includes(repoSearch.toLowerCase()) ||
-      r.shortDescription.toLowerCase().includes(repoSearch.toLowerCase()) ||
-      r.technologies.some(t => t.toLowerCase().includes(repoSearch.toLowerCase()));
-    const matchCategory = activeRepoCat === 'All' ||
-      r.category.toLowerCase() === activeRepoCat.toLowerCase() ||
-      r.technologies.some(t => t.toLowerCase() === activeRepoCat.toLowerCase());
-    return matchSearch && matchCategory;
-  });
+  const DIFF_ORDER = { 'Beginner': 0, 'Intermediate': 1, 'Advanced': 2 };
+
+  const filteredRepos = reposData
+    .filter(r => {
+      const q = repoSearch.toLowerCase();
+      const matchSearch = !q ||
+        (r.displayTitle || r.title).toLowerCase().includes(q) ||
+        r.shortDescription.toLowerCase().includes(q) ||
+        r.category.toLowerCase().includes(q) ||
+        r.technologies.some(t => t.toLowerCase().includes(q));
+      const matchCategory = activeRepoCat === 'All' || r.category === activeRepoCat;
+      return matchSearch && matchCategory;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'az') return (a.displayTitle || a.title).localeCompare(b.displayTitle || b.title);
+      if (sortBy === 'za') return (b.displayTitle || b.title).localeCompare(a.displayTitle || a.title);
+      if (sortBy === 'beginner') return (DIFF_ORDER[a.difficulty] ?? 1) - (DIFF_ORDER[b.difficulty] ?? 1);
+      if (sortBy === 'advanced') return (DIFF_ORDER[b.difficulty] ?? 1) - (DIFF_ORDER[a.difficulty] ?? 1);
+      return 0;
+    });
 
   const reveal = (vis) => ({
     opacity: vis ? 1 : 0,
@@ -326,12 +338,18 @@ export default function Resources() {
           </p>
         </div>
 
-        {/* Search & Filter */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        {/* Search & Sort */}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
           <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
             <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: '0.85rem' }}></i>
             <input type="text" value={repoSearch} onChange={e => setRepoSearch(e.target.value)}
-              placeholder="Search repositories..." className="rs-search-input" />
+              placeholder="Search by name, technology, or category..." className="rs-search-input" />
+          </div>
+          <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
+            {[['default', 'Default'], ['az', 'A \u2192 Z'], ['za', 'Z \u2192 A'], ['beginner', 'Beginner First'], ['advanced', 'Advanced First']].map(([key, label]) => (
+              <button key={key} className={`rs-pill ${sortBy === key ? 'active' : ''}`}
+                onClick={() => setSortBy(key)}>{label}</button>
+            ))}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none', msOverflowStyle: 'none', marginBottom: '0.5rem' }}>
@@ -352,11 +370,16 @@ export default function Resources() {
           <div className="rs-grid">
             {filteredRepos.map(r => (
               <div key={r.id} className="rs-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                  <span className="rs-badge"><i className="fa-solid fa-tag" style={{ marginRight: '0.25rem', fontSize: '0.55rem' }}></i>{r.category}</span>
-                  <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}><i className="fa-regular fa-circle-play"></i> Beginner</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span className="rs-badge"><i className="fa-solid fa-tag" style={{ marginRight: '0.25rem', fontSize: '0.55rem' }}></i>{r.category}</span>
+                    {r.featured && <span className="rs-badge" style={{ background: 'rgba(251, 191, 36, 0.1)', borderColor: 'rgba(251, 191, 36, 0.3)', color: '#d97706' }}><i className="fa-solid fa-star" style={{ marginRight: '0.2rem', fontSize: '0.5rem' }}></i>Featured</span>}
+                  </div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 600, color: r.difficulty === 'Beginner' ? '#10b981' : r.difficulty === 'Intermediate' ? '#f59e0b' : '#ef4444' }}>
+                    <i className="fa-solid fa-signal" style={{ marginRight: '0.2rem' }}></i>{r.difficulty}
+                  </span>
                 </div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.5rem', color: '#0f1117', lineHeight: 1.3 }}>{r.title}</h3>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.5rem', color: '#0f1117', lineHeight: 1.3 }}>{r.displayTitle || r.title}</h3>
                 <p style={{ fontSize: '0.82rem', lineHeight: 1.6, marginBottom: '1rem', flex: 1, color: '#6b7280' }}>{r.shortDescription}</p>
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                   {r.technologies.map(tech => (
