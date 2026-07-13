@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import db from '../db';
+import { normalizeDepartment } from '../utils/normalizeDepartment';
 
 const MARQUEE_ITEMS = [
   '🤖 Large Language Models', '👁️ Computer Vision', '🔊 NLP & Speech AI',
@@ -543,7 +544,7 @@ export default function Home() {
                   <img src={w.photo} alt={w.name} className="polaroid-photo" />
                 </div>
                 <h3 className="polaroid-name">{w.name}</h3>
-                <div className="polaroid-dept">@{w.department}</div>
+                <div className="polaroid-dept">@{normalizeDepartment(w.department)}</div>
                 <p className="polaroid-achievement">{w.achievement}</p>
                 
                 {w.certificate && (

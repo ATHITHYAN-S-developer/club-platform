@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { normalizeDepartment } from '../../utils/normalizeDepartment';
 
 const formatDuration = (seconds) => {
   if (!seconds || seconds <= 0) return '-';
@@ -19,7 +20,7 @@ export default function LeaderboardTable({ data, currentUserId }) {
     return data.filter(p =>
       (p.userName || p.name || '').toLowerCase().includes(q) ||
       (p.college || '').toLowerCase().includes(q) ||
-      (p.department || '').toLowerCase().includes(q)
+      normalizeDepartment(p.department).toLowerCase().includes(q)
     );
   }, [data, search]);
 
@@ -103,7 +104,7 @@ export default function LeaderboardTable({ data, currentUserId }) {
                     </div>
                   </td>
                   <td>{p.college || '-'}</td>
-                  <td>{p.department || '-'}</td>
+                  <td>{normalizeDepartment(p.department)}</td>
                   <td><strong>{p.score}/{p.total}</strong></td>
                   <td>
                     <span className="accuracy-dot" style={{ background: getAccuracyColor(accuracy) }}></span>

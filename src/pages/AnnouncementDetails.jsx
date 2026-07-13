@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import db from '../db';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 // Simple client-side Markdown interpreter for Rich Text Announcements
 function renderRichText(text) {
@@ -52,6 +53,41 @@ export default function AnnouncementDetails({ user }) {
   const [formValues, setFormValues] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  
+  const handleCheckboxChange = (fieldId, option, isChecked) => {
+    const currentSelections = formValues[fieldId] || [];
+    let nextSelections;
+    if (isChecked) {
+      nextSelections = [...currentSelections, option];
+    } else {
+      nextSelections = currentSelections.filter(val => val !== option);
+    }
+    setFormValues(p => ({ ...p, [fieldId]: nextSelections }));
+  };
+
+  const validateForm = () => {
+    const missing = [];
+    ann.formFields?.forEach(f => {
+      if (f.required) {
+        const val = formValues[f.id];
+        if (f.type === 'checkbox') {
+          if (!val || !Array.isArray(val) || val.length === 0) {
+            missing.push(f.label);
+          }
+        } else {
+          if (val === undefined || val === null || String(val).trim() === '') {
+            missing.push(f.label);
+          }
+        }
+      }
+    });
+    if (missing.length > 0) {
+      window.showToast('Required Question', `Please answer: ${missing.join(', ')}`, 'warning');
+      return false;
+    }
+    return true;
+  };
+
 
   // FAQ states
   const [expandedFaq, setExpandedFaq] = useState(null);
@@ -130,6 +166,8 @@ export default function AnnouncementDetails({ user }) {
       return;
     }
 
+    if (!validateForm()) return;
+
     setSubmitting(true);
     try {
       const regId = 'reg_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
@@ -187,6 +225,7 @@ export default function AnnouncementDetails({ user }) {
 
   const handleEditDetails = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setSubmitting(true);
     try {
       const qrDataText = [
@@ -624,10 +663,59 @@ export default function AnnouncementDetails({ user }) {
                       <div key={f.id} className="google-form-card">
                         <label className="google-form-label">{f.label} {f.required && <span style={{ color: '#d93025' }}>*</span>}</label>
                         {f.type === 'select' ? (
-                          <select className="google-form-select" value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required}>
-                            <option value="">Select Option</option>
-                            {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                          <select
+                            className="google-form-select"
+                            value={formValues[f.id] || ''}
+                            onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
+                            required={f.required}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <option value="">Choose</option>
+                            {f.options?.map((opt, oIdx) => (
+                              <option key={oIdx} value={opt}>{opt}</option>
+                            ))}
                           </select>
+                        ) : f.type === 'radio' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                            {f.options?.map((opt, oIdx) => (
+                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.86rem', color: '#202124' }}>
+                                <input
+                                  type="radio"
+                                  name={f.id}
+                                  value={opt}
+                                  checked={formValues[f.id] === opt}
+                                  onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
+                                />
+                                <span>{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : f.type === 'checkbox' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                            {f.options?.map((opt, oIdx) => {
+                              const isChecked = (formValues[f.id] || []).includes(opt);
+                              return (
+                                <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.86rem', color: '#202124' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={e => handleCheckboxChange(f.id, opt, e.target.checked)}
+                                  />
+                                  <span>{opt}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : f.type === 'textarea' ? (
+                          <textarea
+                            className="google-form-input"
+                            value={formValues[f.id] || ''}
+                            onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
+                            required={f.required}
+                            placeholder="Your answer"
+                            rows={3}
+                            style={{ resize: 'vertical', border: '1px solid #dadce0', borderRadius: 4, padding: '0.5rem', width: '100%', fontFamily: 'inherit' }}
+                          />
                         ) : (
                           <input className="google-form-input" type={f.type || 'text'} value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} placeholder="Your answer" />
                         )}

@@ -1,7 +1,7 @@
 import { memo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-function Modal({ isOpen, onClose, title, children, size = 'md', fullScreen }) {
+function Modal({ isOpen, onClose, title, children, size = 'md', fullScreen, footer, footerSticky = true, bodyScrollable = true, maxHeight, closeOnBackdrop = true }) {
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
@@ -34,7 +34,7 @@ function Modal({ isOpen, onClose, title, children, size = 'md', fullScreen }) {
             background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
             padding: '1rem',
           }}
-          onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}
+          onClick={(e) => { if (closeOnBackdrop && e.target === e.currentTarget && onClose) onClose(); }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -49,7 +49,7 @@ function Modal({ isOpen, onClose, title, children, size = 'md', fullScreen }) {
               width: fullScreen ? '100vw' : '100%',
               height: fullScreen ? '100vh' : 'auto',
               maxWidth: fullScreen ? '100vw' : (sizes[size]?.maxWidth || sizes.md.maxWidth),
-              maxHeight: fullScreen ? '100vh' : '90vh',
+              maxHeight: fullScreen ? '100vh' : (maxHeight || '90vh'),
               overflow: 'hidden',
               display: 'flex', flexDirection: 'column',
             }}
@@ -71,9 +71,22 @@ function Modal({ isOpen, onClose, title, children, size = 'md', fullScreen }) {
                 )}
               </div>
             )}
-            <div style={{ flex: 1, overflow: 'auto', padding: title ? '1.25rem 1.5rem' : '0' }}>
+            <div style={{ flex: 1, overflow: bodyScrollable ? 'auto' : 'visible', padding: title ? '1.25rem 1.5rem' : '0' }}>
               {children}
             </div>
+            {footer && (
+              <div style={{
+                borderTop: '1px solid var(--border)',
+                padding: '0.85rem 1.5rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                gap: '0.6rem', flexWrap: 'wrap',
+                background: 'var(--card)',
+                borderRadius: footerSticky ? '0 0 16px 16px' : 0,
+                ...(footerSticky ? { position: 'sticky', bottom: 0, zIndex: 1 } : {}),
+              }}>
+                {footer}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

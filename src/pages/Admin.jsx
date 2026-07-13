@@ -7,6 +7,8 @@ import AnalyticsTab from './admin/AnalyticsTab';
 import SecuritySettings from './admin/SecuritySettings';
 import AnnouncementAdmin from './admin/AnnouncementAdmin';
 import ChallengeManagement from '../challenges/pages/admin/ChallengeManagement';
+import { normalizeDepartment } from '../utils/normalizeDepartment';
+import SearchableSelect from '../components/ui/SearchableSelect';
 
 const SIDEBAR_SECTIONS = [
   {
@@ -135,7 +137,7 @@ function MembersTab() {
                     <td>{m.email}</td>
                     <td><Badge color={m.role === 'admin' ? 'orange' : 'grey'}>{m.role || 'member'}</Badge></td>
                     <td>{m.year || '—'}</td>
-                    <td>{m.department || '—'}</td>
+                    <td>{normalizeDepartment(m.department)}</td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '—'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <button onClick={() => handleDeleteMember(m.id, m.name, m.email)} style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#dc2626', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>
@@ -1199,7 +1201,12 @@ function WinnersTab() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Department</label>
-              <input className="form-input" value={form.department} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="e.g. Computer Science" style={{ width: '100%' }} />
+              <SearchableSelect
+                value={form.department}
+                onChange={val => setForm(p => ({ ...p, department: val }))}
+                options={['CSE', 'CSE (AI & ML)', 'AI & DS', 'IT', 'ECE', 'EEE', 'Mechanical', 'Civil', 'CSBS', 'MCA', 'MBA', 'Other']}
+                placeholder="Select Department"
+              />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Achievement</label>
@@ -1232,7 +1239,7 @@ function WinnersTab() {
                     <img src={w.photo} alt={w.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)' }} />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text)' }}>{w.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{w.department}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{normalizeDepartment(w.department)}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>{w.achievement}</div>
                     </div>
                   </div>
@@ -1572,7 +1579,7 @@ export default function Admin({ user }) {
           {tab === 'members'      && <MembersTab />}
           {tab === 'core'         && <CoreBoardTab allMembers={members} />}
           {tab === 'events'       && <EventsTab />}
-          {tab === 'announcements' && <AnnouncementAdmin />}
+          {tab === 'announcements' && <AnnouncementAdmin user={user} />}
           {tab === 'messages'     && <MessagesTab />}
           {tab === 'quizzes'      && <QuizManagement />}
           {tab === 'challenges'   && <ChallengeManagement />}

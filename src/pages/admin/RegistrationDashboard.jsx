@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import db from '../../db';
+import { ExportPreviewModal } from '../../components/admin/export';
+import { normalizeDepartment } from '../../utils/normalizeDepartment';
 
-export default function RegistrationDashboard({ announcement }) {
+export default function RegistrationDashboard({ announcement, user }) {
   const [ann, setAnn] = useState(announcement);
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Search & Filters
   const [search, setSearch] = useState('');
@@ -54,7 +57,7 @@ export default function RegistrationDashboard({ announcement }) {
       const ddata = r.submittedData || {};
       
       // Dept
-      const dept = (ddata.department || 'Other').toUpperCase().trim();
+      const dept = normalizeDepartment(ddata.department);
       depts[dept] = (depts[dept] || 0) + 1;
 
       // Year extraction from Class or Year
@@ -82,7 +85,7 @@ export default function RegistrationDashboard({ announcement }) {
       const matchesSearch = 
         (ddata.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
         (r.userEmail || '').toLowerCase().includes(search.toLowerCase()) ||
-        (ddata.department || '').toLowerCase().includes(search.toLowerCase());
+        normalizeDepartment(ddata.department).toLowerCase().includes(search.toLowerCase());
 
       const matchesStatus = statusFilter === 'All' || r.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -145,45 +148,6 @@ export default function RegistrationDashboard({ announcement }) {
     }
   };
 
-  // Exporters
-  const handleExportCSV = () => {
-    if (!registrations.length) return;
-    
-    // Create header fields
-    const customHeaders = ann.formFields?.map(f => f.label) || [];
-    const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Register Number', 'Year', 'Class', ...customHeaders];
-    
-    const rows = registrations.map(r => {
-      const ddata = r.submittedData || {};
-      const customRowData = ann.formFields?.map(f => ddata[f.id] ?? '—') || [];
-      return [
-        r.id || '—',
-        r.userEmail || '—',
-        r.registeredAt ? new Date(r.registeredAt).toLocaleDateString() : '—',
-        r.status || '—',
-        ddata.fullName || '—',
-        ddata.phone || '—',
-        ddata.registerNumber || '—',
-        ddata.year || '—',
-        ddata.className || '—',
-        ...customRowData
-      ].map(val => {
-        const safeVal = val === null || val === undefined ? '—' : val;
-        return `"${safeVal.toString().replace(/"/g, '""')}"`;
-      });
-    });
-
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${ann.title.toLowerCase().replace(/\s+/g, '_')}_registrations.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handlePrintReport = () => {
     window.print();
   };
@@ -222,7 +186,7 @@ export default function RegistrationDashboard({ announcement }) {
               {ann.eventStatus === 'Registration Closed' ? 'Reopen Registration' : 'Close Registration'}
             </button>
           )}
-          <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>
+          <button className="btn btn-outline btn-sm" onClick={() => setShowExportModal(true)}>
             <i className="fas fa-file-csv" style={{ marginRight: '0.3rem' }} /> Export Excel / CSV
           </button>
           <button className="btn btn-secondary btn-sm" onClick={handlePrintReport}>
@@ -442,6 +406,16 @@ export default function RegistrationDashboard({ announcement }) {
         )}
 
       </div>
+
+      <ExportPreviewModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        registrations={registrations}
+        filteredRegistrations={filteredAttendees}
+        announcement={ann}
+        activeFilters={{ search, statusFilter }}
+        user={user}
+      />
 
     </div>
   );
