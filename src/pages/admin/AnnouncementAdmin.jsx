@@ -991,19 +991,50 @@ export default function AnnouncementAdmin({ user }) {
                         }}>
                           {/* Top line with Label and Type */}
                           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <div style={{ flex: 1, minWidth: 200 }}>
-                              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                                Question Title
-                              </label>
-                              <input
-                                className="form-input form-input-sm"
-                                value={f.label}
-                                onChange={e => updateFieldProperty(f.id, 'label', e.target.value)}
-                                placeholder="e.g. GitHub Profile"
-                                style={{ width: '100%', fontWeight: 700 }}
-                                required
-                              />
-                            </div>
+                            {f.type === 'url' ? (
+                              <div style={{ flex: 1, display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: 150 }}>
+                                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                                    Heading Title
+                                  </label>
+                                  <input
+                                    className="form-input form-input-sm"
+                                    value={f.label}
+                                    onChange={e => updateFieldProperty(f.id, 'label', e.target.value)}
+                                    placeholder="e.g. Join WhatsApp Group"
+                                    style={{ width: '100%', fontWeight: 700 }}
+                                    required
+                                  />
+                                </div>
+                                <div style={{ flex: 1.5, minWidth: 200 }}>
+                                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                                    Pasting URL
+                                  </label>
+                                  <input
+                                    className="form-input form-input-sm"
+                                    value={f.url || ''}
+                                    onChange={e => updateFieldProperty(f.id, 'url', e.target.value)}
+                                    placeholder="e.g. https://chat.whatsapp.com/..."
+                                    style={{ width: '100%', fontWeight: 700 }}
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ flex: 1, minWidth: 200 }}>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                                  Question Title
+                                </label>
+                                <input
+                                  className="form-input form-input-sm"
+                                  value={f.label}
+                                  onChange={e => updateFieldProperty(f.id, 'label', e.target.value)}
+                                  placeholder="e.g. GitHub Profile"
+                                  style={{ width: '100%', fontWeight: 700 }}
+                                  required
+                                />
+                              </div>
+                            )}
                             <div style={{ width: 180 }}>
                               <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
                                 Input Type

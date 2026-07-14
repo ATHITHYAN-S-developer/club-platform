@@ -847,27 +847,19 @@ export default function AnnouncementDetails({ user }) {
 
                     {/* Render extra custom fields if configured */}
                     {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => {
-                      const isInfoUrl = f.type === 'url' && (f.label || '').trim().startsWith('http');
+                      const isInfoUrl = f.type === 'url';
                       
                       if (isInfoUrl) {
-                        const url = f.label.trim();
+                        const url = (f.url || (f.label && f.label.trim().startsWith('http') ? f.label : '')).trim();
+                        if (!url) return null;
+                        
                         const isWhatsApp = url.includes('whatsapp.com');
+                        const headingTitle = f.url ? f.label : (isWhatsApp ? 'WhatsApp Community Group' : 'Important Event Link');
                         return (
                           <div key={f.id} className="google-form-card" style={{ borderLeft: `6px solid ${isWhatsApp ? '#25d366' : 'var(--orange)'}` }}>
                             <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#202124', margin: '0 0 0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-display)' }}>
-                              {isWhatsApp ? (
-                                <>
-                                  💬 WhatsApp Community Group
-                                </>
-                              ) : (
-                                <>
-                                  🔗 Important Event Link
-                                </>
-                              )}
+                              {isWhatsApp ? '💬' : '🔗'} {headingTitle}
                             </h3>
-                            <p style={{ fontSize: '0.78rem', color: '#5f6368', margin: '0 0 0.85rem', lineHeight: 1.4 }}>
-                              Click the button below to join the group or access the resources.
-                            </p>
                             <a
                               href={url}
                               target="_blank"
