@@ -80,7 +80,7 @@ export default function LeaderboardAdmin() {
     ]));
     const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }));
     a.download = `quiz-results-${Date.now()}.csv`;
     a.click();
   };
