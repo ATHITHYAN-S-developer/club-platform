@@ -2,6 +2,47 @@ import { useState, useEffect, useMemo } from 'react';
 import db from '../../db';
 import RegistrationDashboard from './RegistrationDashboard';
 
+const LINK_TYPES_CONFIG = {
+  website: { label: '🌐 Website', color: '#3b82f6', defaultTitle: 'Official Website', defaultText: 'Visit Website', domain: 'https://' },
+  whatsapp: { label: '💬 WhatsApp Group', color: '#25d366', defaultTitle: 'WhatsApp Community', defaultText: 'Join WhatsApp Group', domain: 'chat.whatsapp.com' },
+  youtube: { label: '🎥 YouTube Link', color: '#ef4444', defaultTitle: 'YouTube Video/Stream', defaultText: 'Watch Stream', domain: 'youtube.com' },
+  github: { label: '💻 GitHub Repo', color: '#1f2937', defaultTitle: 'GitHub Repository', defaultText: 'View Repository', domain: 'github.com' },
+  docs: { label: '📄 Documentation', color: '#4b5563', defaultTitle: 'Resources & Docs', defaultText: 'View Docs', domain: 'https://' },
+  calendar: { label: '📅 Google Calendar', color: '#f59e0b', defaultTitle: 'Add to Calendar', defaultText: 'Add to Calendar', domain: 'https://' },
+  maps: { label: '📍 Google Maps', color: '#10b981', defaultTitle: 'Event Location', defaultText: 'Open in Maps', domain: 'https://' },
+  zoom: { label: '🎥 Zoom/Video Meeting', color: '#2563eb', defaultTitle: 'Zoom Meeting', defaultText: 'Join Meeting', domain: 'zoom.us' },
+  discord: { label: '💬 Discord Server', color: '#5865f2', defaultTitle: 'Discord Community', defaultText: 'Join Discord', domain: 'discord' },
+  telegram: { label: '💬 Telegram Channel', color: '#24a1de', defaultTitle: 'Telegram Community', defaultText: 'Join Telegram', domain: 't.me' },
+  linkedin: { label: '👥 LinkedIn Page', color: '#0077b5', defaultTitle: 'LinkedIn Event', defaultText: 'View Event', domain: 'linkedin.com' },
+  custom: { label: '🔗 Custom Link', color: 'var(--orange)', defaultTitle: 'Important Link', defaultText: 'Open Link', domain: 'https://' }
+};
+
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'link_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now();
+};
+
+const validateLinkUrl = (type, url) => {
+  if (!url || !url.startsWith('https://')) {
+    return 'URL must start with https://';
+  }
+  try {
+    new URL(url);
+  } catch (e) {
+    return 'Please enter a valid URL';
+  }
+  
+  const config = LINK_TYPES_CONFIG[type];
+  if (config && config.domain && config.domain !== 'https://') {
+    if (!url.toLowerCase().includes(config.domain.toLowerCase())) {
+      return `URL does not match the selected link type. Must contain '${config.domain}'`;
+    }
+  }
+  return null;
+};
+
 export default function AnnouncementAdmin({ user }) {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +61,8 @@ export default function AnnouncementAdmin({ user }) {
     registrationEnabled: false, seatsLimit: 100, waitlistLimit: 10,
     registrationOpenDate: '', registrationCloseDate: '',
     allowCancellation: true, allowEditing: true, autoCloseWhenFull: true,
-    formFields: [], faqs: [], gallery: { photos: [], videos: [], slides: [] }
+    formFields: [], faqs: [], gallery: { photos: [], videos: [], slides: [] },
+    importantLinks: []
   });
 
   // FAQ builder helper state
@@ -58,7 +100,8 @@ export default function AnnouncementAdmin({ user }) {
         { id: 'year', label: 'Year', type: 'select', options: ['1', '2', '3', '4'], required: true },
         { id: 'className', label: 'Class', type: 'text', required: true },
       ],
-      faqs: [], gallery: { photos: [], videos: [], slides: [] }
+      faqs: [], gallery: { photos: [], videos: [], slides: [] },
+      importantLinks: []
     });
     setCurrentView('form');
   };
@@ -70,10 +113,16 @@ export default function AnnouncementAdmin({ user }) {
     if (typeof parsedFaqs === 'string') {
       try { parsedFaqs = JSON.parse(parsedFaqs); } catch { parsedFaqs = []; }
     }
+
+    let parsedLinks = ann.importantLinks || [];
+    if (typeof parsedLinks === 'string') {
+      try { parsedLinks = JSON.parse(parsedLinks); } catch { parsedLinks = []; }
+    }
     
     setForm({
       ...ann,
       faqs: parsedFaqs,
+      importantLinks: parsedLinks,
       gallery: ann.gallery || { photos: [], videos: [], slides: [] }
     });
     setCurrentView('form');
@@ -82,6 +131,20 @@ export default function AnnouncementAdmin({ user }) {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.title) return;
+
+    // Validate URLs in importantLinks
+    const links = form.importantLinks || [];
+    for (const link of links) {
+      if (!link.url || link.url.trim() === '' || link.url === 'https://') {
+        window.showToast('Validation Error', `URL is required for link "${link.title || 'Untitled'}"`, 'error');
+        return;
+      }
+      const validationError = validateLinkUrl(link.type, link.url);
+      if (validationError) {
+        window.showToast('Invalid URL', `"${link.title || 'Untitled'}": ${validationError}`, 'error');
+        return;
+      }
+    }
 
     try {
       const isDraft = form.eventStatus === 'Draft';
@@ -235,6 +298,62 @@ export default function AnnouncementAdmin({ user }) {
     fields[index] = fields[targetIndex];
     fields[targetIndex] = temp;
     setForm(p => ({ ...p, formFields: fields }));
+  };
+
+  // Important Links Manager helpers
+  const addImportantLink = () => {
+    const linkId = generateUUID();
+    const defaultType = 'website';
+    const typeConfig = LINK_TYPES_CONFIG[defaultType];
+    const newLink = {
+      id: linkId,
+      type: defaultType,
+      enabled: true,
+      order: (form.importantLinks || []).length + 1,
+      title: typeConfig.defaultTitle,
+      description: '',
+      text: typeConfig.defaultText,
+      url: 'https://',
+      showAfterRegistration: false,
+      showQRCode: false
+    };
+    setForm(p => ({
+      ...p,
+      importantLinks: [...(p.importantLinks || []), newLink]
+    }));
+  };
+
+  const removeImportantLink = (id) => {
+    setForm(p => ({
+      ...p,
+      importantLinks: (p.importantLinks || []).filter(l => l.id !== id)
+    }));
+  };
+
+  const updateImportantLink = (id, updates) => {
+    setForm(p => ({
+      ...p,
+      importantLinks: (p.importantLinks || []).map(l => {
+        if (l.id !== id) return l;
+        return { ...l, ...updates };
+      })
+    }));
+  };
+
+  const moveImportantLink = (index, direction) => {
+    const links = [...(form.importantLinks || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= links.length) return;
+
+    // Swap order
+    const temp = links[index].order;
+    links[index].order = links[targetIdx].order;
+    links[targetIdx].order = temp;
+
+    setForm(p => ({
+      ...p,
+      importantLinks: links
+    }));
   };
 
   // FAQ Form Functions
@@ -562,10 +681,249 @@ export default function AnnouncementAdmin({ user }) {
             </div>
           </div>
 
+          {/* Section: Important Links */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
+              3. Important Links
+            </h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+              {(form.importantLinks || []).sort((a, b) => (a.order || 0) - (b.order || 0)).map((link, idx) => {
+                const config = LINK_TYPES_CONFIG[link.type] || LINK_TYPES_CONFIG.custom;
+                return (
+                  <div key={link.id} style={{
+                    background: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderLeft: `4px solid ${config.color}`,
+                    borderRadius: 12,
+                    padding: '1.25rem',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem'
+                  }}>
+                    {/* Top Row: Type select & Title */}
+                    <div className="ann-grid-2">
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Link Type</label>
+                        <select
+                          className="form-input form-input-sm"
+                          value={link.type}
+                          onChange={e => {
+                            const newType = e.target.value;
+                            const typeConfig = LINK_TYPES_CONFIG[newType];
+                            updateImportantLink(link.id, {
+                              type: newType,
+                              title: typeConfig.defaultTitle,
+                              text: typeConfig.defaultText
+                            });
+                          }}
+                          style={{ width: '100%' }}
+                        >
+                          {Object.entries(LINK_TYPES_CONFIG).map(([val, cfg]) => (
+                            <option key={val} value={val}>{cfg.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Title</label>
+                        <input
+                          className="form-input form-input-sm"
+                          value={link.title || ''}
+                          onChange={e => updateImportantLink(link.id, { title: e.target.value })}
+                          placeholder="e.g. Official Website"
+                          style={{ width: '100%', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Middle Row: Description, Button Text, URL */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Description</label>
+                        <input
+                          className="form-input form-input-sm"
+                          value={link.description || ''}
+                          onChange={e => updateImportantLink(link.id, { description: e.target.value })}
+                          placeholder="Optional short description..."
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Button Text</label>
+                          <input
+                            className="form-input form-input-sm"
+                            value={link.text || ''}
+                            onChange={e => updateImportantLink(link.id, { text: e.target.value })}
+                            placeholder="Button label..."
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Order</label>
+                          <input
+                            className="form-input form-input-sm"
+                            type="number"
+                            value={link.order || 0}
+                            onChange={e => updateImportantLink(link.id, { order: parseInt(e.target.value) || 0 })}
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>URL Link *</label>
+                      <input
+                        className="form-input form-input-sm"
+                        value={link.url || ''}
+                        onChange={e => updateImportantLink(link.id, { url: e.target.value })}
+                        placeholder="https://"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    {/* Bottom Toggles & Delete */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderTop: '1px solid var(--border-light)',
+                      paddingTop: '0.65rem',
+                      marginTop: '0.25rem',
+                      flexWrap: 'wrap',
+                      gap: '0.75rem'
+                    }}>
+                      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <input
+                            type="checkbox"
+                            id={`enabled-${link.id}`}
+                            checked={link.enabled !== false}
+                            onChange={e => updateImportantLink(link.id, { enabled: e.target.checked })}
+                          />
+                          <label htmlFor={`enabled-${link.id}`} style={{ fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                            Enabled
+                          </label>
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <input
+                            type="checkbox"
+                            id={`showAfterReg-${link.id}`}
+                            checked={link.showAfterRegistration || false}
+                            onChange={e => updateImportantLink(link.id, { showAfterRegistration: e.target.checked })}
+                          />
+                          <label htmlFor={`showAfterReg-${link.id}`} style={{ fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                            Show After Registration (Ticket)
+                          </label>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <input
+                            type="checkbox"
+                            id={`showQRCode-${link.id}`}
+                            checked={link.showQRCode || false}
+                            onChange={e => updateImportantLink(link.id, { showQRCode: e.target.checked })}
+                          />
+                          <label htmlFor={`showQRCode-${link.id}`} style={{ fontSize: '0.74rem', fontWeight: 650, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                            Generate QR Code
+                          </label>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {/* Order buttons */}
+                        <button
+                          type="button"
+                          onClick={() => moveImportantLink(idx, -1)}
+                          disabled={idx === 0}
+                          style={{
+                            background: 'var(--card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 6,
+                            width: 24,
+                            height: 24,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            opacity: idx === 0 ? 0.4 : 1
+                          }}
+                          title="Move Up"
+                        >
+                          <i className="fa-solid fa-chevron-up" style={{ fontSize: '0.7rem' }} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveImportantLink(idx, 1)}
+                          disabled={idx === (form.importantLinks || []).length - 1}
+                          style={{
+                            background: 'var(--card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 6,
+                            width: 24,
+                            height: 24,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            opacity: idx === (form.importantLinks || []).length - 1 ? 0.4 : 1
+                          }}
+                          title="Move Down"
+                        >
+                          <i className="fa-solid fa-chevron-down" style={{ fontSize: '0.7rem' }} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => removeImportantLink(link.id)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            color: '#ef4444',
+                            border: 'none',
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: 8,
+                            fontSize: '0.72rem',
+                            fontWeight: 650,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <i className="fa-solid fa-trash-can" /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={addImportantLink}
+              style={{
+                borderRadius: 8,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.5rem 1.25rem',
+                cursor: 'pointer'
+              }}
+            >
+              <i className="fa-solid fa-plus" /> Add Link
+            </button>
+          </div>
+
           {/* Section: Registration Controls */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.25rem' }}>
             <h4 className="ann-section-header" style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
-              <span>3. Registration Controls</span>
+              <span>4. Registration Controls</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <input type="checkbox" id="regEnabled" checked={form.registrationEnabled} onChange={e => setForm(p => ({ ...p, registrationEnabled: e.target.checked }))} />
                 <label htmlFor="regEnabled" style={{ fontSize: '0.74rem', fontWeight: 700 }}>Enable Registration Form</label>
@@ -878,7 +1236,7 @@ export default function AnnouncementAdmin({ user }) {
           {/* Section: FAQs list */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.25rem' }}>
             <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
-              4. Event FAQs Accordions
+              5. Event FAQs Accordions
             </h4>
 
             {/* List */}

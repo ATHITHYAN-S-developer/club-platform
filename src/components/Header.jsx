@@ -39,7 +39,6 @@ export default function Header({ user }) {
   const navItems = [
     { to: '/', label: 'Home', icon: 'fa-house' },
     { to: '/announcements', label: 'Announcements', icon: 'fa-bullhorn' },
-    { to: '/my-registrations', label: 'My Registrations', icon: 'fa-ticket-simple' },
     { to: '/members', label: 'Members', icon: 'fa-users' },
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
@@ -62,7 +61,6 @@ export default function Header({ user }) {
   ];
 
   const exploreNavItems = [
-    { to: '/my-registrations', label: 'My Registrations', icon: 'fa-ticket-simple' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },
     { to: '/quiz', label: 'Quiz', icon: 'fa-brain' },
     { to: '/careers', label: 'Careers', icon: 'fa-diagram-project' },

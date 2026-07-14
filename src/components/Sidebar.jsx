@@ -16,7 +16,6 @@ export default function Sidebar({ user, isCollapsed, toggleCollapse, isMobileOpe
   const navItems = [
     { to: '/', label: 'Home', icon: 'fa-house' },
     { to: '/announcements', label: 'Announcements', icon: 'fa-bullhorn' },
-    { to: '/my-registrations', label: 'My Registrations', icon: 'fa-ticket-simple' },
     { to: '/members', label: 'Members', icon: 'fa-users' },
     { to: '/resources', label: 'Resources', icon: 'fa-book' },
     { to: '/gallery', label: 'Gallery', icon: 'fa-image' },

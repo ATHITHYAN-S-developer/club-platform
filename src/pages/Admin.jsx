@@ -516,6 +516,41 @@ function DashboardTab() {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [unknownModalData, setUnknownModalData] = useState(null);
+
+  const handleDownloadClassMembers = async (cName) => {
+    // Filter members belonging to this class
+    const classMembers = members.filter(m => (m.className || 'Unknown').trim() === cName);
+    
+    try {
+      const XLSX = await import('xlsx');
+      const dataRows = classMembers.map((m, idx) => [
+        idx + 1,
+        m.name || '',
+        m.email || '',
+        m.phone || '',
+        m.registerNumber || '',
+        m.className || 'Unknown',
+        m.year || '',
+        m.interestedArea || '',
+        m.codingStyle || ''
+      ]);
+
+      const colHeaders = ['S.No', 'Name', 'Email', 'Phone', 'Register Number', 'Class', 'Year', 'Interested Area', 'Coding Style'];
+      const ws = XLSX.utils.aoa_to_sheet([
+        [`Class Members List: ${cName}`],
+        [],
+        colHeaders,
+        ...dataRows
+      ]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Members');
+      XLSX.writeFile(wb, `${cName.toLowerCase().replace(/\s+/g, '_')}_members.xlsx`);
+      window.showToast('Success', `Downloaded member list for ${cName}.`, 'success');
+    } catch (err) {
+      window.showToast('Error', 'Failed to export members list: ' + err.message, 'error');
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -697,24 +732,57 @@ function DashboardTab() {
               <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>No registered class data available.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
-                {sortedClasses.map(([cName, count]) => (
-                  <div key={cName} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border-light)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <i className="fa-solid fa-circle-user" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }} />
-                      <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text)' }}>{cName}</span>
+                {sortedClasses.map(([cName, count]) => {
+                  const isUnknown = cName === 'Unknown';
+                  return (
+                    <div
+                      key={cName}
+                      onClick={() => {
+                        if (isUnknown) {
+                          const unknownMembers = members.filter(m => !(m.className || '').trim() || (m.className || '').trim() === 'Unknown');
+                          setUnknownModalData(unknownMembers);
+                        } else {
+                          handleDownloadClassMembers(cName);
+                        }
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = 'var(--orange)';
+                        e.currentTarget.style.background = 'rgba(255, 85, 0, 0.03)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = 'var(--border-light)';
+                        e.currentTarget.style.background = 'var(--surface)';
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.5rem 0.75rem',
+                        background: 'var(--surface)',
+                        borderRadius: 8,
+                        border: '1px solid var(--border-light)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                      title={isUnknown ? "Click to view details of unknown class members" : `Click to download ${cName} members list`}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <i className="fa-solid fa-circle-user" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }} />
+                        <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text)' }}>{cName}</span>
+                      </div>
+                      <span style={{
+                        background: 'var(--orange)',
+                        color: '#fff',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '10px'
+                      }}>
+                        {count} {count === 1 ? 'member' : 'members'}
+                      </span>
                     </div>
-                    <span style={{
-                      background: 'var(--orange)',
-                      color: '#fff',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '10px'
-                    }}>
-                      {count} {count === 1 ? 'member' : 'members'}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -752,6 +820,104 @@ function DashboardTab() {
           </div>
         </div>
       </div>
+
+      {/* Unknown Class Members Modal */}
+      {unknownModalData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 14,
+            width: '90%',
+            maxWidth: 550,
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            padding: '1.5rem',
+            boxShadow: 'var(--shadow-lg)',
+            position: 'relative'
+          }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)', marginBottom: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <i className="fa-solid fa-circle-question" style={{ color: 'var(--orange)' }} /> Unknown Class Members Details
+            </h3>
+            
+            <button
+              onClick={() => setUnknownModalData(null)}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: '1.1rem'
+              }}
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {unknownModalData.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem' }}>
+                  No members with unknown class names.
+                </p>
+              ) : (
+                unknownModalData.map((m, idx) => (
+                  <div key={m.id || idx} style={{
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: 10,
+                    padding: '1rem',
+                    fontSize: '0.82rem',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    <div style={{ marginBottom: '0.45rem' }}>
+                      <strong>User ID:</strong> <code style={{ color: 'var(--orange)', background: 'rgba(255,85,0,0.06)', padding: '2px 6px', borderRadius: 4, fontSize: '0.78rem' }}>{m.id}</code>
+                    </div>
+                    <div style={{ marginBottom: '0.45rem' }}>
+                      <strong>Name:</strong> {m.name || '—'}
+                    </div>
+                    <div style={{ marginBottom: '0.45rem' }}>
+                      <strong>Email:</strong> {m.email || '—'}
+                    </div>
+                    <div style={{ marginBottom: '0.45rem' }}>
+                      <strong>Phone:</strong> {m.phone || '—'}
+                    </div>
+                    <div style={{ marginBottom: '0.45rem' }}>
+                      <strong>Register Number:</strong> {m.registerNumber || '—'}
+                    </div>
+                    <div style={{ marginBottom: '0.45rem' }}>
+                      <strong>Year:</strong> {m.year ? `${m.year} Year` : '—'}
+                    </div>
+                    <div>
+                      <strong>Interested Area:</strong> {m.interestedArea || '—'}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setUnknownModalData(null)}
+              style={{ marginTop: '1.25rem', width: '100%', justifyContent: 'center' }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

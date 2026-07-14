@@ -19,6 +19,7 @@
     "chart.js": "^4.4.2",
     "firebase": "^10.11.1",
     "framer-motion": "^12.42.0",
+    "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",

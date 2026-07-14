@@ -1,8 +1,47 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 import db from '../db';
 import SearchableSelect from '../components/ui/SearchableSelect';
+
+const LINK_TYPES_CONFIG = {
+  website: { label: '🌐 Website', color: '#3b82f6', defaultTitle: 'Official Website', defaultText: 'Visit Website', iconClass: 'fa-solid fa-globe' },
+  whatsapp: { label: '💬 WhatsApp Group', color: '#25d366', defaultTitle: 'WhatsApp Community', defaultText: 'Join WhatsApp Group', iconClass: 'fa-brands fa-whatsapp' },
+  youtube: { label: '🎥 YouTube Link', color: '#ef4444', defaultTitle: 'YouTube Video/Stream', defaultText: 'Watch Stream', iconClass: 'fa-brands fa-youtube' },
+  github: { label: '💻 GitHub Repo', color: '#1f2937', defaultTitle: 'GitHub Repository', defaultText: 'View Repository', iconClass: 'fa-brands fa-github' },
+  docs: { label: '📄 Documentation', color: '#4b5563', defaultTitle: 'Resources & Docs', defaultText: 'View Docs', iconClass: 'fa-regular fa-file-lines' },
+  calendar: { label: '📅 Google Calendar', color: '#f59e0b', defaultTitle: 'Add to Calendar', defaultText: 'Add to Calendar', iconClass: 'fa-regular fa-calendar-days' },
+  maps: { label: '📍 Google Maps', color: '#10b981', defaultTitle: 'Event Location', defaultText: 'Open in Maps', iconClass: 'fa-solid fa-location-dot' },
+  zoom: { label: '🎥 Zoom/Video Meeting', color: '#2563eb', defaultTitle: 'Zoom Meeting', defaultText: 'Join Meeting', iconClass: 'fa-solid fa-video' },
+  discord: { label: '💬 Discord Server', color: '#5865f2', defaultTitle: 'Discord Community', defaultText: 'Join Discord', iconClass: 'fa-brands fa-discord' },
+  telegram: { label: '💬 Telegram Channel', color: '#24a1de', defaultTitle: 'Telegram Community', defaultText: 'Join Telegram', iconClass: 'fa-brands fa-telegram' },
+  linkedin: { label: '👥 LinkedIn Page', color: '#0077b5', defaultTitle: 'LinkedIn Event', defaultText: 'View Event', iconClass: 'fa-brands fa-linkedin' },
+  custom: { label: '🔗 Custom Link', color: 'var(--orange)', defaultTitle: 'Important Link', defaultText: 'Open Link', iconClass: 'fa-solid fa-link' }
+};
+
+function renderLabelWithLinks(text) {
+  if (!text) return '';
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--orange)', textDecoration: 'underline', fontWeight: 'bold', wordBreak: 'break-all' }}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
 
 // Simple client-side Markdown interpreter for Rich Text Announcements
 function renderRichText(text) {
@@ -68,6 +107,9 @@ export default function AnnouncementDetails({ user }) {
   const validateForm = () => {
     const missing = [];
     ann.formFields?.forEach(f => {
+      const isInfoUrl = f.type === 'url' && (f.label || '').trim().startsWith('http');
+      if (isInfoUrl) return;
+
       if (f.required) {
         const val = formValues[f.id];
         if (f.type === 'checkbox') {
@@ -127,6 +169,11 @@ export default function AnnouncementDetails({ user }) {
         // Parse FAQs if stringified
         if (typeof item.faqs === 'string') {
           try { item.faqs = JSON.parse(item.faqs); } catch { item.faqs = []; }
+        }
+
+        // Parse importantLinks if stringified
+        if (typeof item.importantLinks === 'string') {
+          try { item.importantLinks = JSON.parse(item.importantLinks); } catch { item.importantLinks = []; }
         }
 
         if (item.eventStatus !== 'Draft' && item.status === 'draft') {
@@ -569,6 +616,66 @@ export default function AnnouncementDetails({ user }) {
               )}
             </div>
 
+            {/* Important Links (Pre-registration / General) */}
+            {ann.importantLinks && ann.importantLinks.filter(l => l.enabled && !l.showAfterRegistration).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text)', margin: '0.25rem 0 0' }}>
+                  🔗 Important Links
+                </h4>
+                {ann.importantLinks
+                  .filter(l => l.enabled && !l.showAfterRegistration)
+                  .sort((a, b) => (a.order || 0) - (b.order || 0))
+                  .map(link => {
+                    const config = LINK_TYPES_CONFIG[link.type] || LINK_TYPES_CONFIG.custom;
+                    return (
+                      <div key={link.id} style={{
+                        background: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderLeft: `4px solid ${config.color}`,
+                        borderRadius: 14,
+                        padding: '1.25rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.6rem',
+                        boxShadow: 'var(--shadow-sm)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center' }}>
+                            <i className={config.iconClass} style={{ color: config.color }} />
+                          </span>
+                          <strong style={{ fontSize: '0.88rem', color: 'var(--text)' }}>{link.title}</strong>
+                        </div>
+                        {link.description && (
+                          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            {link.description}
+                          </p>
+                        )}
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-outline btn-sm"
+                          style={{
+                            marginTop: '0.25rem',
+                            borderRadius: 10,
+                            textDecoration: 'none',
+                            fontSize: '0.76rem',
+                            padding: '0.45rem 1rem',
+                            width: '100%',
+                            justifyContent: 'center',
+                            borderColor: config.color,
+                            color: config.color,
+                            fontWeight: 700
+                          }}
+                        >
+                          {link.text || config.defaultText}
+                        </a>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
             {/* Action (Registration Form or Ticket) */}
             {ann.registrationEnabled ? (
               userRegistration && !isEditing ? (
@@ -586,6 +693,86 @@ export default function AnnouncementDetails({ user }) {
                   <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
                     Registration ID: <strong style={{ fontFamily: 'monospace', color: 'var(--text)' }}>{userRegistration.id}</strong>
                   </div>
+
+                  {/* Post-Registration Action Links */}
+                  {ann.importantLinks && ann.importantLinks.filter(l => l.enabled && l.showAfterRegistration).length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      borderTop: '1px solid var(--border-light)',
+                      borderBottom: '1px solid var(--border-light)',
+                      padding: '1rem 0',
+                      margin: '1rem 0',
+                      textAlign: 'left'
+                    }}>
+                      {ann.importantLinks
+                        .filter(l => l.enabled && l.showAfterRegistration)
+                        .sort((a, b) => (a.order || 0) - (b.order || 0))
+                        .map(link => {
+                          const config = LINK_TYPES_CONFIG[link.type] || LINK_TYPES_CONFIG.custom;
+                          return (
+                            <div key={link.id} style={{
+                              background: 'var(--surface)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 12,
+                              padding: '1rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.5rem',
+                              alignItems: 'center',
+                              textAlign: 'center'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center', fontWeight: 700, color: config.color }}>
+                                <i className={config.iconClass} style={{ fontSize: '1rem' }} /> {link.title}
+                              </div>
+                              {link.description && (
+                                <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: '0 0 0.25rem' }}>
+                                  {link.description}
+                                </p>
+                              )}
+
+                              {/* Safe Local QR Code Generation */}
+                              {link.showQRCode && link.url && (
+                                <div style={{
+                                  background: '#fff',
+                                  padding: '0.5rem',
+                                  borderRadius: 8,
+                                  border: '1px solid var(--border-light)',
+                                  margin: '0.25rem 0 0.5rem',
+                                  display: 'inline-flex',
+                                  justifyContent: 'center',
+                                  alignItems: 'center'
+                                }}>
+                                  <QRCodeSVG value={link.url} size={110} level="H" includeMargin={true} />
+                                </div>
+                              )}
+
+                              <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-sm"
+                                style={{
+                                  background: config.color,
+                                  borderColor: config.color,
+                                  color: '#fff',
+                                  fontWeight: 700,
+                                  borderRadius: 8,
+                                  width: '100%',
+                                  justifyContent: 'center',
+                                  display: 'inline-flex',
+                                  padding: '0.4rem 0.75rem',
+                                  textDecoration: 'none'
+                                }}
+                              >
+                                {link.text || config.defaultText}
+                              </a>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {ann.allowEditing !== false && (
@@ -659,68 +846,117 @@ export default function AnnouncementDetails({ user }) {
                     </div>
 
                     {/* Render extra custom fields if configured */}
-                    {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => (
-                      <div key={f.id} className="google-form-card">
-                        <label className="google-form-label">{f.label} {f.required && <span style={{ color: '#d93025' }}>*</span>}</label>
-                        {f.type === 'select' ? (
-                          <select
-                            className="google-form-select"
-                            value={formValues[f.id] || ''}
-                            onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
-                            required={f.required}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <option value="">Choose</option>
-                            {f.options?.map((opt, oIdx) => (
-                              <option key={oIdx} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        ) : f.type === 'radio' ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
-                            {f.options?.map((opt, oIdx) => (
-                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.86rem', color: '#202124' }}>
-                                <input
-                                  type="radio"
-                                  name={f.id}
-                                  value={opt}
-                                  checked={formValues[f.id] === opt}
-                                  onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
-                                />
-                                <span>{opt}</span>
-                              </label>
-                            ))}
+                    {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => {
+                      const isInfoUrl = f.type === 'url' && (f.label || '').trim().startsWith('http');
+                      
+                      if (isInfoUrl) {
+                        const url = f.label.trim();
+                        const isWhatsApp = url.includes('whatsapp.com');
+                        return (
+                          <div key={f.id} className="google-form-card" style={{ borderLeft: `6px solid ${isWhatsApp ? '#25d366' : 'var(--orange)'}` }}>
+                            <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#202124', margin: '0 0 0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-display)' }}>
+                              {isWhatsApp ? (
+                                <>
+                                  💬 WhatsApp Community Group
+                                </>
+                              ) : (
+                                <>
+                                  🔗 Important Event Link
+                                </>
+                              )}
+                            </h3>
+                            <p style={{ fontSize: '0.78rem', color: '#5f6368', margin: '0 0 0.85rem', lineHeight: 1.4 }}>
+                              Click the button below to join the group or access the resources.
+                            </p>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-sm"
+                              style={{
+                                display: 'inline-flex',
+                                width: '100%',
+                                justifyContent: 'center',
+                                background: isWhatsApp ? '#25d366' : 'var(--orange)',
+                                borderColor: isWhatsApp ? '#25d366' : 'var(--orange)',
+                                color: '#fff',
+                                fontWeight: 800,
+                                borderRadius: 8,
+                                padding: '0.5rem 1rem',
+                                textDecoration: 'none',
+                                fontSize: '0.8rem',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              {isWhatsApp ? 'Join WhatsApp Group' : 'Visit Link'}
+                            </a>
                           </div>
-                        ) : f.type === 'checkbox' ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
-                            {f.options?.map((opt, oIdx) => {
-                              const isChecked = (formValues[f.id] || []).includes(opt);
-                              return (
+                        );
+                      }
+
+                      return (
+                        <div key={f.id} className="google-form-card">
+                          <label className="google-form-label">{renderLabelWithLinks(f.label)} {f.required && <span style={{ color: '#d93025' }}>*</span>}</label>
+                          {f.type === 'select' ? (
+                            <select
+                              className="google-form-select"
+                              value={formValues[f.id] || ''}
+                              onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
+                              required={f.required}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <option value="">Choose</option>
+                              {f.options?.map((opt, oIdx) => (
+                                <option key={oIdx} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          ) : f.type === 'radio' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                              {f.options?.map((opt, oIdx) => (
                                 <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.86rem', color: '#202124' }}>
                                   <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={e => handleCheckboxChange(f.id, opt, e.target.checked)}
+                                    type="radio"
+                                    name={f.id}
+                                    value={opt}
+                                    checked={formValues[f.id] === opt}
+                                    onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
                                   />
                                   <span>{opt}</span>
                                 </label>
-                              );
-                            })}
-                          </div>
-                        ) : f.type === 'textarea' ? (
-                          <textarea
-                            className="google-form-input"
-                            value={formValues[f.id] || ''}
-                            onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
-                            required={f.required}
-                            placeholder="Your answer"
-                            rows={3}
-                            style={{ resize: 'vertical', border: '1px solid #dadce0', borderRadius: 4, padding: '0.5rem', width: '100%', fontFamily: 'inherit' }}
-                          />
-                        ) : (
-                          <input className="google-form-input" type={f.type || 'text'} value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} placeholder="Your answer" />
-                        )}
-                      </div>
-                    ))}
+                              ))}
+                            </div>
+                          ) : f.type === 'checkbox' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
+                              {f.options?.map((opt, oIdx) => {
+                                const isChecked = (formValues[f.id] || []).includes(opt);
+                                return (
+                                  <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.86rem', color: '#202124' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={e => handleCheckboxChange(f.id, opt, e.target.checked)}
+                                    />
+                                    <span>{opt}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          ) : f.type === 'textarea' ? (
+                            <textarea
+                              className="google-form-input"
+                              value={formValues[f.id] || ''}
+                              onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
+                              required={f.required}
+                              placeholder="Your answer"
+                              rows={3}
+                              style={{ resize: 'vertical', border: '1px solid #dadce0', borderRadius: 4, padding: '0.5rem', width: '100%', fontFamily: 'inherit' }}
+                            />
+                          ) : (
+                            <input className="google-form-input" type={f.type || 'text'} value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} placeholder="Your answer" />
+                          )}
+                        </div>
+                      );
+                    })}
 
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', width: isEditing ? '100%' : 'auto' }}>

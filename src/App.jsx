@@ -25,7 +25,6 @@ const MyResults = lazy(() => import('./pages/MyResults'));
 const MyBadges = lazy(() => import('./pages/MyBadges'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const AnnouncementDetails = lazy(() => import('./pages/AnnouncementDetails'));
-const MyRegistrations = lazy(() => import('./pages/MyRegistrations'));
 const ChallengesDashboard = lazy(() => import('./challenges/pages/ChallengesDashboard'));
 const ChallengeSolve = lazy(() => import('./challenges/pages/ChallengeSolve'));
 const ChallengesLeaderboard = lazy(() => import('./challenges/pages/ChallengesLeaderboard'));
@@ -105,7 +104,6 @@ export default function App() {
               <Route path="/my-badges" element={<ProtectedRoute user={user} authLoading={authLoading}><MyBadges user={user} /></ProtectedRoute>} />
               <Route path="/announcements" element={<Announcements user={user} />} />
               <Route path="/announcements/:id" element={<AnnouncementDetails user={user} />} />
-              <Route path="/my-registrations" element={<ProtectedRoute user={user} authLoading={authLoading}><MyRegistrations user={user} /></ProtectedRoute>} />
               <Route path="/challenges" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesDashboard user={user} /></ProtectedRoute>} />
               <Route path="/challenges/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesLeaderboard user={user} /></ProtectedRoute>} />
               <Route path="/challenges/profile" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesProfile user={user} /></ProtectedRoute>} />
