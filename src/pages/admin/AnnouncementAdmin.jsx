@@ -399,12 +399,14 @@ export default function AnnouncementAdmin({ user }) {
         return;
       }
       
-      const customHeaders = ann.formFields?.map(f => f.label) || [];
-      const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Register Number', 'Year', 'Class', ...customHeaders];
+      const coreIds = ['fullName', 'email', 'phone', 'registerNumber', 'department', 'year', 'className'];
+      const customFields = ann.formFields?.filter(f => !coreIds.includes(f.id)) || [];
+      const customHeaders = customFields.map(f => f.label);
+      const headers = ['Registration ID', 'Email', 'Registered On', 'Status', 'Full Name', 'Phone', 'Register Number', 'Department', 'Year', 'Class', ...customHeaders];
       
       const rows = filtered.map(r => {
         const ddata = r.submittedData || {};
-        const customRowData = ann.formFields?.map(f => ddata[f.id] ?? '—') || [];
+        const customRowData = customFields.map(f => ddata[f.id] ?? '—');
         return [
           r.id || '—',
           r.userEmail || '—',
@@ -413,6 +415,7 @@ export default function AnnouncementAdmin({ user }) {
           ddata.fullName || '—',
           ddata.phone || '—',
           ddata.registerNumber || '—',
+          ddata.department || '—',
           ddata.year || '—',
           ddata.className || '—',
           ...customRowData
