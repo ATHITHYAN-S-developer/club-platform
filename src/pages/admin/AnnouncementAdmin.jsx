@@ -449,7 +449,7 @@ export default function AnnouncementAdmin({ user }) {
   }
 
   return (
-    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.5rem' }}>
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '1.5rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       
       {/* Header tab controls */}
       <div className="ann-header-row" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
@@ -478,8 +478,8 @@ export default function AnnouncementAdmin({ user }) {
         loading ? (
           <div className="loading-spinner" />
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.75rem' }}>Title</th>

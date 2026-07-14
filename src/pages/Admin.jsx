@@ -1652,7 +1652,10 @@ export default function Admin({ user }) {
         .admin-sidebar-toggle { display: flex; align-items: center; justify-content: center; padding: 0.5rem; border: none; background: none; cursor: pointer; color: var(--text-muted); width: 100%; }
         .admin-sidebar-toggle:hover { color: var(--orange); }
         @media (max-width: 900px) {
-          .admin-page-row { flex-direction: column !important; }
+          .admin-page-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
           .admin-sidebar { width: 100% !important; min-width: unset !important; flex-direction: row !important; flex-wrap: wrap !important; padding: 0.4rem 0.5rem !important; position: static !important; height: auto !important; }
           .admin-sidebar-section, .admin-sidebar-divider, .admin-sidebar-user, .admin-sidebar-toggle { display: none !important; }
           .admin-sidebar-btn { padding: 0.4rem 0.6rem !important; font-size: 0.75rem !important; width: auto !important; border-radius: 8px !important; }
