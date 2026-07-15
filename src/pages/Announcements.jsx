@@ -322,27 +322,7 @@ export default function Announcements({ user }) {
                       </p>
 
                       {/* Seats & CTA */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        {showRegistration(a) ? (() => {
-                          const seatInfo = getRemainingSeats(a);
-                          return (
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                              <i className="fas fa-users" style={{ marginRight: '0.35rem' }} />
-                              {seatInfo.registered} / {seatInfo.limit} Registered
-                              {seatInfo.remaining <= 10 && seatInfo.remaining > 0 && (
-                                <span style={{ color: '#ef4444', marginLeft: '0.5rem', fontWeight: 700 }}>
-                                  🔥 Only {seatInfo.remaining} seats left!
-                                </span>
-                              )}
-                              {seatInfo.remaining === 0 && (
-                                <span style={{ color: '#f59e0b', marginLeft: '0.5rem', fontWeight: 700 }}>
-                                  ⚠️ Waitlist Active
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })() : <div />}
-
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <Link to={`/announcements/${a.id}`} className="btn btn-primary btn-sm">
                           Read More <i className="fas fa-arrow-right" style={{ marginLeft: '0.35rem' }} />
                         </Link>
@@ -393,27 +373,7 @@ export default function Announcements({ user }) {
                       </p>
 
                       {/* Seats & CTA */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyItem: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        {showRegistration(a) ? (() => {
-                          const seatInfo = getRemainingSeats(a);
-                          return (
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                              <i className="fas fa-users" style={{ marginRight: '0.35rem' }} />
-                              {seatInfo.registered} / {seatInfo.limit} Registered
-                              {seatInfo.remaining <= 10 && seatInfo.remaining > 0 && (
-                                <span style={{ color: '#ef4444', marginLeft: '0.5rem', fontWeight: 700 }}>
-                                  🔥 Only {seatInfo.remaining} left!
-                                </span>
-                              )}
-                              {seatInfo.remaining === 0 && (
-                                <span style={{ color: '#f59e0b', marginLeft: '0.5rem', fontWeight: 700 }}>
-                                  ⚠️ Waitlist Active
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })() : <div />}
-
+                      <div style={{ display: 'flex', alignItems: 'center', justifyItem: 'center', justifyContent: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <Link to={`/announcements/${a.id}`} className="btn btn-secondary btn-sm">
                           Read More
                         </Link>

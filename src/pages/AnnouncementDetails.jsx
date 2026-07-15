@@ -658,25 +658,11 @@ export default function AnnouncementDetails({ user }) {
               </div>
 
               {/* Registration Control Info */}
-              {showRegistration && (
+              {showRegistration && countdownText && (
                 <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '0.85rem' }}>
-                  <div style={{ display: 'flex', justifyItem: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 650, color: 'var(--text-secondary)' }}>
-                    <span>Capacity:</span>
-                    <strong style={{ color: 'var(--text)' }}>{stats.limit} seats</strong>
+                  <div style={{ fontSize: '0.74rem', color: '#ef4444', fontWeight: 700, textAlign: 'center' }}>
+                    {countdownText}
                   </div>
-                  <div style={{ display: 'flex', justifyItem: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 650, color: 'var(--text-secondary)', marginTop: '0.45rem' }}>
-                    <span>Seats Left:</span>
-                    {stats.remaining > 0 ? (
-                      <strong style={{ color: stats.remaining <= 10 ? '#ef4444' : '#22c55e' }}>{stats.remaining} left</strong>
-                    ) : (
-                      <strong style={{ color: '#f59e0b' }}>FULL (Waitlist Active)</strong>
-                    )}
-                  </div>
-                  {countdownText && (
-                    <div style={{ borderTop: '1px solid var(--border-light)', marginTop: '0.65rem', paddingTop: '0.45rem', fontSize: '0.74rem', color: '#ef4444', fontWeight: 700, textAlign: 'center' }}>
-                      {countdownText}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
