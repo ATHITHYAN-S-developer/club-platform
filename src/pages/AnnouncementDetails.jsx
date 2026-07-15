@@ -92,7 +92,39 @@ export default function AnnouncementDetails({ user }) {
   const [formValues, setFormValues] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [registeredTicketId, setRegisteredTicketId] = useState(() => {
+    return localStorage.getItem(`registeredTicketId_${id}`) || null;
+  });
   
+  const showRegistration = useMemo(() => {
+    if (!ann) return false;
+    if (ann.registrationEnabled) return true;
+    
+    let parsedLinks = ann.importantLinks || [];
+    if (typeof parsedLinks === 'string') {
+      try { parsedLinks = JSON.parse(parsedLinks); } catch { parsedLinks = []; }
+    }
+    
+    // Check if there is an active website or custom link in importantLinks
+    const hasExternalSite = parsedLinks.some(l => l.enabled && (l.type === 'website' || l.type === 'custom'));
+    
+    return !hasExternalSite;
+  }, [ann]);
+
+  const formFields = useMemo(() => {
+    if (ann && ann.formFields && ann.formFields.length > 0) {
+      return ann.formFields;
+    }
+    return [
+      { id: 'fullName', label: 'Full Name', type: 'text', required: true },
+      { id: 'email', label: 'Email Address', type: 'email', required: true },
+      { id: 'phone', label: 'Phone Number', type: 'tel', required: true },
+      { id: 'department', label: 'Department', type: 'select', options: ['CSE', 'CSE (AI & ML)', 'AI & DS', 'IT', 'ECE', 'EEE', 'Mechanical', 'Civil', 'CSBS', 'MCA', 'MBA', 'Other'], required: true },
+      { id: 'year', label: 'Year', type: 'select', options: ['1', '2', '3', '4'], required: true },
+      { id: 'className', label: 'Class', type: 'text', required: true },
+    ];
+  }, [ann]);
+
   const handleCheckboxChange = (fieldId, option, isChecked) => {
     const currentSelections = formValues[fieldId] || [];
     let nextSelections;
@@ -106,9 +138,8 @@ export default function AnnouncementDetails({ user }) {
 
   const validateForm = () => {
     const missing = [];
-    ann.formFields?.forEach(f => {
-      const isInfoUrl = f.type === 'url' && (f.label || '').trim().startsWith('http');
-      if (isInfoUrl) return;
+    formFields.forEach(f => {
+      if (f.type === 'url') return;
 
       if (f.required) {
         const val = formValues[f.id];
@@ -136,9 +167,13 @@ export default function AnnouncementDetails({ user }) {
 
   // Seat limit & calculation helpers
   const userRegistration = useMemo(() => {
+    if (registeredTicketId) {
+      const found = registrations.find(r => r.id === registeredTicketId && r.status !== 'Cancelled');
+      if (found) return found;
+    }
     if (!user) return null;
     return registrations.find(r => r.announcementId === id && r.userId === user.id && r.status !== 'Cancelled');
-  }, [registrations, user, id]);
+  }, [registrations, user, id, registeredTicketId]);
 
   const stats = useMemo(() => {
     if (!ann) return { total: 0, limit: 100, remaining: 100, status: 'Open' };
@@ -195,6 +230,16 @@ export default function AnnouncementDetails({ user }) {
             year: user.year || '1',
             className: user.className || '',
           });
+        } else {
+          setFormValues({
+            fullName: '',
+            email: '',
+            phone: '',
+            college: 'VCET',
+            registerNumber: '',
+            year: '1',
+            className: '',
+          });
         }
       } catch (err) {
         console.error(err);
@@ -207,13 +252,13 @@ export default function AnnouncementDetails({ user }) {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!user) {
-      window.showToast('Login Required', 'Please sign in to register for events.', 'warning');
-      navigate(`/auth?redirect=/announcements/${id}`);
+    if (!validateForm()) return;
+
+    const emailToUse = user ? user.email : formValues.email;
+    if (!emailToUse || !emailToUse.trim()) {
+      window.showToast('Validation Error', 'Email Address is required.', 'warning');
       return;
     }
-
-    if (!validateForm()) return;
 
     setSubmitting(true);
     try {
@@ -224,7 +269,7 @@ export default function AnnouncementDetails({ user }) {
         `Event: ${ann.title}`,
         `Ticket ID: ${regId}`,
         `Name: ${formValues.fullName || ''}`,
-        `Email: ${user.email}`,
+        `Email: ${emailToUse}`,
         `Phone: ${formValues.phone || ''}`,
         `Reg No: ${formValues.registerNumber || ''}`,
         `Year: ${formValues.year || '1'}`,
@@ -236,9 +281,12 @@ export default function AnnouncementDetails({ user }) {
         announcementId: id,
         quizId: ann.id, // For backwards compatibility
         quizTitle: ann.title,
-        userId: user.id,
-        userEmail: user.email,
-        submittedData: formValues,
+        userId: user ? user.id : 'guest',
+        userEmail: emailToUse,
+        submittedData: {
+          ...formValues,
+          email: emailToUse
+        },
         registeredAt: new Date().toISOString(),
         status: isWaitlist ? 'Waitlisted' : 'Registered',
         qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataText)}`,
@@ -246,17 +294,23 @@ export default function AnnouncementDetails({ user }) {
 
       await db.insert('EventRegistrations', record);
 
-      // Create local user notification
-      await db.insert('Notifications', {
-        id: 'nt_' + Date.now(),
-        userId: user.id,
-        title: isWaitlist ? 'Added to Waitlist' : 'Event Registration Confirmed!',
-        message: isWaitlist
-          ? `You have been waitlisted for "${ann.title}". We will notify you if a slot opens up.`
-          : `Your ticket for "${ann.title}" has been successfully generated.`,
-        read: false,
-        createdAt: new Date().toISOString(),
-      });
+      // Create local user notification only if logged in
+      if (user) {
+        await db.insert('Notifications', {
+          id: 'nt_' + Date.now(),
+          userId: user.id,
+          title: isWaitlist ? 'Added to Waitlist' : 'Event Registration Confirmed!',
+          message: isWaitlist
+            ? `You have been waitlisted for "${ann.title}". We will notify you if a slot opens up.`
+            : `Your ticket for "${ann.title}" has been successfully generated.`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      // Save ticket id for guest fallback
+      localStorage.setItem(`registeredTicketId_${id}`, regId);
+      setRegisteredTicketId(regId);
 
       // Reload
       const regs = await db.find('EventRegistrations');
@@ -273,13 +327,14 @@ export default function AnnouncementDetails({ user }) {
   const handleEditDetails = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+    const emailToUse = user ? user.email : formValues.email;
     setSubmitting(true);
     try {
       const qrDataText = [
         `Event: ${ann.title}`,
         `Ticket ID: ${userRegistration.id}`,
         `Name: ${formValues.fullName || ''}`,
-        `Email: ${user.email}`,
+        `Email: ${emailToUse}`,
         `Phone: ${formValues.phone || ''}`,
         `Reg No: ${formValues.registerNumber || ''}`,
         `Year: ${formValues.year || '1'}`,
@@ -287,7 +342,10 @@ export default function AnnouncementDetails({ user }) {
       ].join('\n');
 
       await db.update('EventRegistrations', userRegistration.id, {
-        submittedData: formValues,
+        submittedData: {
+          ...formValues,
+          email: emailToUse
+        },
         qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataText)}`,
       });
       
@@ -311,14 +369,21 @@ export default function AnnouncementDetails({ user }) {
       });
 
       // Create notification
-      await db.insert('Notifications', {
-        id: 'nt_' + Date.now(),
-        userId: user.id,
-        title: 'Registration Cancelled',
-        message: `Your registration for "${ann.title}" has been cancelled.`,
-        read: false,
-        createdAt: new Date().toISOString(),
-      });
+      if (user) {
+        await db.insert('Notifications', {
+          id: 'nt_' + Date.now(),
+          userId: user.id,
+          title: 'Registration Cancelled',
+          message: `Your registration for "${ann.title}" has been cancelled.`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      if (!user) {
+        localStorage.removeItem(`registeredTicketId_${id}`);
+        setRegisteredTicketId(null);
+      }
 
       const regs = await db.find('EventRegistrations');
       setRegistrations(regs);
@@ -593,7 +658,7 @@ export default function AnnouncementDetails({ user }) {
               </div>
 
               {/* Registration Control Info */}
-              {ann.registrationEnabled && (
+              {showRegistration && (
                 <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '0.85rem' }}>
                   <div style={{ display: 'flex', justifyItem: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 650, color: 'var(--text-secondary)' }}>
                     <span>Capacity:</span>
@@ -677,7 +742,7 @@ export default function AnnouncementDetails({ user }) {
             )}
 
             {/* Action (Registration Form or Ticket) */}
-            {ann.registrationEnabled ? (
+            {showRegistration ? (
               userRegistration && !isEditing ? (
                 /* Render Ticket in its own card */
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '1.5rem', textAlign: 'center' }}>
@@ -813,7 +878,16 @@ export default function AnnouncementDetails({ user }) {
                     {/* Email */}
                     <div className="google-form-card">
                       <label className="google-form-label">Email Address <span style={{ color: '#d93025' }}>*</span></label>
-                      <input className="google-form-input" type="email" value={formValues.email || ''} readOnly style={{ opacity: 0.8, color: '#70757a', cursor: 'not-allowed' }} />
+                      <input
+                        className="google-form-input"
+                        type="email"
+                        value={formValues.email || ''}
+                        onChange={e => setFormValues(p => ({ ...p, email: e.target.value }))}
+                        readOnly={!!user}
+                        style={user ? { opacity: 0.8, color: '#70757a', cursor: 'not-allowed' } : {}}
+                        placeholder="Your answer"
+                        required
+                      />
                     </div>
 
                     {/* Phone */}
@@ -846,7 +920,7 @@ export default function AnnouncementDetails({ user }) {
                     </div>
 
                     {/* Render extra custom fields if configured */}
-                    {ann.formFields?.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => {
+                    {formFields.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => {
                       const isInfoUrl = f.type === 'url';
                       
                       if (isInfoUrl) {

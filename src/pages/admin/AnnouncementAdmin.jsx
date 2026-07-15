@@ -210,6 +210,18 @@ export default function AnnouncementAdmin({ user }) {
     }
   };
 
+  const showRegistration = (a) => {
+    if (a.registrationEnabled) return true;
+    
+    let parsedLinks = a.importantLinks || [];
+    if (typeof parsedLinks === 'string') {
+      try { parsedLinks = JSON.parse(parsedLinks); } catch { parsedLinks = []; }
+    }
+    
+    const hasExternalSite = parsedLinks.some(l => l.enabled && (l.type === 'website' || l.type === 'custom'));
+    return !hasExternalSite;
+  };
+
   // Custom Field Form Functions
   const addCustomField = () => {
     const fieldId = 'cfield_' + Date.now();
@@ -518,7 +530,7 @@ export default function AnnouncementAdmin({ user }) {
                       </span>
                     </td>
                     <td style={{ padding: '0.75rem', fontSize: '0.8rem' }}>
-                      {a.registrationEnabled ? (
+                      {showRegistration(a) ? (
                         <button
                           onClick={() => { setSelectedAnn(a); setCurrentView('dashboard'); }}
                           style={{ background: 'rgba(255,85,0,0.08)', border: 'none', borderRadius: 6, padding: '3px 8px', color: 'var(--orange)', fontWeight: 700, cursor: 'pointer', fontSize: '0.74rem' }}
@@ -530,7 +542,7 @@ export default function AnnouncementAdmin({ user }) {
                       )}
                     </td>
                     <td style={{ padding: '0.75rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                      {a.registrationEnabled && (
+                      {showRegistration(a) && (
                         <button onClick={() => handleDownloadCSV(a)} style={{ background: '#e0f2fe', border: 'none', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#0284c7' }} title="Download registrations (Excel/CSV)">
                           <i className="fa-solid fa-download" />
                         </button>

@@ -126,8 +126,19 @@ export default function Announcements({ user }) {
     );
   };
 
+  const showRegistration = (a) => {
+    if (a.registrationEnabled) return true;
+    
+    let parsedLinks = a.importantLinks || [];
+    if (typeof parsedLinks === 'string') {
+      try { parsedLinks = JSON.parse(parsedLinks); } catch { parsedLinks = []; }
+    }
+    
+    const hasExternalSite = parsedLinks.some(l => l.enabled && (l.type === 'website' || l.type === 'custom'));
+    return !hasExternalSite;
+  };
+
   const getRemainingSeats = (ann) => {
-    if (!ann.registrationEnabled) return null;
     const count = registrations.filter(r => r.announcementId === ann.id && r.status !== 'Cancelled').length;
     const limit = ann.seatsLimit || 100;
     const remaining = Math.max(0, limit - count);
@@ -312,7 +323,7 @@ export default function Announcements({ user }) {
 
                       {/* Seats & CTA */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        {a.registrationEnabled ? (() => {
+                        {showRegistration(a) ? (() => {
                           const seatInfo = getRemainingSeats(a);
                           return (
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -383,7 +394,7 @@ export default function Announcements({ user }) {
 
                       {/* Seats & CTA */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyItem: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        {a.registrationEnabled ? (() => {
+                        {showRegistration(a) ? (() => {
                           const seatInfo = getRemainingSeats(a);
                           return (
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
