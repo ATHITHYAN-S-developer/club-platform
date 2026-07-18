@@ -211,6 +211,11 @@ export default function AnnouncementDetails({ user }) {
           try { item.importantLinks = JSON.parse(item.importantLinks); } catch { item.importantLinks = []; }
         }
 
+        // Parse formFields if stringified
+        if (typeof item.formFields === 'string') {
+          try { item.formFields = JSON.parse(item.formFields); } catch { item.formFields = []; }
+        }
+
         if (item.eventStatus !== 'Draft' && item.status === 'draft') {
           item.status = 'published';
         }
@@ -219,28 +224,37 @@ export default function AnnouncementDetails({ user }) {
         const regs = await db.find('EventRegistrations');
         setRegistrations(regs);
 
-        // Pre-fill student defaults if user logged in
-        if (user) {
-          setFormValues({
-            fullName: user.name || '',
-            email: user.email || '',
-            phone: user.phone || '',
-            college: user.college || 'VCET',
-            registerNumber: user.registerNumber || '',
-            year: user.year || '1',
-            className: user.className || '',
-          });
-        } else {
-          setFormValues({
-            fullName: '',
-            email: '',
-            phone: '',
-            college: 'VCET',
-            registerNumber: '',
-            year: '1',
-            className: '',
-          });
-        }
+        const fields = (item.formFields && item.formFields.length > 0)
+          ? item.formFields
+          : [
+              { id: 'fullName', label: 'Full Name', type: 'text', required: true },
+              { id: 'email', label: 'Email Address', type: 'email', required: true },
+              { id: 'phone', label: 'Phone Number', type: 'tel', required: true },
+              { id: 'department', label: 'Department', type: 'select', options: ['CSE', 'CSE (AI & ML)', 'AI & DS', 'IT', 'ECE', 'EEE', 'Mechanical', 'Civil', 'CSBS', 'MCA', 'MBA', 'Other'], required: true },
+              { id: 'year', label: 'Year', type: 'select', options: ['1', '2', '3', '4'], required: true },
+              { id: 'className', label: 'Class', type: 'text', required: true },
+            ];
+
+        const userDefaults = {
+          fullName: user?.name || '',
+          email: user?.email || '',
+          phone: user?.phone || '',
+          department: user?.department || '',
+          registerNumber: user?.registerNumber || '',
+          year: user?.year || '1',
+          className: user?.className || '',
+        };
+
+        const initialValues = {};
+        fields.forEach(f => {
+          if (f.type === 'url') return;
+          if (f.type === 'checkbox') {
+            initialValues[f.id] = userDefaults[f.id] || [];
+          } else {
+            initialValues[f.id] = userDefaults[f.id] || (f.type === 'select' && f.options?.length ? f.options[0] : '');
+          }
+        });
+        setFormValues(initialValues);
       } catch (err) {
         console.error(err);
       } finally {
@@ -265,26 +279,33 @@ export default function AnnouncementDetails({ user }) {
       const regId = 'reg_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
       const isWaitlist = stats.remaining === 0;
 
+      const cleanFormValues = {};
+      Object.entries(formValues).forEach(([key, val]) => {
+        if (val === undefined || val === null) return;
+        if (typeof val === 'string' && val.trim() === '' && key !== 'email') return;
+        cleanFormValues[key] = val;
+      });
+
       const qrDataText = [
         `Event: ${ann.title}`,
         `Ticket ID: ${regId}`,
-        `Name: ${formValues.fullName || ''}`,
+        `Name: ${cleanFormValues.fullName || ''}`,
         `Email: ${emailToUse}`,
-        `Phone: ${formValues.phone || ''}`,
-        `Reg No: ${formValues.registerNumber || ''}`,
-        `Year: ${formValues.year || '1'}`,
-        `Class: ${formValues.className || ''}`
+        `Phone: ${cleanFormValues.phone || ''}`,
+        `Reg No: ${cleanFormValues.registerNumber || ''}`,
+        `Year: ${cleanFormValues.year || '1'}`,
+        `Class: ${cleanFormValues.className || ''}`
       ].join('\n');
 
       const record = {
         id: regId,
         announcementId: id,
-        quizId: ann.id, // For backwards compatibility
+        quizId: ann.id,
         quizTitle: ann.title,
         userId: user ? user.id : 'guest',
         userEmail: emailToUse,
         submittedData: {
-          ...formValues,
+          ...cleanFormValues,
           email: emailToUse
         },
         registeredAt: new Date().toISOString(),
@@ -292,9 +313,12 @@ export default function AnnouncementDetails({ user }) {
         qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataText)}`,
       };
 
-      await db.insert('EventRegistrations', record);
+      const { record: savedRecord, persistedToFirestore } = await db.insert('EventRegistrations', record);
 
-      // Create local user notification only if logged in
+      if (!persistedToFirestore) {
+        window.showToast('Offline Save', 'Registration saved locally. It may not appear for admin until synced.', 'warning');
+      }
+
       if (user) {
         await db.insert('Notifications', {
           id: 'nt_' + Date.now(),
@@ -308,11 +332,9 @@ export default function AnnouncementDetails({ user }) {
         });
       }
 
-      // Save ticket id for guest fallback
       localStorage.setItem(`registeredTicketId_${id}`, regId);
       setRegisteredTicketId(regId);
 
-      // Reload
       const regs = await db.find('EventRegistrations');
       setRegistrations(regs);
       setSuccessMsg(isWaitlist ? 'Waitlist Joined Successful!' : 'Registration Successful!');
@@ -330,20 +352,27 @@ export default function AnnouncementDetails({ user }) {
     const emailToUse = user ? user.email : formValues.email;
     setSubmitting(true);
     try {
+      const cleanFormValues = {};
+      Object.entries(formValues).forEach(([key, val]) => {
+        if (val === undefined || val === null) return;
+        if (typeof val === 'string' && val.trim() === '' && key !== 'email') return;
+        cleanFormValues[key] = val;
+      });
+
       const qrDataText = [
         `Event: ${ann.title}`,
         `Ticket ID: ${userRegistration.id}`,
-        `Name: ${formValues.fullName || ''}`,
+        `Name: ${cleanFormValues.fullName || ''}`,
         `Email: ${emailToUse}`,
-        `Phone: ${formValues.phone || ''}`,
-        `Reg No: ${formValues.registerNumber || ''}`,
-        `Year: ${formValues.year || '1'}`,
-        `Class: ${formValues.className || ''}`
+        `Phone: ${cleanFormValues.phone || ''}`,
+        `Reg No: ${cleanFormValues.registerNumber || ''}`,
+        `Year: ${cleanFormValues.year || '1'}`,
+        `Class: ${cleanFormValues.className || ''}`
       ].join('\n');
 
       await db.update('EventRegistrations', userRegistration.id, {
         submittedData: {
-          ...formValues,
+          ...cleanFormValues,
           email: emailToUse
         },
         qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataText)}`,
@@ -855,64 +884,11 @@ export default function AnnouncementDetails({ user }) {
                   </div>
 
                   <form onSubmit={isEditing ? handleEditDetails : handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    {/* Name */}
-                    <div className="google-form-card">
-                      <label className="google-form-label">Full Name <span style={{ color: '#d93025' }}>*</span></label>
-                      <input className="google-form-input" value={formValues.fullName || ''} onChange={e => setFormValues(p => ({ ...p, fullName: e.target.value }))} required placeholder="Your answer" />
-                    </div>
-
-                    {/* Email */}
-                    <div className="google-form-card">
-                      <label className="google-form-label">Email Address <span style={{ color: '#d93025' }}>*</span></label>
-                      <input
-                        className="google-form-input"
-                        type="email"
-                        value={formValues.email || ''}
-                        onChange={e => setFormValues(p => ({ ...p, email: e.target.value }))}
-                        readOnly={!!user}
-                        style={user ? { opacity: 0.8, color: '#70757a', cursor: 'not-allowed' } : {}}
-                        placeholder="Your answer"
-                        required
-                      />
-                    </div>
-
-                    {/* Phone */}
-                    <div className="google-form-card">
-                      <label className="google-form-label">Phone Number <span style={{ color: '#d93025' }}>*</span></label>
-                      <input className="google-form-input" type="tel" value={formValues.phone || ''} onChange={e => setFormValues(p => ({ ...p, phone: e.target.value }))} required placeholder="Your answer" />
-                    </div>
-
-                    {/* Register Number */}
-                    <div className="google-form-card">
-                      <label className="google-form-label">Register Number <span style={{ color: '#d93025' }}>*</span></label>
-                      <input className="google-form-input" value={formValues.registerNumber || ''} onChange={e => setFormValues(p => ({ ...p, registerNumber: e.target.value }))} required placeholder="Your answer" />
-                    </div>
-
-                    {/* Year select */}
-                    <div className="google-form-card">
-                      <label className="google-form-label">Year <span style={{ color: '#d93025' }}>*</span></label>
-                      <select className="google-form-select" value={formValues.year || '1'} onChange={e => setFormValues(p => ({ ...p, year: e.target.value }))}>
-                        <option value="1">1st Year</option>
-                        <option value="2">2nd Year</option>
-                        <option value="3">3rd Year</option>
-                        <option value="4">4th Year</option>
-                      </select>
-                    </div>
-
-                    {/* Class */}
-                    <div className="google-form-card">
-                      <label className="google-form-label">Class <span style={{ color: '#d93025' }}>*</span></label>
-                      <input className="google-form-input" value={formValues.className || ''} onChange={e => setFormValues(p => ({ ...p, className: e.target.value }))} required placeholder="Your answer" />
-                    </div>
-
-                    {/* Render extra custom fields if configured */}
-                    {formFields.filter(f => !['fullName', 'email', 'phone', 'registerNumber', 'className', 'year'].includes(f.id)).map(f => {
+                    {formFields.map(f => {
                       const isInfoUrl = f.type === 'url';
-                      
                       if (isInfoUrl) {
                         const url = (f.url || (f.label && f.label.trim().startsWith('http') ? f.label : '')).trim();
                         if (!url) return null;
-                        
                         const isWhatsApp = url.includes('whatsapp.com');
                         const headingTitle = f.url ? f.label : (isWhatsApp ? 'WhatsApp Community Group' : 'Important Event Link');
                         return (
@@ -920,43 +896,22 @@ export default function AnnouncementDetails({ user }) {
                             <h3 style={{ fontSize: '0.94rem', fontWeight: 800, color: '#202124', margin: '0 0 0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'var(--font-display)' }}>
                               {isWhatsApp ? '💬' : '🔗'} {headingTitle}
                             </h3>
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-sm"
-                              style={{
-                                display: 'inline-flex',
-                                width: '100%',
-                                justifyContent: 'center',
-                                background: isWhatsApp ? '#25d366' : 'var(--orange)',
-                                borderColor: isWhatsApp ? '#25d366' : 'var(--orange)',
-                                color: '#fff',
-                                fontWeight: 800,
-                                borderRadius: 8,
-                                padding: '0.5rem 1rem',
-                                textDecoration: 'none',
-                                fontSize: '0.8rem',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                              }}
-                            >
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-sm"
+                              style={{ display: 'inline-flex', width: '100%', justifyContent: 'center', background: isWhatsApp ? '#25d366' : 'var(--orange)', borderColor: isWhatsApp ? '#25d366' : 'var(--orange)', color: '#fff', fontWeight: 800, borderRadius: 8, padding: '0.5rem 1rem', textDecoration: 'none', fontSize: '0.8rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                               {isWhatsApp ? 'Join WhatsApp Group' : 'Visit Link'}
                             </a>
                           </div>
                         );
                       }
 
+                      const isEmailField = f.id === 'email';
+                      const isReadonlyField = isEmailField && !!user;
+
                       return (
                         <div key={f.id} className="google-form-card">
                           <label className="google-form-label">{renderLabelWithLinks(f.label)} {f.required && <span style={{ color: '#d93025' }}>*</span>}</label>
                           {f.type === 'select' ? (
-                            <select
-                              className="google-form-select"
-                              value={formValues[f.id] || ''}
-                              onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
-                              required={f.required}
-                              style={{ cursor: 'pointer' }}
-                            >
+                            <select className="google-form-select" value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} style={{ cursor: 'pointer' }}>
                               <option value="">Choose</option>
                               {f.options?.map((opt, oIdx) => (
                                 <option key={oIdx} value={opt}>{opt}</option>
@@ -966,13 +921,7 @@ export default function AnnouncementDetails({ user }) {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.4rem' }}>
                               {f.options?.map((opt, oIdx) => (
                                 <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.86rem', color: '#202124' }}>
-                                  <input
-                                    type="radio"
-                                    name={f.id}
-                                    value={opt}
-                                    checked={formValues[f.id] === opt}
-                                    onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
-                                  />
+                                  <input type="radio" name={f.id} value={opt} checked={formValues[f.id] === opt} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} />
                                   <span>{opt}</span>
                                 </label>
                               ))}
@@ -983,28 +932,21 @@ export default function AnnouncementDetails({ user }) {
                                 const isChecked = (formValues[f.id] || []).includes(opt);
                                 return (
                                   <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.86rem', color: '#202124' }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={e => handleCheckboxChange(f.id, opt, e.target.checked)}
-                                    />
+                                    <input type="checkbox" checked={isChecked} onChange={e => handleCheckboxChange(f.id, opt, e.target.checked)} />
                                     <span>{opt}</span>
                                   </label>
                                 );
                               })}
                             </div>
                           ) : f.type === 'textarea' ? (
-                            <textarea
-                              className="google-form-input"
-                              value={formValues[f.id] || ''}
-                              onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
-                              required={f.required}
-                              placeholder="Your answer"
-                              rows={3}
-                              style={{ resize: 'vertical', border: '1px solid #dadce0', borderRadius: 4, padding: '0.5rem', width: '100%', fontFamily: 'inherit' }}
-                            />
+                            <textarea className="google-form-input" value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} placeholder="Your answer" rows={3}
+                              style={{ resize: 'vertical', border: '1px solid #dadce0', borderRadius: 4, padding: '0.5rem', width: '100%', fontFamily: 'inherit' }} />
                           ) : (
-                            <input className="google-form-input" type={f.type || 'text'} value={formValues[f.id] || ''} onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))} required={f.required} placeholder="Your answer" />
+                            <input className="google-form-input" type={f.type || 'text'} value={formValues[f.id] || ''}
+                              onChange={e => setFormValues(p => ({ ...p, [f.id]: e.target.value }))}
+                              readOnly={isReadonlyField}
+                              style={isReadonlyField ? { opacity: 0.8, color: '#70757a', cursor: 'not-allowed' } : {}}
+                              required={f.required} placeholder="Your answer" />
                           )}
                         </div>
                       );

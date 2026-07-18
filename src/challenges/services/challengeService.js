@@ -11,11 +11,19 @@ const COLLECTIONS = {
 
 export async function getChallenges(filters = {}) {
   const all = await db.find(COLLECTIONS.challenges);
+  const now = new Date();
   return all.filter(c => {
+    if (c.status === 'archived') return false;
     if (filters.status && c.status !== filters.status) return false;
     if (filters.difficulty && c.difficulty !== filters.difficulty) return false;
     if (filters.type && c.challengeType !== filters.type) return false;
-    return c.status !== 'archived';
+    // Enforce schedule window if dates are set
+    if (c.startDate && c.endDate) {
+      return now >= new Date(c.startDate) && now <= new Date(c.endDate);
+    }
+    if (c.startDate) return now >= new Date(c.startDate);
+    if (c.endDate) return now <= new Date(c.endDate);
+    return true;
   }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 

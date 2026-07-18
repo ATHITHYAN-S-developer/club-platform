@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import db from './db';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -7,6 +8,20 @@ import Toast from './components/Toast';
 import Loading from './components/ui/Loading';
 import ScrollToTop from './components/ScrollToTop';
 import { ThemeProvider } from './contexts/ThemeContext';
+
+function PageTransition({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+      style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: '100%' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const Home = lazy(() => import('./pages/Home'));
 const Members = lazy(() => import('./pages/Members'));
@@ -87,34 +102,36 @@ export default function App() {
           </div>
         ) : (
           <Suspense fallback={<PageLoading />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/members" element={<Members />} />
-              <Route path="/resources" element={<ProtectedRoute user={user} authLoading={authLoading}><Resources /></ProtectedRoute>} />
-              <Route path="/gallery" element={<Gallery />} />
-              <Route path="/events" element={<Events user={user} />} />
-              <Route path="/winners" element={<Winners />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/auth" element={<Auth user={user} />} />
-              <Route path="/signup" element={<Signup user={user} />} />
-              <Route path="/quiz" element={<ProtectedRoute user={user} authLoading={authLoading}><Quiz user={user} /></ProtectedRoute>} />
-              <Route path="/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><Leaderboard user={user} /></ProtectedRoute>} />
-              <Route path="/careers" element={<ProtectedRoute user={user} authLoading={authLoading}><Careers /></ProtectedRoute>} />
-              <Route path="/my-results" element={<ProtectedRoute user={user} authLoading={authLoading}><MyResults user={user} /></ProtectedRoute>} />
-              <Route path="/my-badges" element={<ProtectedRoute user={user} authLoading={authLoading}><MyBadges user={user} /></ProtectedRoute>} />
-              <Route path="/announcements" element={<Announcements user={user} />} />
-              <Route path="/announcements/:id" element={<AnnouncementDetails user={user} />} />
-              <Route path="/challenges" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesDashboard user={user} /></ProtectedRoute>} />
-              <Route path="/challenges/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesLeaderboard user={user} /></ProtectedRoute>} />
-              <Route path="/challenges/profile" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengesProfile user={user} /></ProtectedRoute>} />
-              <Route path="/challenges/:id" element={<ProtectedRoute user={user} authLoading={authLoading}><ChallengeSolve user={user} /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><Admin user={user} /></ProtectedRoute>} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <AnimatePresence mode="wait">
+              <Routes location={location} key={location.pathname}>
+                <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+                <Route path="/members" element={<PageTransition><Members /></PageTransition>} />
+                <Route path="/resources" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><Resources /></PageTransition></ProtectedRoute>} />
+                <Route path="/gallery" element={<PageTransition><Gallery /></PageTransition>} />
+                <Route path="/events" element={<PageTransition><Events user={user} /></PageTransition>} />
+                <Route path="/winners" element={<PageTransition><Winners /></PageTransition>} />
+                <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
+                <Route path="/auth" element={<PageTransition><Auth user={user} /></PageTransition>} />
+                <Route path="/signup" element={<PageTransition><Signup user={user} /></PageTransition>} />
+                <Route path="/quiz" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><Quiz user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><Leaderboard user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/careers" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><Careers /></PageTransition></ProtectedRoute>} />
+                <Route path="/my-results" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><MyResults user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/my-badges" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><MyBadges user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/announcements" element={<PageTransition><Announcements user={user} /></PageTransition>} />
+                <Route path="/announcements/:id" element={<PageTransition><AnnouncementDetails user={user} /></PageTransition>} />
+                <Route path="/challenges" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><ChallengesDashboard user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/challenges/leaderboard" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><ChallengesLeaderboard user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/challenges/profile" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><ChallengesProfile user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/challenges/:id" element={<ProtectedRoute user={user} authLoading={authLoading}><PageTransition><ChallengeSolve user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute roleRequired="admin" user={user} authLoading={authLoading}><PageTransition><Admin user={user} /></PageTransition></ProtectedRoute>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AnimatePresence>
           </Suspense>
         )}
       </div>
-      {!isExamMode && <Footer />}
+      {!isExamMode && location.pathname !== '/' && <Footer />}
       <div id="toast-container" className="toast-container">
         {toasts.map((toast) => (
           <Toast key={toast.id} id={toast.id} title={toast.title} message={toast.message} type={toast.type} onClose={removeToast} />

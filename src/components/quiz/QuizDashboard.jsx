@@ -25,7 +25,25 @@ export default function QuizDashboard({ user, onStartQuiz }) {
         db.find('Quiz'),
         db.find('QuizResults'),
       ]);
-      const published = qData.filter(q => q.published && !q.archived);
+      const now = new Date();
+      const published = qData.filter(q => {
+        if (!q.published || q.archived) return false;
+        // If both startTime and endTime are set, enforce the schedule window
+        if (q.startTime && q.endTime) {
+          const start = new Date(q.startTime);
+          const end = new Date(q.endTime);
+          return now >= start && now <= end;
+        }
+        // If only startTime is set, show after start
+        if (q.startTime) {
+          return now >= new Date(q.startTime);
+        }
+        // If only endTime is set, show before end
+        if (q.endTime) {
+          return now <= new Date(q.endTime);
+        }
+        return true;
+      });
       setQuizzes(published);
       setResults(rData.filter(r => r.userId === user?.id));
     } catch (e) {

@@ -606,6 +606,26 @@ const addDeletedEmail = (email) => {
   } catch { /* ignore */ }
 };
 
+const sanitizeForFirestore = (obj) => {
+  if (obj === null || obj === undefined) return undefined;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeForFirestore(item)).filter(item => item !== undefined);
+  }
+  const cleaned = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) continue;
+    if (value === null) { cleaned[key] = null; continue; }
+    if (typeof value === 'object' && !(value instanceof Date)) {
+      const nested = sanitizeForFirestore(value);
+      if (nested !== undefined) cleaned[key] = nested;
+    } else {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
+
 const DB_PREFIX = 'mindcraft_fb_fallback_v5_';
 
 const getLocalStorageCollection = (collectionName) => {
@@ -644,11 +664,11 @@ class FirebaseDatabase {
       if (settingsSnap.empty) {
         for (const [key, list] of Object.entries(initialCollections)) {
           if (key === 'Settings') {
-            await setDoc(doc(firestore, 'Settings', 'global_settings'), list);
+            await setDoc(doc(firestore, 'Settings', 'global_settings'), sanitizeForFirestore(list));
           } else {
             const colRef = collection(firestore, key);
             for (const item of list) {
-              await setDoc(doc(colRef, item.id), item);
+              await setDoc(doc(colRef, item.id), sanitizeForFirestore(item));
             }
           }
         }
@@ -833,16 +853,18 @@ class FirebaseDatabase {
       record.id = collectionName.toLowerCase().substring(0, 3) + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     }
     record.createdAt = new Date().toISOString();
+    const cleanRecord = sanitizeForFirestore(record);
+    let persistedToFirestore = false;
     try {
-      await setDoc(doc(firestore, collectionName, record.id), record);
-      return record;
+      await setDoc(doc(firestore, collectionName, cleanRecord.id), cleanRecord);
+      persistedToFirestore = true;
     } catch (error) {
-      console.warn(`insert(${collectionName}) failed, using fallback:`, error.message);
+      console.warn(`insert(${collectionName}) Firestore failed, using localStorage fallback:`, error.message);
       const items = getLocalStorageCollection(collectionName);
-      items.push(record);
+      items.push(cleanRecord);
       setLocalStorageCollection(collectionName, items);
-      return record;
     }
+    return { record: cleanRecord, persistedToFirestore };
   }
 
   async update(collectionName, id, updates) {
@@ -850,9 +872,9 @@ class FirebaseDatabase {
       const docRef = doc(firestore, collectionName, id);
       const docSnap = await getDoc(docRef);
       if (!docSnap.exists()) { const e = new Error(`Record ${id} not found in ${collectionName}`); e.code = 'NOT_FOUND'; throw e; }
-      const updatedData = { ...updates, updatedAt: new Date().toISOString() };
-      await updateDoc(docRef, updatedData);
-      const finalDoc = { ...docSnap.data(), ...updatedData, id };
+      const sanitizedUpdates = sanitizeForFirestore({ ...updates, updatedAt: new Date().toISOString() });
+      await updateDoc(docRef, sanitizedUpdates);
+      const finalDoc = { ...docSnap.data(), ...sanitizedUpdates, id };
       const currentUser = this.getCurrentUser();
       if (currentUser && currentUser.id === id) {
         localStorage.setItem('aether_user_session', JSON.stringify(finalDoc));

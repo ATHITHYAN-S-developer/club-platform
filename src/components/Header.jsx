@@ -71,7 +71,7 @@ export default function Header({ user }) {
   return (
     <header className="site-header">
       <Link to="/" className="header-logo" onClick={() => setIsMobileOpen(false)}>
-        <img src="/logo.png" alt="Logo" style={{ height: '30px', objectFit: 'contain', marginRight: '0.4rem' }} /> <span>MINDCRAFT AI</span>
+        <img src="/logo.png" alt="Logo" style={{ height: '44px', objectFit: 'contain', marginRight: '0.4rem' }} /> <span>AiDots</span>
       </Link>
 
       <nav className="nav-menu-desktop">

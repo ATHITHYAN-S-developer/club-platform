@@ -9,7 +9,17 @@ export default function ChallengesDashboard({ user }) {
     async function load() {
       try {
         const all = await db.find('Challenges');
-        setChallenges(all.filter(c => c.status === 'published'));
+        const now = new Date();
+        setChallenges(all.filter(c => {
+          if (c.status !== 'published') return false;
+          // Enforce schedule window if dates are set
+          if (c.startDate && c.endDate) {
+            return now >= new Date(c.startDate) && now <= new Date(c.endDate);
+          }
+          if (c.startDate) return now >= new Date(c.startDate);
+          if (c.endDate) return now <= new Date(c.endDate);
+          return true;
+        }));
       } catch (e) {
         console.error(e);
       } finally {

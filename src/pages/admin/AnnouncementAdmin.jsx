@@ -96,6 +96,7 @@ export default function AnnouncementAdmin({ user }) {
         { id: 'fullName', label: 'Full Name', type: 'text', required: true },
         { id: 'email', label: 'Email Address', type: 'email', required: true },
         { id: 'phone', label: 'Phone Number', type: 'tel', required: true },
+        { id: 'registerNumber', label: 'Register Number', type: 'text', required: true },
         { id: 'department', label: 'Department', type: 'select', options: ['CSE', 'CSE (AI & ML)', 'AI & DS', 'IT', 'ECE', 'EEE', 'Mechanical', 'Civil', 'CSBS', 'MCA', 'MBA', 'Other'], required: true },
         { id: 'year', label: 'Year', type: 'select', options: ['1', '2', '3', '4'], required: true },
         { id: 'className', label: 'Class', type: 'text', required: true },
@@ -190,10 +191,15 @@ export default function AnnouncementAdmin({ user }) {
   };
 
   const handleDelete = async (id, title) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${title}"? This will also remove all registrations for this event.`)) return;
     try {
+      const allRegs = await db.find('EventRegistrations');
+      const linkedRegs = allRegs.filter(r => r.announcementId === id);
+      for (const reg of linkedRegs) {
+        await db.delete('EventRegistrations', reg.id);
+      }
       await db.delete('Announcements', id);
-      window.showToast('Deleted', 'Announcement removed.', 'success');
+      window.showToast('Deleted', `Announcement and ${linkedRegs.length} registration(s) removed.`, 'success');
       loadAnnouncements();
     } catch (err) {
       window.showToast('Error', err.message, 'error');

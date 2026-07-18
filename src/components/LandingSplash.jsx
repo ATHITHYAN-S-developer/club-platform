@@ -34,7 +34,7 @@ export default function LandingSplash({ onComplete }) {
         fontFamily: 'var(--font-display)', fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
         fontWeight: 900, color: 'var(--text)', marginBottom: '0.5rem',
       }}>
-        MINDCRAFT AI
+        AiDots
       </h1>
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
         Tap anywhere to continue

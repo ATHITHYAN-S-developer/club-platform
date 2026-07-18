@@ -94,7 +94,7 @@ export default function Footer() {
           <div className="footer-logo-area">
             <div className="footer-brand">
               <img src="/logo.png" alt="Logo" style={{ height: '26px' }} />
-              <span>MINDCRAFT AI</span>
+              <span>AiDots</span>
             </div>
             <p style={{ lineHeight: 1.6, fontSize: '0.85rem' }}>
               Organized by Department of Computer Science and Engineering at Velalar College of Engineering and Technology.
@@ -139,19 +139,19 @@ export default function Footer() {
                 <span className="coordinator-badge faculty" style={{ background: 'rgba(255, 85, 0, 0.08)', color: 'var(--orange)' }}>Faculty Mentor</span>
                 <span className="coordinator-name">Ms. R. VIDHYA</span>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Assistant Professor</span>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>MindcraftAI</span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>AiDots</span>
               </div>
               <div className="coordinator-card">
                 <span className="coordinator-badge faculty" style={{ background: 'rgba(255, 85, 0, 0.08)', color: 'var(--orange)' }}>Faculty Advisor</span>
                 <span className="coordinator-name">Mr. V. DINESH KUMAR</span>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Assistant Professor</span>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>MindcraftAI</span>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>AiDots</span>
               </div>
             </div>
           </div>
         </div>
         <div className="footer-copyright">
-          <p style={{ margin: 0 }}>© 2026 Mindcraft AI Club. Developed by CSE Department.</p>
+          <p style={{ margin: 0 }}>© 2026 AiDots Club. Developed by CSE Department.</p>
         </div>
       </footer>
     </>
