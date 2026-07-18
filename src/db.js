@@ -646,6 +646,41 @@ const setLocalStorageCollection = (collectionName, data) => {
   } catch { /* ignore */ }
 };
 
+function isOfflineError(error) {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+  if (error.code === 'unavailable') return true;
+  if (error.message && /network|offline|internet|failed to fetch|fetch request/i.test(error.message)) return true;
+  return false;
+}
+
+function classifyFirestoreError(error) {
+  if (isOfflineError(error)) return 'offline';
+  const code = error.code || '';
+  if (code === 'permission-denied') return 'permission';
+  if (code === 'unauthenticated') return 'auth';
+  if (code === 'not-found') return 'not-found';
+  if (code === 'invalid-argument' || code === 'failed-precondition') return 'validation';
+  if (code === 'resource-exhausted') return 'quota';
+  if (code === 'already-exists') return 'duplicate';
+  return 'unknown';
+}
+
+async function retryFirestoreWrite(fn, maxRetries = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isOfflineError(error)) throw error;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * attempt));
+      }
+    }
+  }
+  throw lastError;
+}
+
 class FirebaseDatabase {
   constructor() {
     this.authListeners = [];
@@ -855,17 +890,25 @@ class FirebaseDatabase {
     }
     record.createdAt = new Date().toISOString();
     const cleanRecord = sanitizeForFirestore(record);
-    let persistedToFirestore = false;
+
     try {
-      await setDoc(doc(firestore, collectionName, cleanRecord.id), cleanRecord);
-      persistedToFirestore = true;
+      await retryFirestoreWrite(() =>
+        setDoc(doc(firestore, collectionName, cleanRecord.id), cleanRecord)
+      );
+      return { record: cleanRecord, persistedToFirestore: true };
     } catch (error) {
-      console.warn(`insert(${collectionName}) Firestore failed, using localStorage fallback:`, error.message);
-      const items = getLocalStorageCollection(collectionName);
-      items.push(cleanRecord);
-      setLocalStorageCollection(collectionName, items);
+      const errorType = classifyFirestoreError(error);
+      console.error(`insert(${collectionName}) failed [${errorType}]:`, error);
+
+      if (errorType === 'offline') {
+        const items = getLocalStorageCollection(collectionName);
+        items.push(cleanRecord);
+        setLocalStorageCollection(collectionName, items);
+        return { record: cleanRecord, persistedToFirestore: false };
+      }
+
+      throw error;
     }
-    return { record: cleanRecord, persistedToFirestore };
   }
 
   async insertWithCapacityCheck(collectionName, record, announcementId) {
@@ -875,50 +918,58 @@ class FirebaseDatabase {
     record.createdAt = new Date().toISOString();
 
     try {
-      const result = await runTransaction(firestore, async (transaction) => {
-        const annDoc = await transaction.get(doc(firestore, 'Announcements', announcementId));
-        if (!annDoc.exists()) throw new Error('Event not found.');
+      const result = await retryFirestoreWrite(() =>
+        runTransaction(firestore, async (transaction) => {
+          const annDoc = await transaction.get(doc(firestore, 'Announcements', announcementId));
+          if (!annDoc.exists()) throw new Error('Event not found.');
 
-        const annData = annDoc.data();
-        const seatsLimit = annData.seatsLimit || 100;
-        const waitlistLimit = annData.waitlistLimit || 0;
+          const annData = annDoc.data();
+          const seatsLimit = annData.seatsLimit || 100;
+          const waitlistLimit = annData.waitlistLimit || 0;
 
-        const regsQuery = query(
-          collection(firestore, collectionName),
-          where('announcementId', '==', announcementId),
-          where('status', 'in', ['Registered', 'Waitlisted'])
-        );
-        const regsSnapshot = await getDocs(regsQuery);
+          const regsQuery = query(
+            collection(firestore, collectionName),
+            where('announcementId', '==', announcementId),
+            where('status', 'in', ['Registered', 'Waitlisted'])
+          );
+          const regsSnapshot = await getDocs(regsQuery);
 
-        let registeredCount = 0;
-        let waitlistedCount = 0;
-        regsSnapshot.forEach((d) => {
-          const data = d.data();
-          if (data.status === 'Registered') registeredCount++;
-          else if (data.status === 'Waitlisted') waitlistedCount++;
-        });
+          let registeredCount = 0;
+          let waitlistedCount = 0;
+          regsSnapshot.forEach((d) => {
+            const data = d.data();
+            if (data.status === 'Registered') registeredCount++;
+            else if (data.status === 'Waitlisted') waitlistedCount++;
+          });
 
-        if (registeredCount < seatsLimit) {
-          record.status = 'Registered';
-        } else if (waitlistedCount < waitlistLimit) {
-          record.status = 'Waitlisted';
-        } else {
-          throw new Error('Event is full. No more seats or waitlist slots available.');
-        }
+          if (registeredCount < seatsLimit) {
+            record.status = 'Registered';
+          } else if (waitlistedCount < waitlistLimit) {
+            record.status = 'Waitlisted';
+          } else {
+            throw new Error('Event is full. No more seats or waitlist slots available.');
+          }
 
-        const cleanRecord = sanitizeForFirestore(record);
-        transaction.set(doc(firestore, collectionName, cleanRecord.id), cleanRecord);
-        return { record: cleanRecord, status: record.status };
-      });
+          const cleanRecord = sanitizeForFirestore(record);
+          transaction.set(doc(firestore, collectionName, cleanRecord.id), cleanRecord);
+          return { record: cleanRecord, status: record.status };
+        })
+      );
 
       return { record: result.record, persistedToFirestore: true, status: result.status };
     } catch (error) {
-      console.warn(`insertWithCapacityCheck Firestore failed, using localStorage fallback:`, error.message);
-      const cleanRecord = sanitizeForFirestore(record);
-      const items = getLocalStorageCollection(collectionName);
-      items.push(cleanRecord);
-      setLocalStorageCollection(collectionName, items);
-      return { record: cleanRecord, persistedToFirestore: false, status: record.status };
+      const errorType = classifyFirestoreError(error);
+      console.error(`insertWithCapacityCheck(${collectionName}) failed [${errorType}]:`, error);
+
+      if (errorType === 'offline') {
+        const cleanRecord = sanitizeForFirestore(record);
+        const items = getLocalStorageCollection(collectionName);
+        items.push(cleanRecord);
+        setLocalStorageCollection(collectionName, items);
+        return { record: cleanRecord, persistedToFirestore: false, status: record.status };
+      }
+
+      throw error;
     }
   }
 
