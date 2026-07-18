@@ -476,10 +476,7 @@ export default function Home() {
               style={{ 
                 width: 'clamp(240px, 35vw, 420px)', 
                 height: 'auto', 
-                borderRadius: '50%', 
-                boxShadow: '0 15px 40px rgba(0,0,0,0.12)', 
-                border: '6px solid #ffffff',
-                background: '#ffffff'
+                objectFit: 'contain'
               }} 
               alt="AiDots Logo" 
             />

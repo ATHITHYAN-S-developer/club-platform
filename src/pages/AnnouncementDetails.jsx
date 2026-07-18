@@ -276,8 +276,16 @@ export default function AnnouncementDetails({ user }) {
 
     setSubmitting(true);
     try {
+      const existing = registrations.find(
+        r => r.announcementId === id && r.userEmail === emailToUse && r.status !== 'Cancelled'
+      );
+      if (existing) {
+        window.showToast('Already Registered', 'You have already registered for this event.', 'warning');
+        setSubmitting(false);
+        return;
+      }
+
       const regId = 'reg_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-      const isWaitlist = stats.remaining === 0;
 
       const cleanFormValues = {};
       Object.entries(formValues).forEach(([key, val]) => {
@@ -309,11 +317,13 @@ export default function AnnouncementDetails({ user }) {
           email: emailToUse
         },
         registeredAt: new Date().toISOString(),
-        status: isWaitlist ? 'Waitlisted' : 'Registered',
+        status: 'Registered',
         qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrDataText)}`,
       };
 
-      const { record: savedRecord, persistedToFirestore } = await db.insert('EventRegistrations', record);
+      const { record: savedRecord, persistedToFirestore, status: finalStatus } = await db.insertWithCapacityCheck('EventRegistrations', record, id);
+
+      const isWaitlist = finalStatus === 'Waitlisted';
 
       if (!persistedToFirestore) {
         window.showToast('Offline Save', 'Registration saved locally. It may not appear for admin until synced.', 'warning');

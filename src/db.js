@@ -18,7 +18,8 @@ import {
   deleteDoc,
   query,
   where,
-  onSnapshot
+  onSnapshot,
+  runTransaction
 } from "firebase/firestore";
 import { createClient } from "@supabase/supabase-js";
 
@@ -865,6 +866,60 @@ class FirebaseDatabase {
       setLocalStorageCollection(collectionName, items);
     }
     return { record: cleanRecord, persistedToFirestore };
+  }
+
+  async insertWithCapacityCheck(collectionName, record, announcementId) {
+    if (!record.id) {
+      record.id = collectionName.toLowerCase().substring(0, 3) + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    }
+    record.createdAt = new Date().toISOString();
+
+    try {
+      const result = await runTransaction(firestore, async (transaction) => {
+        const annDoc = await transaction.get(doc(firestore, 'Announcements', announcementId));
+        if (!annDoc.exists()) throw new Error('Event not found.');
+
+        const annData = annDoc.data();
+        const seatsLimit = annData.seatsLimit || 100;
+        const waitlistLimit = annData.waitlistLimit || 0;
+
+        const regsQuery = query(
+          collection(firestore, collectionName),
+          where('announcementId', '==', announcementId),
+          where('status', 'in', ['Registered', 'Waitlisted'])
+        );
+        const regsSnapshot = await getDocs(regsQuery);
+
+        let registeredCount = 0;
+        let waitlistedCount = 0;
+        regsSnapshot.forEach((d) => {
+          const data = d.data();
+          if (data.status === 'Registered') registeredCount++;
+          else if (data.status === 'Waitlisted') waitlistedCount++;
+        });
+
+        if (registeredCount < seatsLimit) {
+          record.status = 'Registered';
+        } else if (waitlistedCount < waitlistLimit) {
+          record.status = 'Waitlisted';
+        } else {
+          throw new Error('Event is full. No more seats or waitlist slots available.');
+        }
+
+        const cleanRecord = sanitizeForFirestore(record);
+        transaction.set(doc(firestore, collectionName, cleanRecord.id), cleanRecord);
+        return { record: cleanRecord, status: record.status };
+      });
+
+      return { record: result.record, persistedToFirestore: true, status: result.status };
+    } catch (error) {
+      console.warn(`insertWithCapacityCheck Firestore failed, using localStorage fallback:`, error.message);
+      const cleanRecord = sanitizeForFirestore(record);
+      const items = getLocalStorageCollection(collectionName);
+      items.push(cleanRecord);
+      setLocalStorageCollection(collectionName, items);
+      return { record: cleanRecord, persistedToFirestore: false, status: record.status };
+    }
   }
 
   async update(collectionName, id, updates) {

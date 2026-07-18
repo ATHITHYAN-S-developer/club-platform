@@ -161,16 +161,10 @@ export default function QuizDashboard({ user, onStartQuiz }) {
           align-items: center; justify-content: center;
           position: relative;
         }
-        .quiz-logo-circle {
-          border-radius: 50%; width: 360px; height: 360px;
-          display: flex; align-items: center; justify-content: center;
-          padding-top: 20px; box-sizing: border-box;
-          background: #000;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-          position: relative; z-index: 1;
-        }
         .quiz-logo-img {
-          width: 280px; height: 280px; object-fit: contain;
+          width: clamp(240px, 35vw, 420px);
+          height: auto;
+          object-fit: contain;
         }
         .quiz-text-col {
           flex: 1.1; text-align: left;
@@ -322,8 +316,7 @@ export default function QuizDashboard({ user, onStartQuiz }) {
           .quiz-hero-section { padding: 0 !important; }
           .quiz-shard-tl { width: 220px !important; height: 220px !important; }
           .quiz-shard-br { width: 300px !important; height: 300px !important; }
-          .quiz-logo-circle { width: 300px !important; height: 300px !important; }
-          .quiz-logo-img { width: 220px !important; height: 220px !important; }
+          .quiz-logo-img { width: 200px !important; height: 200px !important; }
           .quiz-cursive-tag { font-size: 2.4rem !important; }
           .quiz-dash-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important; gap: 1rem !important; }
           .quiz-slider-dots { bottom: 1.5rem !important; left: 2rem !important; }
@@ -333,8 +326,7 @@ export default function QuizDashboard({ user, onStartQuiz }) {
           .quiz-hero-section { padding: 0 !important; min-height: auto !important; }
           .quiz-shard-tl { width: 180px !important; height: 180px !important; }
           .quiz-shard-br { width: 220px !important; height: 220px !important; }
-          .quiz-logo-circle { width: 260px !important; height: 260px !important; }
-          .quiz-logo-img { width: 190px !important; height: 190px !important; }
+          .quiz-logo-img { width: 170px !important; height: 170px !important; }
           .quiz-cursive-tag { font-size: 2rem !important; }
           .quiz-dash-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
           .quiz-cards-section { padding: 2rem 1rem 3rem !important; }
@@ -348,8 +340,7 @@ export default function QuizDashboard({ user, onStartQuiz }) {
           .quiz-sphere-tr { display: none !important; }
           .quiz-sphere-br { display: none !important; }
           .quiz-sphere-bl { display: none !important; }
-          .quiz-logo-circle { width: 200px !important; height: 200px !important; }
-          .quiz-logo-img { width: 145px !important; height: 145px !important; }
+          .quiz-logo-img { width: 135px !important; height: 135px !important; }
           .quiz-cursive-tag { font-size: 1.6rem !important; }
           .quiz-hero-title { font-size: clamp(1.6rem, 6vw, 2.4rem) !important; }
           .quiz-hero-sub { font-size: 0.9rem !important; }
@@ -365,7 +356,6 @@ export default function QuizDashboard({ user, onStartQuiz }) {
           .quiz-hero-section { padding: 0 !important; }
           .quiz-shard-tl { width: 100px !important; height: 100px !important; }
           .quiz-shard-br { width: 120px !important; height: 120px !important; }
-          .quiz-logo-circle { width: 160px !important; height: 160px !important; }
           .quiz-logo-img { width: 115px !important; height: 115px !important; }
           .quiz-cursive-tag { font-size: 1.3rem !important; }
           .quiz-hero-title { font-size: clamp(1.2rem, 5vw, 1.6rem) !important; }
@@ -389,9 +379,7 @@ export default function QuizDashboard({ user, onStartQuiz }) {
         <div ref={heroRef} className="quiz-split-container" style={reveal(heroVisible)}>
           {/* LEFT: Logo */}
           <div className="quiz-logo-col">
-            <div className="quiz-logo-circle">
-              <img src="/logo.png" alt="Mindcraft AI Logo" className="quiz-logo-img" />
-            </div>
+            <img src="/logo.png" alt="AiDots Logo" className="quiz-logo-img" />
           </div>
 
           {/* RIGHT: Text */}
