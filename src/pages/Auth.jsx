@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import emailjs from '@emailjs/browser';
 import db from '../db';
 
 /* ─── Modern card input with left icon ─── */
@@ -67,6 +68,29 @@ export default function Auth({ user }) {
 
   const [form, setForm] = useState({ email: '', password: '' });
 
+  /* Forgot Password specific states */
+  const [mode, setMode] = useState('signin'); // 'signin', 'forgot_method', 'forgot_otp', 'forgot_newpw'
+  const [resetMethod, setResetMethod] = useState('email'); // 'email' or 'phone'
+  const [resetValue, setResetValue] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [resetUser, setResetUser] = useState(null);
+
+  useEffect(() => {
+    let timer;
+    if (otpTimer > 0) {
+      timer = setInterval(() => {
+        setOtpTimer(p => p - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpTimer]);
+
   const params       = new URLSearchParams(location.search);
   const redirectPath = params.get('redirect') || '/';
 
@@ -86,6 +110,168 @@ export default function Auth({ user }) {
     } catch (err) {
       window.showToast('Authentication Failed', err.message, 'error');
     } finally { setLoading(false); }
+  };
+
+  /* ── Forgot Password handlers ── */
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    if (!resetValue.trim()) {
+      window.showToast('Input Required', `Please enter your registered ${resetMethod}.`, 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const users = await db.find('Users', true);
+      const matchedUser = users.find(user => {
+        if (resetMethod === 'email') {
+          return (user.email || '').toLowerCase().trim() === resetValue.toLowerCase().trim();
+        } else {
+          const normUserPhone = (user.phone || '').replace(/\D/g, '');
+          const normInputPhone = resetValue.replace(/\D/g, '');
+          if (!normUserPhone || !normInputPhone) return false;
+          return normUserPhone.endsWith(normInputPhone) || normInputPhone.endsWith(normUserPhone);
+        }
+      });
+      
+      if (!matchedUser) {
+        window.showToast('User Not Found', `No registered user found with this ${resetMethod}.`, 'error');
+        setLoading(false);
+        return;
+      }
+
+      setResetUser(matchedUser);
+
+      // Generate a 6-digit random OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(otp);
+      setOtpCode('');
+      setOtpTimer(30);
+
+      const emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const emailjsPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+      console.log('EmailJS Environment Variables loaded:', {
+        emailjsServiceId,
+        emailjsTemplateId,
+        emailjsPublicKey
+      });
+
+      if (resetMethod === 'email' && emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
+        try {
+          await emailjs.send(
+            emailjsServiceId,
+            emailjsTemplateId,
+            {
+              to_name: matchedUser.name || 'User',
+              to_email: matchedUser.email,
+              otp_code: otp,
+            },
+            { publicKey: emailjsPublicKey }
+          );
+          window.showToast('OTP Sent', `Verification code has been sent to your email address: ${matchedUser.email}.`, 'success');
+        } catch (mailErr) {
+          const errMsg = mailErr && typeof mailErr === 'object'
+            ? (mailErr.text || mailErr.message || JSON.stringify(mailErr))
+            : String(mailErr);
+          console.error('EmailJS error:', mailErr);
+          window.showToast(
+            'Email Dispatch Failed',
+            `Failed: ${errMsg}. IDs used: Service="${emailjsServiceId}", Template="${emailjsTemplateId}", Key="${emailjsPublicKey}"`,
+            'warning'
+          );
+        }
+      } else {
+        window.showToast('OTP Sent', `Simulated OTP code sent to your ${resetMethod}: ${otp} (Use this code to verify)`, 'success');
+      }
+
+      setMode('forgot_otp');
+    } catch (err) {
+      window.showToast('Error', err.message || 'Failed to send OTP.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpTimer > 0) return;
+    setLoading(true);
+    try {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(otp);
+      setOtpCode('');
+      setOtpTimer(30);
+
+      const emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const emailjsPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+      if (resetMethod === 'email' && emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
+        try {
+          await emailjs.send(
+            emailjsServiceId,
+            emailjsTemplateId,
+            {
+              to_name: resetUser?.name || 'User',
+              to_email: resetUser?.email,
+              otp_code: otp,
+            },
+            { publicKey: emailjsPublicKey }
+          );
+          window.showToast('OTP Resent', `A new verification code has been sent to your email: ${resetUser?.email}.`, 'success');
+        } catch (mailErr) {
+          const errMsg = mailErr && typeof mailErr === 'object'
+            ? (mailErr.text || mailErr.message || JSON.stringify(mailErr))
+            : String(mailErr);
+          console.error('EmailJS resend error:', mailErr);
+          window.showToast('Email Dispatch Failed', `Failed: ${errMsg}. Falling back: ${otp}`, 'warning');
+        }
+      } else {
+        window.showToast('OTP Resent', `New simulated OTP code sent to your ${resetMethod}: ${otp} (Use this code to verify)`, 'success');
+      }
+    } catch (err) {
+      window.showToast('Error', 'Failed to resend OTP.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (otpCode.trim() !== generatedOtp) {
+      window.showToast('Verification Failed', 'Invalid OTP code. Please check and try again.', 'error');
+      return;
+    }
+    window.showToast('OTP Verified', 'Verification successful. Please enter your new password.', 'success');
+    setMode('forgot_newpw');
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      window.showToast('Validation Error', 'Password must be at least 6 characters.', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      window.showToast('Validation Error', 'Passwords do not match.', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      await db.update('Users', resetUser.id, { password: newPassword });
+      window.showToast('Password Reset Successful', 'Your password has been reset successfully. You can now sign in.', 'success');
+      
+      setForm({ email: resetUser.email, password: '' });
+      setMode('signin');
+      setResetValue('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setResetUser(null);
+    } catch (err) {
+      window.showToast('Error', err.message || 'Failed to reset password.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
 
@@ -182,88 +368,298 @@ export default function Auth({ user }) {
           minHeight: 'calc(100vh - 70px)',
         }}>
 
-          <div>
-            <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', fontFamily: "'Dancing Script', cursive" }}>
-              Sign in
-            </h1>
-            <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '2rem' }}>
-              One community. Endless innovation.
-            </p>
-
-            <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <CardInput 
-                type="email" 
-                id="email" 
-                placeholder="User Name" 
-                value={form.email} 
-                onChange={set('email')} 
-                icon="fa-solid fa-user" 
-                required 
-              />
-
-              <CardInput
-                type={showPw ? 'text' : 'password'}
-                id="password" 
-                placeholder="Password"
-                value={form.password} 
-                onChange={set('password')} 
-                icon="fa-solid fa-lock" 
-                required
-              >
-                <button 
-                  type="button" 
-                  onClick={() => setShowPw(p => !p)}
-                  style={{ 
-                    color: 'var(--orange)', 
-                    fontWeight: 700, 
-                    fontSize: '0.75rem', 
-                    cursor: 'pointer', 
-                    marginLeft: '0.5rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}
-                >
-                  {showPw ? 'HIDE' : 'SHOW'}
-                </button>
-              </CardInput>
-
-              {/* Remember me row */}
-              <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.8rem', margin: '0.2rem 0' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>
-                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
-                    style={{ accentColor: 'var(--orange)', width: '15px', height: '15px', cursor: 'pointer', borderRadius: '4px' }} />
-                  Remember me
-                </label>
-              </div>
-
-              <button type="submit" disabled={loading} style={{
-                background: 'var(--orange)', 
-                color: '#fff', border: 'none', borderRadius: '8px',
-                padding: '0.75rem', fontSize: '0.9rem', fontWeight: 700,
-                cursor: 'pointer', width: '100%',
-                transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--orange-dark)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--orange)'; e.currentTarget.style.transform = 'none'; }}
-              >
-                {loading
-                  ? <span className="auth-spinner" />
-                  : 'Sign in'
-                }
-              </button>
-
-              <p style={{ textAlign: 'center', fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
-                Don't have an account?{' '}
-                <span onClick={() => navigate('/signup')}
-                  style={{ color: 'var(--orange)', fontWeight: 700, cursor: 'pointer' }}>
-                  Sign Up
-                </span>
+          {mode === 'signin' && (
+            <div>
+              <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', fontFamily: "'Dancing Script', cursive" }}>
+                Sign in
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '2rem' }}>
+                One community. Endless innovation.
               </p>
-            </form>
 
-          </div>
+              <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <CardInput 
+                  type="email" 
+                  id="email" 
+                  placeholder="User Name" 
+                  value={form.email} 
+                  onChange={set('email')} 
+                  icon="fa-solid fa-user" 
+                  required 
+                />
+
+                <CardInput
+                  type={showPw ? 'text' : 'password'}
+                  id="password" 
+                  placeholder="Password"
+                  value={form.password} 
+                  onChange={set('password')} 
+                  icon="fa-solid fa-lock" 
+                  required
+                >
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPw(p => !p)}
+                    style={{ 
+                      color: 'var(--orange)', 
+                      fontWeight: 700, 
+                      fontSize: '0.75rem', 
+                      cursor: 'pointer', 
+                      marginLeft: '0.5rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}
+                  >
+                    {showPw ? 'HIDE' : 'SHOW'}
+                  </button>
+                </CardInput>
+
+                {/* Remember me row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', margin: '0.2rem 0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#64748b', fontWeight: 500 }}>
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                      style={{ accentColor: 'var(--orange)', width: '15px', height: '15px', cursor: 'pointer', borderRadius: '4px' }} />
+                    Remember me
+                  </label>
+                  <span 
+                    onClick={() => { setMode('forgot_method'); setResetValue(''); }} 
+                    style={{ color: 'var(--orange)', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Forgot password?
+                  </span>
+                </div>
+
+                <button type="submit" disabled={loading} style={{
+                  background: 'var(--orange)', 
+                  color: '#fff', border: 'none', borderRadius: '8px',
+                  padding: '0.75rem', fontSize: '0.9rem', fontWeight: 700,
+                  cursor: 'pointer', width: '100%',
+                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--orange-dark)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--orange)'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  {loading
+                    ? <span className="auth-spinner" />
+                    : 'Sign in'
+                  }
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
+                  Don't have an account?{' '}
+                  <span onClick={() => navigate('/signup')}
+                    style={{ color: 'var(--orange)', fontWeight: 700, cursor: 'pointer' }}>
+                    Sign Up
+                  </span>
+                </p>
+              </form>
+            </div>
+          )}
+
+          {mode === 'forgot_method' && (
+            <div>
+              <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', fontFamily: "'Dancing Script', cursive" }}>
+                Forgot Password
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '2rem' }}>
+                Enter your registered email address to receive your verification code.
+              </p>
+
+              <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <CardInput
+                  type="email"
+                  id="resetValue"
+                  placeholder="Registered Email Address"
+                  value={resetValue}
+                  onChange={(e) => setResetValue(e.target.value)}
+                  icon="fa-solid fa-envelope-open-text"
+                  required
+                />
+
+                <button type="submit" disabled={loading} style={{
+                  background: 'var(--orange)',
+                  color: '#fff', border: 'none', borderRadius: '8px',
+                  padding: '0.75rem', fontSize: '0.9rem', fontWeight: 700,
+                  cursor: 'pointer', width: '100%',
+                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--orange-dark)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--orange)'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  {loading ? <span className="auth-spinner" /> : 'Send OTP'}
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
+                  Remember your password?{' '}
+                  <span onClick={() => { setMode('signin'); setResetValue(''); }}
+                    style={{ color: 'var(--orange)', fontWeight: 700, cursor: 'pointer' }}>
+                    Sign In
+                  </span>
+                </p>
+              </form>
+            </div>
+          )}
+
+          {mode === 'forgot_otp' && (
+            <div>
+              <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', fontFamily: "'Dancing Script', cursive" }}>
+                Verify OTP
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '2rem' }}>
+                We've sent a 6-digit verification code to your {resetMethod}.
+              </p>
+
+              <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <CardInput
+                  type="text"
+                  id="otpCode"
+                  placeholder="Enter 6-digit code"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  icon="fa-solid fa-key"
+                  required
+                  style={{
+                    letterSpacing: otpCode ? '0.6em' : 'normal',
+                    fontSize: otpCode ? '1.2rem' : '0.88rem',
+                    textAlign: otpCode ? 'center' : 'left',
+                    fontFamily: otpCode ? 'monospace' : 'inherit',
+                  }}
+                />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                  <span style={{ color: '#64748b' }}>
+                    Didn't receive the code?
+                  </span>
+                  {otpTimer > 0 ? (
+                    <span style={{ color: '#94a3b8', fontWeight: 500 }}>
+                      Resend in {otpTimer}s
+                    </span>
+                  ) : (
+                    <span
+                      onClick={handleResendOtp}
+                      style={{ color: 'var(--orange)', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Resend OTP
+                    </span>
+                  )}
+                </div>
+
+                <button type="submit" disabled={loading || otpCode.length !== 6} style={{
+                  background: otpCode.length === 6 ? 'var(--orange)' : '#cbd5e1',
+                  color: '#fff', border: 'none', borderRadius: '8px',
+                  padding: '0.75rem', fontSize: '0.9rem', fontWeight: 700,
+                  cursor: otpCode.length === 6 ? 'pointer' : 'not-allowed', width: '100%',
+                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+                  onMouseEnter={e => { if (otpCode.length === 6) { e.currentTarget.style.background = 'var(--orange-dark)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                  onMouseLeave={e => { if (otpCode.length === 6) { e.currentTarget.style.background = 'var(--orange)'; e.currentTarget.style.transform = 'none'; } }}
+                >
+                  {loading ? <span className="auth-spinner" /> : 'Verify Code'}
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
+                  <span onClick={() => { setMode('forgot_method'); setOtpCode(''); }}
+                    style={{ color: 'var(--orange)', fontWeight: 700, cursor: 'pointer' }}>
+                    Back to Method Selection
+                  </span>
+                </p>
+              </form>
+            </div>
+          )}
+
+          {mode === 'forgot_newpw' && (
+            <div>
+              <h1 style={{ fontSize: '2.4rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', fontFamily: "'Dancing Script', cursive" }}>
+                New Password
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '2rem' }}>
+                Create a new secure password for your account.
+              </p>
+
+              <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <CardInput
+                  type={showNewPw ? 'text' : 'password'}
+                  id="newPassword"
+                  placeholder="New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  icon="fa-solid fa-lock"
+                  required
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPw(p => !p)}
+                    style={{
+                      color: 'var(--orange)',
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      marginLeft: '0.5rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}
+                  >
+                    {showNewPw ? 'HIDE' : 'SHOW'}
+                  </button>
+                </CardInput>
+
+                <CardInput
+                  type={showConfirmPw ? 'text' : 'password'}
+                  id="confirmPassword"
+                  placeholder="Confirm New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  icon="fa-solid fa-circle-check"
+                  required
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPw(p => !p)}
+                    style={{
+                      color: 'var(--orange)',
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      marginLeft: '0.5rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}
+                  >
+                    {showConfirmPw ? 'HIDE' : 'SHOW'}
+                  </button>
+                </CardInput>
+
+                <button type="submit" disabled={loading} style={{
+                  background: 'var(--orange)',
+                  color: '#fff', border: 'none', borderRadius: '8px',
+                  padding: '0.75rem', fontSize: '0.9rem', fontWeight: 700,
+                  cursor: 'pointer', width: '100%',
+                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--orange-dark)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--orange)'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  {loading ? <span className="auth-spinner" /> : 'Reset Password'}
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
+                  Cancel reset?{' '}
+                  <span onClick={() => { setMode('signin'); setResetValue(''); setNewPassword(''); setConfirmPassword(''); }}
+                    style={{ color: 'var(--orange)', fontWeight: 700, cursor: 'pointer' }}>
+                    Back to Sign In
+                  </span>
+                </p>
+              </form>
+            </div>
+          )}
         </div>
       </div>
 

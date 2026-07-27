@@ -769,7 +769,7 @@ class FirebaseDatabase {
     } catch { return null; }
   }
 
-  async find(collectionName) {
+  async find(collectionName, includeDeleted = false) {
     const deduplicateUsers = (list) => {
       if (collectionName !== 'Users') return list;
       const unique = {};
@@ -795,9 +795,11 @@ class FirebaseDatabase {
       const deletedIds = getDeletedIds();
       const deletedEmails = getDeletedEmails();
       const filtered = data.filter(item => {
-        if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-        if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
-          return false;
+        if (!includeDeleted) {
+          if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
+          if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
+            return false;
+          }
         }
         return true;
       });
@@ -805,16 +807,39 @@ class FirebaseDatabase {
         const dummyIds = ['qr_1', 'qr_2', 'qr_3'];
         return deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)));
       }
-      return deduplicateUsers(filtered);
+      // Merge local fallback data with Firestore data to ensure local registrations are found
+      let merged = [...filtered];
+      try {
+        const localData = getLocalStorageCollection(collectionName);
+        const localFiltered = localData.filter(item => {
+          if (!includeDeleted) {
+            if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
+            if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
+              return false;
+            }
+          }
+          return true;
+        });
+        localFiltered.forEach(localItem => {
+          if (!merged.some(item => item.id === localItem.id)) {
+            merged.push(localItem);
+          }
+        });
+      } catch (localErr) {
+        console.warn('Failed to load local data for merge:', localErr);
+      }
+      return deduplicateUsers(merged);
     } catch (error) {
       console.warn(`find(${collectionName}) failed, using fallback:`, error.message);
       const localData = getLocalStorageCollection(collectionName);
       const deletedIds = getDeletedIds();
       const deletedEmails = getDeletedEmails();
       const filtered = localData.filter(item => {
-        if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-        if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
-          return false;
+        if (!includeDeleted) {
+          if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
+          if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
+            return false;
+          }
         }
         return true;
       });
@@ -974,13 +999,20 @@ class FirebaseDatabase {
   }
 
   async update(collectionName, id, updates) {
+    let docData = {};
     try {
       const docRef = doc(firestore, collectionName, id);
       const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) { const e = new Error(`Record ${id} not found in ${collectionName}`); e.code = 'NOT_FOUND'; throw e; }
+      if (docSnap.exists()) {
+        docData = docSnap.data();
+      } else {
+        const e = new Error(`Record ${id} not found in ${collectionName}`);
+        e.code = 'NOT_FOUND';
+        throw e;
+      }
       const sanitizedUpdates = sanitizeForFirestore({ ...updates, updatedAt: new Date().toISOString() });
       await updateDoc(docRef, sanitizedUpdates);
-      const finalDoc = { ...docSnap.data(), ...sanitizedUpdates, id };
+      const finalDoc = { ...docData, ...sanitizedUpdates, id };
       const currentUser = this.getCurrentUser();
       if (currentUser && currentUser.id === id) {
         localStorage.setItem('aether_user_session', JSON.stringify(finalDoc));
@@ -990,8 +1022,12 @@ class FirebaseDatabase {
     } catch (error) {
       console.warn(`update(${collectionName}, ${id}) failed, using fallback:`, error.message);
       const items = getLocalStorageCollection(collectionName);
-      const idx = items.findIndex(item => item.id === id);
-      if (idx === -1) { const e = new Error(`Record ${id} not found in fallback`); e.code = 'NOT_FOUND'; throw e; }
+      let idx = items.findIndex(item => item.id === id);
+      if (idx === -1) {
+        const fallbackItem = { id, ...docData, createdAt: new Date().toISOString() };
+        items.push(fallbackItem);
+        idx = items.length - 1;
+      }
       const finalDoc = { ...items[idx], ...updates, id, updatedAt: new Date().toISOString() };
       items[idx] = finalDoc;
       setLocalStorageCollection(collectionName, items);
@@ -1134,6 +1170,25 @@ class FirebaseDatabase {
       localStorage.setItem('aether_jwt_token', `firebase.${btoa(JSON.stringify(userProfile))}.signature`);
       return { user: userProfile };
     } catch (err) {
+      try {
+        const users = await this.find('Users');
+        const userProfile = users.find(user => {
+          const normEmail = email.toLowerCase().trim();
+          const matchesEmail = (user.email || '').toLowerCase().trim() === normEmail;
+          const normUserPhone = (user.phone || '').replace(/\D/g, '');
+          const normInputPhone = email.replace(/\D/g, '');
+          const matchesPhone = normInputPhone && normUserPhone && (normUserPhone.endsWith(normInputPhone) || normInputPhone.endsWith(normUserPhone));
+          return matchesEmail || matchesPhone;
+        });
+        if (userProfile && userProfile.password === password) {
+          localStorage.setItem('aether_user_session', JSON.stringify(userProfile));
+          localStorage.setItem('aether_jwt_token', `firebase.${btoa(JSON.stringify(userProfile))}.signature`);
+          this.authListeners.forEach(listener => listener(userProfile, null));
+          return { user: userProfile };
+        }
+      } catch (fallbackErr) {
+        console.warn('Fallback login check failed:', fallbackErr);
+      }
       const isSpecialAdmin = ADMIN_EMAILS.includes(email.toLowerCase().trim()) && password === 'Mind2025@';
       const isUserNotFound = err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential';
 
