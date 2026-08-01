@@ -42,7 +42,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-export const supabaseServiceClient = supabaseServiceKey 
+export const supabaseServiceClient = supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : supabase;
 
@@ -76,83 +76,7 @@ const initialCollections = {
     { id: 'res_3', title: 'Full Stack Starter Kit Repository', category: 'GitHub Links', description: 'Template repository preloaded with Express, JWT authentication, and SQLite configuration.', link: 'https://github.com', size: 'External Link' },
     { id: 'res_4', title: 'Machine Learning Basics Workshop Recording', category: 'Videos', description: 'Full video walkthrough covering linear regression, gradient descent, and PyTorch.', link: 'https://youtube.com', size: 'Video Stream' },
   ],
-  Quiz: [
-    {
-      id: 'qz_1', title: 'Weekly JavaScript Quiz: Scopes & Closures',
-      description: 'Test your understanding of lexical scoping, hoisting, closures, and the event loop.',
-      category: 'Programming', difficulty: 'medium',
-      timeLimit: 10, passMarks: 2, totalMarks: 3, maxAttempts: 2,
-      shuffleQuestions: false, shuffleOptions: false,
-      showResult: true, leaderboardVisibility: true,
-      allowReview: true, allowBackNavigation: true,
-      autoSubmit: true, negativeMarking: 0,
-      scheduledAt: null, archived: false, published: true,
-      security: { fullscreenRequired: true, tabSwitchDetection: true, copyPasteBlock: true, rightClickBlock: true, devToolsDetection: true, violationLimit: 3 },
-      createdAt: '2026-06-20T08:00:00Z', updatedAt: '2026-06-20T08:00:00Z',
-      questions: [
-        { id: 'q1_1', type: 'mcq', questionText: 'What will be logged: console.log(typeof NaN)?', options: [{ id: 'a', text: '"number"', isCorrect: true }, { id: 'b', text: '"nan"', isCorrect: false }, { id: 'c', text: '"undefined"', isCorrect: false }, { id: 'd', text: '"object"', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 30, order: 1 },
-        { id: 'q1_2', type: 'mcq', questionText: 'Which keyword creates a block-scoped variable?', options: [{ id: 'a', text: 'var', isCorrect: false }, { id: 'b', text: 'let', isCorrect: true }, { id: 'c', text: 'function', isCorrect: false }, { id: 'd', text: 'define', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 20, order: 2 },
-        { id: 'q1_3', type: 'mcq', questionText: 'What is the output: (function(){ var a = b = 3; })(); console.log(typeof a, typeof b);', options: [{ id: 'a', text: '"undefined" "number"', isCorrect: true }, { id: 'b', text: '"number" "undefined"', isCorrect: false }, { id: 'c', text: '"number" "number"', isCorrect: false }, { id: 'd', text: '"undefined" "undefined"', isCorrect: false }], difficulty: 'hard', marks: 1, negativeMarks: 0, timeLimit: 35, order: 3 },
-      ]
-    },
-    {
-      id: 'qz_2', title: 'Weekly CSS Grid & Layout Masterclass',
-      description: 'Evaluate your layout strategies, centering techniques, and grid constraints.',
-      category: 'CSS', difficulty: 'medium',
-      timeLimit: 5, passMarks: 1, totalMarks: 2, maxAttempts: 3,
-      shuffleQuestions: false, shuffleOptions: false,
-      showResult: true, leaderboardVisibility: true,
-      allowReview: true, allowBackNavigation: true,
-      autoSubmit: true, negativeMarking: 0,
-      scheduledAt: null, archived: false, published: true,
-      security: { fullscreenRequired: true, tabSwitchDetection: true, copyPasteBlock: true, rightClickBlock: true, devToolsDetection: true, violationLimit: 3 },
-      createdAt: '2026-06-21T10:00:00Z', updatedAt: '2026-06-21T10:00:00Z',
-      questions: [
-        { id: 'q2_1', type: 'mcq', questionText: 'Which value of justify-content aligns items with equal space around them, but half-spaces on edges?', options: [{ id: 'a', text: 'space-between', isCorrect: false }, { id: 'b', text: 'space-around', isCorrect: true }, { id: 'c', text: 'space-evenly', isCorrect: false }, { id: 'd', text: 'stretch', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 25, order: 1 },
-        { id: 'q2_2', type: 'mcq', questionText: 'How do you define a grid column to take twice the space of another?', options: [{ id: 'a', text: 'width: 2fr', isCorrect: false }, { id: 'b', text: 'grid-template-columns: 2fr 1fr', isCorrect: true }, { id: 'c', text: 'flex: 2', isCorrect: false }, { id: 'd', text: 'column-span: 2', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 20, order: 2 },
-      ]
-    },
-    {
-      id: 'qz_rag_1', title: 'AI Foundations',
-      description: 'Test your understanding of AI fundamentals, ML paradigms, and the Python ecosystem.',
-      category: 'AI/ML', difficulty: 'easy',
-      timeLimit: 10, passMarks: 3, totalMarks: 5, maxAttempts: 3,
-      shuffleQuestions: true, shuffleOptions: true,
-      showResult: true, leaderboardVisibility: true,
-      allowReview: true, allowBackNavigation: true,
-      autoSubmit: true, negativeMarking: 0,
-      scheduledAt: null, archived: false, published: true,
-      security: { fullscreenRequired: false, tabSwitchDetection: true, copyPasteBlock: true, rightClickBlock: true, devToolsDetection: true, violationLimit: 3 },
-      createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z',
-      questions: [
-        { id: 'qa_1', type: 'mcq', questionText: 'What is the main goal of supervised learning?', options: [{ id: 'a', text: 'Learn hidden patterns without labels', isCorrect: false }, { id: 'b', text: 'Predict labels from labeled training data', isCorrect: true }, { id: 'c', text: 'Cluster data into groups', isCorrect: false }, { id: 'd', text: 'Reduce dimensionality', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 30, order: 1 },
-        { id: 'qa_2', type: 'mcq', questionText: 'Which Python library is primarily used for numerical computing?', options: [{ id: 'a', text: 'Requests', isCorrect: false }, { id: 'b', text: 'NumPy', isCorrect: true }, { id: 'c', text: 'BeautifulSoup', isCorrect: false }, { id: 'd', text: 'Flask', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 20, order: 2 },
-        { id: 'qa_3', type: 'mcq', questionText: 'What is the role of an activation function in a neural network?', options: [{ id: 'a', text: 'Initialize weights', isCorrect: false }, { id: 'b', text: 'Introduce non-linearity', isCorrect: true }, { id: 'c', text: 'Reduce overfitting', isCorrect: false }, { id: 'd', text: 'Normalize inputs', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 25, order: 3 },
-        { id: 'qa_4', type: 'mcq', questionText: 'What does the term "overfitting" mean?', options: [{ id: 'a', text: 'Model performs well on new data', isCorrect: false }, { id: 'b', text: 'Model memorizes training data but fails on new data', isCorrect: true }, { id: 'c', text: 'Model is too simple', isCorrect: false }, { id: 'd', text: 'Model has too few parameters', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 20, order: 4 },
-        { id: 'qa_5', type: 'mcq', questionText: 'Which metric is commonly used for classification model evaluation?', options: [{ id: 'a', text: 'Mean Squared Error', isCorrect: false }, { id: 'b', text: 'R-squared', isCorrect: false }, { id: 'c', text: 'F1 Score', isCorrect: true }, { id: 'd', text: 'Perplexity', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 25, order: 5 },
-      ]
-    },
-    {
-      id: 'qz_rag_2', title: 'LangChain & RAG',
-      description: 'Evaluate your knowledge of LangChain framework and Retrieval-Augmented Generation systems.',
-      category: 'RAG', difficulty: 'medium',
-      timeLimit: 10, passMarks: 3, totalMarks: 5, maxAttempts: 3,
-      shuffleQuestions: true, shuffleOptions: true,
-      showResult: true, leaderboardVisibility: true,
-      allowReview: true, allowBackNavigation: true,
-      autoSubmit: true, negativeMarking: 0,
-      scheduledAt: null, archived: false, published: true,
-      security: { fullscreenRequired: false, tabSwitchDetection: true, copyPasteBlock: true, rightClickBlock: true, devToolsDetection: true, violationLimit: 3 },
-      createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z',
-      questions: [
-        { id: 'qb_1', type: 'mcq', questionText: 'What does RAG stand for?', options: [{ id: 'a', text: 'Random Access Generation', isCorrect: false }, { id: 'b', text: 'Retrieval-Augmented Generation', isCorrect: true }, { id: 'c', text: 'Recurrent Analysis Gradient', isCorrect: false }, { id: 'd', text: 'Rapid Algorithm Generator', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 15, order: 1 },
-        { id: 'qb_2', type: 'mcq', questionText: 'What is the primary purpose of a vector store in RAG?', options: [{ id: 'a', text: 'Store raw documents', isCorrect: false }, { id: 'b', text: 'Store and retrieve embeddings by similarity', isCorrect: true }, { id: 'c', text: 'Cache LLM responses', isCorrect: false }, { id: 'd', text: 'Tokenize input text', isCorrect: false }], difficulty: 'easy', marks: 1, negativeMarks: 0, timeLimit: 20, order: 2 },
-        { id: 'qb_3', type: 'mcq', questionText: 'In LangChain, what is a "chain"?', options: [{ id: 'a', text: 'A sequence of LLM calls or operations', isCorrect: true }, { id: 'b', text: 'A data structure for vector search', isCorrect: false }, { id: 'c', text: 'A type of prompt template', isCorrect: false }, { id: 'd', text: 'A model fine-tuning method', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 25, order: 3 },
-        { id: 'qb_4', type: 'mcq', questionText: 'Which embedding model property is most important for retrieval quality?', options: [{ id: 'a', text: 'Model size in parameters', isCorrect: false }, { id: 'b', text: 'Semantic similarity capture', isCorrect: true }, { id: 'c', text: 'Inference speed', isCorrect: false }, { id: 'd', text: 'Training data recency', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 25, order: 4 },
-        { id: 'qb_5', type: 'mcq', questionText: 'What technique helps RAG handle queries beyond the context window?', options: [{ id: 'a', text: 'Model fine-tuning', isCorrect: false }, { id: 'b', text: 'Document chunking and retrieval', isCorrect: true }, { id: 'c', text: 'Prompt compression', isCorrect: false }, { id: 'd', text: 'Beam search', isCorrect: false }], difficulty: 'medium', marks: 1, negativeMarks: 0, timeLimit: 30, order: 5 },
-      ]
-    },
-  ],
+  Quiz: [],
   QuizResults: [],
   QuizAttempt: [],
   Violations: [],
@@ -160,393 +84,21 @@ const initialCollections = {
   EventRegistrations: [],
   WeeklyTasks: [],
   TaskSubmissions: [],
-  Announcements: [
-    { id: 'ann_1', title: 'Club Recruitment 2026 Active!', content: 'We are officially open for new applications. Share the link with friends across departments who are passionate about design & engineering.', date: '2026-06-24', important: true },
-    { id: 'ann_2', title: 'Vite & Frontend Ecosystem Seminar next Wednesday', content: 'Make sure to download files in the Resources panel before attending. We will construct a build pipeline from scratch.', date: '2026-06-22', important: false },
-  ],
-  JoinRequests: [
-    { id: 'req_1', name: 'Bob Miller', department: 'Computer Science', college: 'Tech Institute of Technology', year: '2', phone: '+1 555-0199', email: 'bob@example.com', skills: 'Python, Basic HTML', interests: 'Backend Web Dev, Cyber Security', resume: 'bob-resume.pdf', status: 'Pending', submittedAt: '2026-06-25T16:00:00Z' },
-    { id: 'req_2', name: 'Diana Prince', department: 'Computer Science', college: 'State University', year: '3', phone: '+1 555-0188', email: 'diana@example.com', skills: 'C++, Circuit Design, Microcontrollers', interests: 'Embedded Development, IoT systems', resume: 'diana-eng.pdf', status: 'Pending', submittedAt: '2026-06-26T09:40:00Z' },
-  ],
-  WeeklyWinners: [
-    { id: 'win_1', name: 'Jane Doe', department: 'Computer Science', achievement: 'Winner of Glassmorphic Card Layout challenge (Task #1)', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', certificate: 'https://example.com/cert/glassmorphic-challenge' },
-    { id: 'win_2', name: 'Alice Johnson', department: 'Computer Science', achievement: 'Fastest Deduplication Algorithm optimization (Task #2)', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', certificate: 'https://example.com/cert/deduplication-opt' },
-  ],
+  Announcements: [],
+  JoinRequests: [],
+  WeeklyWinners: [],
   Tasks: [],
-  Challenges: [
-    {
-      id: 'chal_1',
-      title: 'Sum of Array',
-      description: 'Given an integer N followed by N integers, compute and print the sum of all N integers.',
-      difficulty: 'easy',
-      category: 'Coding',
-      tags: ['arrays', 'math', 'basics'],
-      constraints: '1 <= N <= 1000\n-10^6 <= arr[i] <= 10^6',
-      inputFormat: 'The first line contains a single integer N.\nThe second line contains N space-separated integers.',
-      outputFormat: 'Print a single integer — the sum of all N integers.',
-      sampleTestCases: [
-        {
-          input: '5\n1 2 3 4 5',
-          output: '15',
-          explanation: '1 + 2 + 3 + 4 + 5 = 15.'
-        }
-      ],
-      hiddenTestCases: [
-        {
-          input: '3\n10 -5 8',
-          expectedOutput: '13'
-        },
-        {
-          input: '1\n42',
-          expectedOutput: '42'
-        }
-      ],
-      starterCode: {
-        python: 'def solve(readline):\n    n = int(readline())\n    nums = list(map(int, readline().split()))\n    total = sum(nums)\n    print(total)\n',
-        javascript: 'const n = parseInt(readline());\nconst nums = readline().split(\' \').map(Number);\nconst total = nums.reduce((a, b) => a + b, 0);\nconsole.log(total);\n'
-      },
-      supportedLanguages: ['python', 'javascript'],
-      timeLimit: 5,
-      memoryLimit: 128,
-      xpReward: 30,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-08T00:00:00Z',
-      updatedAt: '2026-07-08T00:00:00Z'
-    },
-    {
-      id: 'chal_2',
-      title: 'Reverse a String',
-      description: 'Read a string from input and print it reversed.',
-      difficulty: 'easy',
-      category: 'Coding',
-      tags: ['strings', 'basics'],
-      constraints: '1 <= string length <= 1000\nThe string contains only printable ASCII characters.',
-      inputFormat: 'A single line containing a string.',
-      outputFormat: 'Print the reversed string.',
-      sampleTestCases: [
-        {
-          input: 'hello',
-          output: 'olleh',
-          explanation: 'Reversing "hello" gives "olleh".'
-        }
-      ],
-      hiddenTestCases: [
-        {
-          input: 'MindCraft AI',
-          expectedOutput: 'IA tfarCidniM'
-        },
-        {
-          input: 'a',
-          expectedOutput: 'a'
-        }
-      ],
-      starterCode: {
-        python: 'def solve(readline):\n    s = readline()\n    print(s[::-1])\n',
-        javascript: 'const s = readline();\nconsole.log(s.split(\'\').reverse().join(\'\'));\n'
-      },
-      supportedLanguages: ['python', 'javascript'],
-      timeLimit: 5,
-      memoryLimit: 128,
-      xpReward: 30,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-08T00:00:00Z',
-      updatedAt: '2026-07-08T00:00:00Z'
-    },
-    {
-      id: 'chal_3',
-      title: 'Find the Maximum',
-      description: 'Given an integer N followed by N integers, find and print the maximum value.',
-      difficulty: 'easy',
-      category: 'Coding',
-      tags: ['arrays', 'search', 'basics'],
-      constraints: '1 <= N <= 1000\n-10^6 <= arr[i] <= 10^6',
-      inputFormat: 'The first line contains a single integer N.\nThe second line contains N space-separated integers.',
-      outputFormat: 'Print a single integer — the maximum value in the array.',
-      sampleTestCases: [
-        {
-          input: '5\n3 7 2 9 1',
-          output: '9',
-          explanation: 'The largest number in [3, 7, 2, 9, 1] is 9.'
-        }
-      ],
-      hiddenTestCases: [
-        {
-          input: '4\n-5 -2 -8 -1',
-          expectedOutput: '-1'
-        },
-        {
-          input: '1\n100',
-          expectedOutput: '100'
-        }
-      ],
-      starterCode: {
-        python: 'def solve(readline):\n    n = int(readline())\n    nums = list(map(int, readline().split()))\n    print(max(nums))\n',
-        javascript: 'const n = parseInt(readline());\nconst nums = readline().split(\' \').map(Number);\nconsole.log(Math.max(...nums));\n'
-      },
-      supportedLanguages: ['python', 'javascript'],
-      timeLimit: 5,
-      memoryLimit: 128,
-      xpReward: 30,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-08T00:00:00Z',
-      updatedAt: '2026-07-08T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_1',
-      title: 'AI-Assisted API Development',
-      description: 'Use AI coding assistants to build a REST API that performs text analysis using a pre-trained model. The API should accept text input and return sentiment analysis results.\n\nFocus on leveraging AI tools effectively while maintaining clean, production-quality code.',
-      difficulty: 'easy',
-      category: 'Coding',
-      tags: ['ai', 'api', 'python', 'fastapi'],
-      constraints: 'API must have at least 3 endpoints (health, analyze, batch)\nMust include error handling\nMust include request validation',
-      inputFormat: 'POST /analyze with JSON body: {"text": "..."}\nPOST /batch with JSON body: {"texts": ["...", "..."]}',
-      outputFormat: 'Return JSON with { sentiment: "positive"|"negative"|"neutral", confidence: 0.95, text: "..." }',
-      sampleTestCases: [
-        { input: 'POST /analyze {"text": "I love this product!"}', output: '{"sentiment": "positive", "confidence": 0.98}', explanation: 'Positive text should return positive sentiment with high confidence.' }
-      ],
-      hiddenTestCases: [
-        { input: 'POST /analyze {"text": "This is terrible"}', expectedOutput: '{"sentiment": "negative", "confidence": 0.85}' },
-        { input: 'GET /health', expectedOutput: '{"status": "ok"}' }
-      ],
-      starterCode: { python: 'from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass TextInput(BaseModel):\n    text: str\n\n\n@app.get("/health")\nasync def health_check():\n    return {"status": "ok"}\n', javascript: '// Express.js equivalent\nconst express = require("express");\nconst app = express();\napp.use(express.json());\n\napp.get("/health", (req, res) => {\n  res.json({ status: "ok" });\n});\n\nconst PORT = process.env.PORT || 3000;\napp.listen(PORT, () => console.log(`Running on ${PORT}`));\n' },
-      supportedLanguages: ['python', 'javascript'],
-      timeLimit: 20,
-      memoryLimit: 256,
-      xpReward: 100,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_2',
-      title: 'AI-Powered Text Classification',
-      description: 'Build a text classification system using HuggingFace Transformers. Your solution should load a pre-trained model, preprocess input text, and classify it into predefined categories.',
-      difficulty: 'easy',
-      category: 'Coding',
-      tags: ['nlp', 'transformers', 'huggingface', 'classification'],
-      constraints: 'Must use a model from HuggingFace hub\nMust support at least 3 categories\nMust return confidence scores',
-      inputFormat: 'Read a line of text from stdin.\nThe text is a sentence to classify.',
-      outputFormat: 'Print the predicted category and confidence score, separated by a space.',
-      sampleTestCases: [
-        { input: 'The weather today is beautiful', output: 'positive 0.96', explanation: 'Classify sentiment as positive with confidence score.' }
-      ],
-      hiddenTestCases: [
-        { input: 'This movie was boring and predictable', expectedOutput: 'negative 0.91' },
-        { input: 'The package arrived on time', expectedOutput: 'neutral 0.78' }
-      ],
-      starterCode: { python: 'from transformers import pipeline\n\ndef solve(readline):\n    text = readline()\n    classifier = pipeline("sentiment-analysis")\n    result = classifier(text)[0]\n    print(f\'{result["label"].lower()} {result["score"]:.2f}\')\n', javascript: '// Uses HuggingFace Inference API\nasync function solve(readline) {\n  const text = readline();\n  const response = await fetch(\n    "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english",\n    {\n      headers: { Authorization: `Bearer ${process.env.HF_TOKEN}` },\n      method: "POST",\n      body: JSON.stringify({ inputs: text }),\n    }\n  );\n  const result = await response.json();\n  console.log(result[0][0].label.toLowerCase(), result[0][0].score.toFixed(2));\n}\n' },
-      supportedLanguages: ['python', 'javascript'],
-      timeLimit: 20,
-      memoryLimit: 256,
-      xpReward: 100,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_3',
-      title: 'Build a RAG Pipeline',
-      description: 'Build a complete Retrieval-Augmented Generation pipeline. Your solution should load documents, create embeddings, store them in a vector store, and answer questions based on the retrieved context.',
-      difficulty: 'medium',
-      category: 'Coding',
-      tags: ['rag', 'langchain', 'embeddings', 'vectorstore'],
-      constraints: 'Must support at least 3 source documents\nMust return answer with source citation\nMust handle out-of-scope queries gracefully',
-      inputFormat: 'Read a query string from stdin.',
-      outputFormat: 'Print the answer followed by the source document name in brackets.',
-      sampleTestCases: [
-        { input: 'What is RAG?', output: 'Retrieval-Augmented Generation is a technique that combines retrieval from a knowledge base with text generation. [ai_guide.txt]', explanation: 'Answer should include retrieved information and source citation.' }
-      ],
-      hiddenTestCases: [
-        { input: 'Explain embeddings', expectedOutput: 'Embeddings are dense vector representations of text that capture semantic meaning. [embeddings_doc.txt]' },
-        { input: 'Who invented transformers', expectedOutput: 'The transformer architecture was introduced in the paper "Attention is All You Need" by Vaswani et al. (2017). [architectures.txt]' }
-      ],
-      starterCode: { python: 'from langchain_community.vectorstores import FAISS\nfrom langchain_community.embeddings import HuggingFaceEmbeddings\n\ndef solve(readline):\n    query = readline()\n    # Load vector store and query\n    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")\n    # Implementation here\n    print("Answer [source.txt]")\n', javascript: '' },
-      supportedLanguages: ['python'],
-      timeLimit: 30,
-      memoryLimit: 512,
-      xpReward: 150,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_4',
-      title: 'Deploy a RAG Application',
-      description: 'Deploy the RAG pipeline you built as a web application. Containerize it with Docker, deploy to a cloud platform, and set up CI/CD.',
-      difficulty: 'hard',
-      category: 'GitHub',
-      tags: ['deployment', 'docker', 'devops', 'rag'],
-      constraints: 'Must include Dockerfile and docker-compose.yml\nMust include GitHub Actions CI/CD\nMust include health check endpoint\nApp must be publicly accessible',
-      inputFormat: '',
-      outputFormat: '',
-      sampleTestCases: [],
-      hiddenTestCases: [],
-      starterCode: { python: '# Provide your Dockerfile and application code\n# The grader will check for:\n# 1. Dockerfile exists\n# 2. docker-compose.yml exists\n# 3. /health returns 200\n# 4. /query endpoint works\n', javascript: '' },
-      supportedLanguages: ['python'],
-      timeLimit: 60,
-      memoryLimit: 512,
-      xpReward: 150,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_5',
-      title: 'Advanced RAG with Hybrid Search',
-      description: 'Implement hybrid search combining dense embeddings and sparse (BM25) retrieval. Add re-ranking to improve result quality.',
-      difficulty: 'medium',
-      category: 'Coding',
-      tags: ['rag', 'hybrid-search', 'bm25', 'reranking'],
-      constraints: 'Must implement both dense and sparse retrieval\nMust implement a re-ranking step\nMust compare performance of hybrid vs pure dense',
-      inputFormat: 'Read a search query and k (number of results).',
-      outputFormat: 'Print k results with: document ID, score, and retrieval method marker [DENSE|SPARSE|HYBRID].',
-      sampleTestCases: [
-        { input: 'machine learning basics\n3', output: 'doc_003 0.92 [HYBRID]\ndoc_001 0.87 [HYBRID]\ndoc_005 0.76 [HYBRID]', explanation: 'Return top 3 results with hybrid search scores.' }
-      ],
-      hiddenTestCases: [
-        { input: 'transformer architecture\n2', expectedOutput: 'doc_012 0.95 [HYBRID]\ndoc_008 0.89 [HYBRID]' }
-      ],
-      starterCode: { python: 'import numpy as np\nfrom rank_bm25 import BM25Okapi\n\ndef solve(readline):\n    query = readline()\n    k = int(readline())\n    # Implement hybrid search here\n    pass\n', javascript: '' },
-      supportedLanguages: ['python'],
-      timeLimit: 30,
-      memoryLimit: 512,
-      xpReward: 100,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_6',
-      title: 'Build an AI Agent',
-      description: 'Build an autonomous AI agent that can research topics, summarize findings, and answer questions using tools like web search, calculator, and document reader.',
-      difficulty: 'hard',
-      category: 'GitHub',
-      tags: ['agents', 'langchain', 'tools', 'autonomous'],
-      constraints: 'Agent must use at least 3 tools\nMust implement memory\nMust handle errors gracefully\nMust provide source attribution',
-      inputFormat: '',
-      outputFormat: '',
-      sampleTestCases: [],
-      hiddenTestCases: [],
-      starterCode: { python: 'from langchain.agents import Tool, AgentExecutor, create_react_agent\nfrom langchain_openai import ChatOpenAI\n\n# Define tools and agent here\n', javascript: '' },
-      supportedLanguages: ['python'],
-      timeLimit: 45,
-      memoryLimit: 512,
-      xpReward: 150,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_7',
-      title: 'MCP Workflow Automation',
-      description: 'Build an automated workflow using n8n or LangGraph that connects multiple AI services and data sources. The workflow should process data, apply AI transformations, and produce a final output.',
-      difficulty: 'hard',
-      category: 'GitHub',
-      tags: ['automation', 'mcp', 'n8n', 'workflow'],
-      constraints: 'Workflow must have at least 5 nodes\nMust include an AI/LLM node\nMust include data transformation\nMust include conditional branching\nExport workflow as JSON',
-      inputFormat: '',
-      outputFormat: '',
-      sampleTestCases: [],
-      hiddenTestCases: [],
-      starterCode: { python: '# Export your n8n workflow JSON\n# or implement a LangGraph workflow\nfrom langgraph.graph import StateGraph\n\n# Define your workflow graph here\n', javascript: '' },
-      supportedLanguages: ['python'],
-      timeLimit: 45,
-      memoryLimit: 512,
-      xpReward: 150,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_8',
-      title: 'Multimodal Search System',
-      description: 'Build a multimodal search system that can search across images and text using CLIP embeddings. Users should be able to search with either text or an image query.',
-      difficulty: 'medium',
-      category: 'Coding',
-      tags: ['multimodal', 'clip', 'embeddings', 'search'],
-      constraints: 'Must support text-to-image and image-to-image search\nMust use CLIP or similar multimodal embeddings\nMust return ranked results with similarity scores',
-      inputFormat: 'Read query type ("text" or "image") and query content.',
-      outputFormat: 'Print top 5 image filenames with similarity scores.',
-      sampleTestCases: [
-        { input: 'text\na cat sitting on a couch', output: 'cat_003.jpg 0.93\ncat_001.jpg 0.88\ncat_007.jpg 0.82\npet_002.jpg 0.76\nanimal_005.jpg 0.71', explanation: 'Return top 5 matching images for text query.' }
-      ],
-      hiddenTestCases: [],
-      starterCode: { python: 'import torch\nfrom PIL import Image\nfrom transformers import CLIPProcessor, CLIPModel\n\ndef solve(readline):\n    query_type = readline()\n    query = readline()\n    # Implement multimodal search here\n    pass\n', javascript: '' },
-      supportedLanguages: ['python'],
-      timeLimit: 30,
-      memoryLimit: 512,
-      xpReward: 100,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    },
-    {
-      id: 'chal_rag_9',
-      title: 'Production AI Serving',
-      description: 'Set up a production-grade model serving infrastructure. Serve a quantized model with BentoML, add monitoring with Prometheus metrics, and implement A/B testing between two model versions.',
-      difficulty: 'hard',
-      category: 'GitHub',
-      tags: ['mlops', 'serving', 'monitoring', 'production'],
-      constraints: 'Must serve at least 2 model versions\nMust expose Prometheus metrics\nMust include A/B testing routing\nMust include load testing script\nMust include deployment configuration',
-      inputFormat: '',
-      outputFormat: '',
-      sampleTestCases: [],
-      hiddenTestCases: [],
-      starterCode: { python: 'import bentoml\nfrom bentoml.io import JSON\n\n# Define your serving service here\n', javascript: '' },
-      supportedLanguages: ['python'],
-      timeLimit: 60,
-      memoryLimit: 1024,
-      xpReward: 150,
-      isDailyChallenge: false,
-      challengeDate: '',
-      status: 'published',
-      createdAt: '2026-07-01T00:00:00Z',
-      updatedAt: '2026-07-01T00:00:00Z'
-    }
-  ],
+  Challenges: [],
   ChallengeSubmissions: [],
-  ChallengeLeaderboard: [
-    {
-      id: 'cl_overall',
-      period: 'overall',
-      rankings: [
-        { userId: 'u_1', userName: 'Athithyan S', photo: 'https://ui-avatars.com/api/?name=Athithyan+S&background=ff5500&color=fff', totalScore: 920, accuracy: 100, avgTime: 120, attempts: 1, streak: 8, badges: ['first_challenge', 'streak_7'] },
-        { userId: 'u_2', userName: 'Mithres P', photo: 'https://ui-avatars.com/api/?name=Mithres+P&background=ff5500&color=fff', totalScore: 840, accuracy: 100, avgTime: 180, attempts: 1, streak: 4, badges: ['first_challenge'] }
-      ]
-    }
-  ],
+  ChallengeLeaderboard: [  ],
   ContactMessages: [],
-  CoreMembers: [
-    { id: 'core_1', name: 'Athi', role: 'President', department: 'Computer Science', year: '4', email: 'Athi9080@.com', github: 'https://github.com', linkedin: 'https://www.linkedin.com/company/mindcraft-ai-vcet', photo: 'https://ui-avatars.com/api/?name=Athi&background=ff5500&color=fff' },
-  ],
+  CoreMembers: [],
   JoinFormFields: [],
   Settings: {
     siteName: 'Mindcraft AI Club',
     academicYear: '2026-2027',
     registrationStatus: 'Open',
-    adminEmail: 'admin@club.com',
+    adminEmail: 'mindcraftaiclub@gmail.com',
     announcementBanner: 'Welcome to Mindcraft AI. Check upcoming events for registrations.',
     projectsCount: 40,
     eventsCount: 18,
@@ -554,7 +106,7 @@ const initialCollections = {
   }
 };
 
-const ADMIN_EMAILS = ['mindcraftaiclub@gmail.com', 'admin@club.com', 'athi9080@.com'];
+const ADMIN_EMAILS = ['mindcraftaiclub@gmail.com'];
 
 const isAdminEmail = (email) => {
   if (!email) return false;
@@ -630,13 +182,56 @@ const sanitizeForFirestore = (obj) => {
 
 const DB_PREFIX = 'mindcraft_fb_fallback_v5_';
 
+const DUMMY_SAMPLE_IDS = [
+  'qz_1', 'qz_2', 'qz_rag_1', 'qz_rag_2',
+  'qr_1', 'qr_2', 'qr_3',
+  'ann_1', 'ann_2',
+  'win_1', 'win_2',
+  'core_1',
+  'chal_1', 'chal_2', 'chal_3', 'chal_rag_1', 'chal_rag_2', 'chal_rag_3', 'chal_rag_4', 'chal_rag_5', 'chal_rag_6', 'chal_rag_7', 'chal_rag_8', 'chal_rag_9'
+];
+
+const isDummyItem = (item) => {
+  if (!item) return false;
+  if (DUMMY_SAMPLE_IDS.includes(item.id) || DUMMY_SAMPLE_IDS.includes(item.quizId)) return true;
+  const title = (item.title || item.quizTitle || item.name || item.achievement || '').toLowerCase().trim();
+  const email = (item.email || '').toLowerCase().trim();
+  const role = (item.role || item.position || '').toLowerCase().trim();
+
+  if (
+    title.includes('programming fundamentals') ||
+    title.includes('aws fundamentals') ||
+    title.includes('weekly javascript quiz') ||
+    title.includes('weekly css grid')
+  ) {
+    return true;
+  }
+
+  // Sample core member Athi President
+  if ((title === 'athi' && role === 'president') || email === 'athi9080@.com' || item.id === 'core_1') {
+    return true;
+  }
+
+  return false;
+};
+
 const getLocalStorageCollection = (collectionName) => {
   try {
     const data = localStorage.getItem(DB_PREFIX + collectionName);
-    if (data) return JSON.parse(data);
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(item => !isDummyItem(item));
+      }
+      return parsed;
+    }
   } catch { /* ignore */ }
   if (initialCollections[collectionName]) {
-    return JSON.parse(JSON.stringify(initialCollections[collectionName]));
+    const initial = JSON.parse(JSON.stringify(initialCollections[collectionName]));
+    if (Array.isArray(initial)) {
+      return initial.filter(item => !isDummyItem(item));
+    }
+    return initial;
   }
   return [];
 };
@@ -725,21 +320,21 @@ class FirebaseDatabase {
             userProfile = await this.findOne('Users', { email: firebaseUser.email });
           }
           if (!userProfile) {
-              userProfile = {
-                id: firebaseUser.uid,
-                name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-                email: firebaseUser.email,
-                role: isAdminEmail(firebaseUser.email) ? 'admin' : 'member',
-                department: 'Computer Science',
-                year: '1',
-                position: 'Member',
-                skills: [],
-                linkedin: 'https://www.linkedin.com/company/mindcraft-ai-vcet',
-                github: 'https://github.com',
-                photo: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || firebaseUser.email.split('@')[0])}&background=ff5500&color=fff`,
-                verified: true
-              };
-              await this.insert('Users', userProfile);
+            userProfile = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+              email: firebaseUser.email,
+              role: isAdminEmail(firebaseUser.email) ? 'admin' : 'member',
+              department: 'Computer Science',
+              year: '1',
+              position: 'Member',
+              skills: [],
+              linkedin: 'https://www.linkedin.com/company/mindcraft-ai-vcet',
+              github: 'https://github.com',
+              photo: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || firebaseUser.email.split('@')[0])}&background=ff5500&color=fff`,
+              verified: true
+            };
+            await this.insert('Users', userProfile);
           }
           localStorage.setItem('aether_user_session', JSON.stringify(userProfile));
           localStorage.setItem('aether_jwt_token', `firebase.${btoa(JSON.stringify(userProfile))}.signature`);
@@ -796,26 +391,27 @@ class FirebaseDatabase {
       const deletedIds = getDeletedIds();
       const deletedEmails = getDeletedEmails();
       const filtered = data.filter(item => {
+        if (isDummyItem(item)) return false;
         if (!includeDeleted) {
           if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-          if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
+          if ((collectionName === 'Users' || collectionName === 'CoreMembers') && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
             return false;
           }
         }
         return true;
       });
       if (collectionName === 'QuizResults') {
-        const dummyIds = ['qr_1', 'qr_2', 'qr_3'];
-        return deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)));
+        return deduplicateUsers(filtered.filter(item => !isDummyItem(item)));
       }
       // Merge local fallback data with Firestore data to ensure local registrations are found
       let merged = [...filtered];
       try {
         const localData = getLocalStorageCollection(collectionName);
         const localFiltered = localData.filter(item => {
+          if (isDummyItem(item)) return false;
           if (!includeDeleted) {
             if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-            if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
+            if ((collectionName === 'Users' || collectionName === 'CoreMembers') && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
               return false;
             }
           }
@@ -829,24 +425,24 @@ class FirebaseDatabase {
       } catch (localErr) {
         console.warn('Failed to load local data for merge:', localErr);
       }
-      return deduplicateUsers(merged);
+      return deduplicateUsers(merged.filter(item => !isDummyItem(item)));
     } catch (error) {
       console.warn(`find(${collectionName}) failed, using fallback:`, error.message);
       const localData = getLocalStorageCollection(collectionName);
       const deletedIds = getDeletedIds();
       const deletedEmails = getDeletedEmails();
       const filtered = localData.filter(item => {
+        if (isDummyItem(item)) return false;
         if (!includeDeleted) {
           if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-          if (collectionName === 'Users' && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
+          if ((collectionName === 'Users' || collectionName === 'CoreMembers') && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
             return false;
           }
         }
         return true;
       });
       if (collectionName === 'QuizResults') {
-        const dummyIds = ['qr_1', 'qr_2', 'qr_3'];
-        return deduplicateUsers(filtered.filter(item => !dummyIds.includes(item.id)));
+        return deduplicateUsers(filtered.filter(item => !isDummyItem(item)));
       }
       return deduplicateUsers(filtered);
     }
@@ -865,7 +461,7 @@ class FirebaseDatabase {
       return unsubscribe;
     } catch (error) {
       console.warn(`subscribe(${collectionName}) failed:`, error.message);
-      return () => {};
+      return () => { };
     }
   }
 
@@ -882,7 +478,7 @@ class FirebaseDatabase {
       return unsubscribe;
     } catch (error) {
       console.warn(`subscribeQuery(${collectionName}) failed:`, error.message);
-      return () => {};
+      return () => { };
     }
   }
 
@@ -1276,7 +872,7 @@ class FirebaseDatabase {
       try {
         const local = localStorage.getItem('mindcraft_settings');
         if (local) return JSON.parse(local);
-      } catch {}
+      } catch { }
       return initialCollections.Settings;
     }
   }
@@ -1287,13 +883,13 @@ class FirebaseDatabase {
       await setDoc(docRef, updates, { merge: true });
       try {
         localStorage.setItem('mindcraft_settings', JSON.stringify(updates));
-      } catch {}
+      } catch { }
       return updates;
     } catch (e) {
       console.warn("updateSettings failed, using local fallback:", e.message);
       try {
         localStorage.setItem('mindcraft_settings', JSON.stringify(updates));
-      } catch {}
+      } catch { }
       return updates;
     }
   }
