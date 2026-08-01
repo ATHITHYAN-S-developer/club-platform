@@ -23,6 +23,7 @@ import {
   runTransaction
 } from "firebase/firestore";
 import { createClient } from "@supabase/supabase-js";
+import logger from './utils/logger.js';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
