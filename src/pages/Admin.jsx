@@ -163,7 +163,7 @@ function CoreBoardTab({ allMembers }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', role: '', year: '', linkedin: '', instagram: '', github: '', portfolio: '', description: '' });
+  const [form, setForm] = useState({ name: '', email: '', role: '', year: '', category: 'Senior', linkedin: '', instagram: '', github: '', portfolio: '', description: '' });
   const fileRef = useRef();
 
   const load = async () => {
@@ -190,6 +190,7 @@ function CoreBoardTab({ allMembers }) {
       email: m.email || '',
       role: m.role || '',
       year: m.year || '',
+      category: m.category || 'Senior',
       linkedin: m.linkedin || '',
       instagram: m.instagram || '',
       github: m.github || '',
@@ -202,7 +203,7 @@ function CoreBoardTab({ allMembers }) {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setForm({ name: '', email: '', role: '', year: '', linkedin: '', instagram: '', github: '', portfolio: '', description: '' });
+    setForm({ name: '', email: '', role: '', year: '', category: 'Senior', linkedin: '', instagram: '', github: '', portfolio: '', description: '' });
     setImagePreview('');
     setImageFile(null);
     if (fileRef.current) fileRef.current.value = '';
@@ -283,6 +284,23 @@ function CoreBoardTab({ allMembers }) {
             { key: 'email',     placeholder: 'Email *',        icon: 'fa-envelope' },
             { key: 'role',      placeholder: 'Role / Position *', icon: 'fa-id-badge' },
             { key: 'year',      placeholder: 'Year (e.g. 2024)', icon: 'fa-graduation-cap' },
+          ].map(({ key, placeholder, icon }) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '0.5rem 0.85rem', marginBottom: '0.65rem' }}>
+              <i className={`fa-${icon.includes('linkedin') || icon.includes('instagram') || icon.includes('github') ? 'brands' : 'solid'} ${icon}`} style={{ color: 'var(--text-muted)', fontSize: '0.82rem', width: 16, textAlign: 'center' }} />
+              <input value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} style={{ border: 'none', background: 'none', fontSize: '0.86rem', color: 'var(--text)', width: '100%' }} />
+            </div>
+          ))}
+
+          {/* Category Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '0.5rem 0.85rem', marginBottom: '0.65rem' }}>
+            <i className="fa-solid fa-layer-group" style={{ color: 'var(--text-muted)', fontSize: '0.82rem', width: 16, textAlign: 'center' }} />
+            <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} style={{ border: 'none', background: 'none', fontSize: '0.86rem', color: 'var(--text)', width: '100%', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <option value="Senior">Senior</option>
+              <option value="Junior">Junior</option>
+            </select>
+          </div>
+
+          {[
             { key: 'linkedin',  placeholder: 'LinkedIn URL',   icon: 'fa-linkedin' },
             { key: 'instagram', placeholder: 'Instagram URL',  icon: 'fa-instagram' },
             { key: 'github',    placeholder: 'GitHub URL',     icon: 'fa-github' },
@@ -344,7 +362,10 @@ function CoreBoardTab({ allMembers }) {
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>{m.name}</span>
                       {isLinkedMember(m.email) && <Badge color="green">Linked</Badge>}
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{m.role}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                      {m.role}
+                      {m.category && <span style={{ marginLeft: '0.4rem', padding: '0.1rem 0.45rem', borderRadius: 4, fontSize: '0.7rem', fontWeight: 600, background: m.category === 'Senior' ? '#dbeafe' : '#fef3c7', color: m.category === 'Senior' ? '#1d4ed8' : '#92400e' }}>{m.category}</span>}
+                    </div>
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
                       {m.linkedin && <a href={m.linkedin} target="_blank" rel="noreferrer" style={{ color: '#0077b5', fontSize: '0.85rem' }}><i className="fa-brands fa-linkedin" /></a>}
                       {m.github && <a href={m.github} target="_blank" rel="noreferrer" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}><i className="fa-brands fa-github" /></a>}
