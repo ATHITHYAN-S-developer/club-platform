@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  updatePassword,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -1228,6 +1229,38 @@ class FirebaseDatabase {
 
   async forgotPassword(email) {
     await sendPasswordResetEmail(auth, email);
+  }
+
+  async resetUserPassword(email, newPassword) {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    if (!cleanEmail) return;
+
+    if (auth.currentUser && auth.currentUser.email && auth.currentUser.email.toLowerCase().trim() === cleanEmail) {
+      try {
+        await updatePassword(auth.currentUser, newPassword);
+      } catch (e) {
+        console.warn('Firebase Auth updatePassword note:', e.message);
+      }
+    }
+
+    const users = await this.find('Users', true);
+    const matchingUsers = users.filter(u => (u.email || '').toLowerCase().trim() === cleanEmail);
+    for (const u of matchingUsers) {
+      await this.update('Users', u.id, { password: newPassword });
+    }
+
+    const localUsers = getLocalStorageCollection('Users');
+    let updatedLocal = false;
+    localUsers.forEach(u => {
+      if ((u.email || '').toLowerCase().trim() === cleanEmail) {
+        u.password = newPassword;
+        u.updatedAt = new Date().toISOString();
+        updatedLocal = true;
+      }
+    });
+    if (updatedLocal) {
+      setLocalStorageCollection('Users', localUsers);
+    }
   }
 
   async getSettings() {

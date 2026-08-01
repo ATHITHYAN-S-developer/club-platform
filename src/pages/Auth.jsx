@@ -147,9 +147,9 @@ export default function Auth({ user }) {
       setOtpCode('');
       setOtpTimer(30);
 
-      const emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-      const emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-      const emailjsPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      const emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_4ikugso';
+      const emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_ei3wwoe';
+      const emailjsPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'g58jO0ZVbm0mh-2v1';
 
       console.log('EmailJS Environment Variables loaded:', {
         emailjsServiceId,
@@ -202,9 +202,9 @@ export default function Auth({ user }) {
       setOtpCode('');
       setOtpTimer(30);
 
-      const emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-      const emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-      const emailjsPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      const emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_4ikugso';
+      const emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_ei3wwoe';
+      const emailjsPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'g58jO0ZVbm0mh-2v1';
 
       if (resetMethod === 'email' && emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
         try {
@@ -258,10 +258,14 @@ export default function Auth({ user }) {
     }
     setLoading(true);
     try {
-      await db.update('Users', resetUser.id, { password: newPassword });
-      window.showToast('Password Reset Successful', 'Your password has been reset successfully. You can now sign in.', 'success');
+      if (resetUser && resetUser.email) {
+        await db.resetUserPassword(resetUser.email, newPassword);
+      } else if (resetUser && resetUser.id) {
+        await db.update('Users', resetUser.id, { password: newPassword });
+      }
+      window.showToast('Password Reset Successful', 'Your password has been updated successfully. Your old password is now invalidated.', 'success');
       
-      setForm({ email: resetUser.email, password: '' });
+      setForm({ email: resetUser?.email || '', password: '' });
       setMode('signin');
       setResetValue('');
       setNewPassword('');

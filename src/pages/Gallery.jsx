@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import db from '../db';
-import workingUrls from '../../working_gallery_urls.json';
+import workingUrls from '../data/working_gallery_urls.json';
 
 export default function Gallery() {
   const [events, setEvents] = useState([]);

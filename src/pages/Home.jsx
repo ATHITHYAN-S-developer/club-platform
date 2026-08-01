@@ -586,7 +586,7 @@ export default function Home() {
             <Link to="/leaderboard" className="project-card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ position: 'relative', width: '100%', height: '170px', overflow: 'hidden' }}>
                 <img
-                  src="/image copy.png"
+                  src="/image-copy.png"
                   alt="Live Rankings"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.06)'}
