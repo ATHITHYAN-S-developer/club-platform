@@ -35,17 +35,48 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const firestore = getFirestore(app);
+const hasFirebaseConfig = Boolean(
+  firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId
+);
+
+let app = null;
+let auth = null;
+let firestore = null;
+
+if (hasFirebaseConfig) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    firestore = getFirestore(app);
+  } catch (error) {
+    console.error('Firebase initialization failed, running with local fallback data:', error);
+    app = null;
+    auth = null;
+    firestore = null;
+  }
+} else {
+  console.warn('Firebase environment variables are missing. Running with local fallback data.');
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-export const supabaseServiceClient = supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : supabase;
+
+export let supabase = null;
+export let supabaseServiceClient = null;
+
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    supabaseServiceClient = supabaseServiceKey
+      ? createClient(supabaseUrl, supabaseServiceKey)
+      : supabase;
+  } catch (error) {
+    console.error('Supabase initialization failed, running with local fallback data:', error);
+  }
+} else {
+  console.warn('Supabase environment variables are missing. File storage will be disabled.');
+}
 
 const initialCollections = {
   Users: [],
@@ -119,6 +150,18 @@ const isPermissionError = (error) => {
   const msg = (error.message || "").toLowerCase();
   const code = (error.code || "").toLowerCase();
   return code === 'permission-denied' || msg.includes('permission') || msg.includes('insufficient');
+};
+
+const PERMISSION_ERROR_MESSAGE =
+  'Missing or insufficient permissions — Firestore Security Rules blocked this write. ' +
+  'Sign in as the admin account (mindcraftaiclub@gmail.com) and make sure the rules allow admin writes to this collection.';
+
+const describeWriteError = (error) => {
+  if (!isPermissionError(error)) return error;
+  const wrapped = new Error(PERMISSION_ERROR_MESSAGE);
+  wrapped.code = 'permission-denied';
+  wrapped.cause = error;
+  return wrapped;
 };
 
 const DELETED_IDS_KEY = 'mindcraft_deleted_ids';
@@ -530,7 +573,7 @@ class FirebaseDatabase {
         return { record: cleanRecord, persistedToFirestore: false };
       }
 
-      throw error;
+      throw describeWriteError(error);
     }
   }
 
@@ -592,7 +635,7 @@ class FirebaseDatabase {
         return { record: cleanRecord, persistedToFirestore: false, status: record.status };
       }
 
-      throw error;
+      throw describeWriteError(error);
     }
   }
 
@@ -618,6 +661,10 @@ class FirebaseDatabase {
       }
       return finalDoc;
     } catch (error) {
+      if (classifyFirestoreError(error) === 'permission') {
+        console.error(`update(${collectionName}, ${id}) denied by Firestore Security Rules:`, error);
+        throw describeWriteError(error);
+      }
       console.warn(`update(${collectionName}, ${id}) failed, using fallback:`, error.message);
       const items = getLocalStorageCollection(collectionName);
       let idx = items.findIndex(item => item.id === id);

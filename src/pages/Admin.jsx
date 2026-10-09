@@ -6,6 +6,7 @@ import StudentManagement from './admin/StudentManagement';
 import AnalyticsTab from './admin/AnalyticsTab';
 import SecuritySettings from './admin/SecuritySettings';
 import AnnouncementAdmin from './admin/AnnouncementAdmin';
+import GalleryAdmin from './admin/GalleryAdmin';
 import ChallengeManagement from '../challenges/pages/admin/ChallengeManagement';
 import { normalizeDepartment } from '../utils/normalizeDepartment';
 import SearchableSelect from '../components/ui/SearchableSelect';
@@ -27,6 +28,7 @@ const SIDEBAR_SECTIONS = [
       { id: 'core',        label: 'Core Board',    icon: 'fa-star' },
       { id: 'events',      label: 'Events',        icon: 'fa-calendar' },
       { id: 'announcements', label: 'Announcements', icon: 'fa-bullhorn' },
+      { id: 'gallery',     label: 'Gallery',       icon: 'fa-images' },
       { id: 'messages',    label: 'Messages',      icon: 'fa-envelope' },
       { id: 'quizzes',     label: 'Quizzes',       icon: 'fa-question-circle' },
       { id: 'challenges',  label: 'Challenges',    icon: 'fa-laptop-code' },
@@ -1770,6 +1772,7 @@ export default function Admin({ user }) {
           {tab === 'core'         && <CoreBoardTab allMembers={members} />}
           {tab === 'events'       && <EventsTab />}
           {tab === 'announcements' && <AnnouncementAdmin user={user} />}
+          {tab === 'gallery'      && <GalleryAdmin />}
           {tab === 'messages'     && <MessagesTab />}
           {tab === 'quizzes'      && <QuizManagement />}
           {tab === 'challenges'   && <ChallengeManagement />}

@@ -1,0 +1,120 @@
+rules_version = '2';
+
+// Firestore Security Rules for the MindCraft / AiDots club platform.
+// Project: website-b84d2
+//
+// The app reads public content from the browser and writes admin-managed
+// content directly to Firestore (collection "Challenges" et al). These rules
+// allow everyone to read, and restrict writes to the admin account used by the
+// admin panel (see ADMIN_EMAILS in src/db.js).
+//
+// Deploy with:  firebase deploy --only firestore:rules
+// Or paste into Firebase Console -> Firestore Database -> Rules -> Publish.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Keep in sync with ADMIN_EMAILS in src/db.js
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() == 'mindcraftaiclub@gmail.com';
+    }
+
+    // ── Admin-managed content: public read, admin write ─────────────────
+    match /Challenges/{id}           { allow read: if true; allow write: if isAdmin(); }
+    match /ChallengeLeaderboard/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /ChallengeAnalytics/{id}   { allow read: if true; allow write: if isAdmin(); }
+    match /Events/{id}               { allow read: if true; allow write: if isAdmin(); }
+    match /Gallery/{id}              { allow read: if true; allow write: if isAdmin(); }
+    match /Announcements/{id}        { allow read: if true; allow write: if isAdmin(); }
+    match /Resources/{id}            { allow read: if true; allow write: if isAdmin(); }
+    match /CoreMembers/{id}          { allow read: if true; allow write: if isAdmin(); }
+    match /WeeklyWinners/{id}        { allow read: if true; allow write: if isAdmin(); }
+    match /WeeklyTasks/{id}          { allow read: if true; allow write: if isAdmin(); }
+    match /Tasks/{id}                { allow read: if true; allow write: if isAdmin(); }
+    match /Badges/{id}               { allow read: if true; allow write: if isAdmin(); }
+    match /JoinFormFields/{id}       { allow read: if true; allow write: if isAdmin(); }
+    match /Quiz/{id}                 { allow read: if true; allow write: if isAdmin(); }
+    match /Settings/{id}             { allow read: if true; allow write: if isAdmin(); }
+
+    // ── User-owned data ─────────────────────────────────────────────────
+    match /ChallengeSubmissions/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /ChallengeDrafts/{id} {
+      allow read, write: if isAdmin()
+        || (isSignedIn() && (resource.data.userId == request.auth.uid
+          || request.resource.data.userId == request.auth.uid));
+    }
+
+    match /ChallengeDiscussions/{id} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /QuizResults/{id} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /QuizAttempt/{id} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /TaskSubmissions/{id} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /Violations/{id} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /Notifications/{id} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /EventRegistrations/{id} {
+      allow read: if true;
+      allow create: if true;          // public event sign-up
+      allow update, delete: if isAdmin();
+    }
+
+    match /ContactMessages/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /JoinRequests/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /Users/{id} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == id;
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == id);
+      allow delete: if isAdmin();
+    }
+
+    // ── Fallback: readable by all, writable by admin only ───────────────
+    match /{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
