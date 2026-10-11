@@ -160,6 +160,7 @@ function MembersTab() {
 /* ═══════════════════════════════════ CORE BOARD TAB ═══════════════════════════════════ */
 function CoreBoardTab({ allMembers }) {
   const [coreMembers, setCoreMembers] = useState([]);
+  const [usersList, setUsersList] = useState(allMembers || []);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
@@ -169,9 +170,18 @@ function CoreBoardTab({ allMembers }) {
   const fileRef = useRef();
 
   const load = async () => {
-    try { setCoreMembers(await db.find('CoreMembers')); }
-    catch { window.showToast('Error', 'Could not load core members.', 'error'); }
-    finally { setLoading(false); }
+    try {
+      const [core, users] = await Promise.all([
+        db.find('CoreMembers'),
+        db.find('Users')
+      ]);
+      setCoreMembers(core);
+      setUsersList(users);
+    } catch {
+      window.showToast('Error', 'Could not load core members.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -183,7 +193,67 @@ function CoreBoardTab({ allMembers }) {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  const isLinkedMember = email => allMembers.some(m => m.email?.toLowerCase() === email?.toLowerCase());
+  const findMatchedUser = (email, name) => {
+    const pool = (usersList && usersList.length) ? usersList : (allMembers || []);
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const cleanName = (name || '').toLowerCase().trim();
+    const emailPrefix = cleanEmail.split('@')[0];
+
+    return pool.find(u => {
+      const uEmail = (u.email || '').toLowerCase().trim();
+      const uName = (u.name || '').toLowerCase().trim();
+      const uPrefix = uEmail.split('@')[0];
+
+      if (cleanEmail && uEmail && uEmail === cleanEmail) return true;
+      if (cleanEmail && uEmail && uEmail.replace(/[@.]/g, '') === cleanEmail.replace(/[@.]/g, '')) return true;
+      if (emailPrefix && uPrefix && emailPrefix === uPrefix) return true;
+      if (cleanName && uName && uName === cleanName) return true;
+      return false;
+    });
+  };
+
+  const isLinkedMember = email => Boolean(findMatchedUser(email, form.name));
+
+  const handleEmailChange = (val) => {
+    setForm(prev => {
+      const next = { ...prev, email: val };
+      const matched = findMatchedUser(val, prev.name);
+      if (matched) {
+        if (!next.name && matched.name) next.name = matched.name;
+        if (!next.year && (matched.year || matched.graduatingYear)) next.year = matched.year || matched.graduatingYear;
+        if (!next.linkedin && matched.linkedin) next.linkedin = matched.linkedin;
+        if (!next.github && matched.github) next.github = matched.github;
+        if (!next.instagram && matched.instagram) next.instagram = matched.instagram;
+        if (!next.portfolio && (matched.portfolio || matched.website)) next.portfolio = matched.portfolio || matched.website;
+        if (!next.description && (matched.bio || matched.description)) next.description = matched.bio || matched.description;
+        if (!imagePreview && matched.photo) setImagePreview(matched.photo);
+      } else if (!next.name && val.includes('@')) {
+        const prefix = val.split('@')[0].replace(/[0-9._-]+/g, ' ').trim();
+        next.name = prefix ? prefix.charAt(0).toUpperCase() + prefix.slice(1) : val.split('@')[0];
+      }
+      return next;
+    });
+  };
+
+  const handleNameChange = (val) => {
+    setForm(prev => {
+      const next = { ...prev, name: val };
+      if (!next.email) {
+        const matched = findMatchedUser(null, val);
+        if (matched && matched.email) {
+          next.email = matched.email;
+          if (!next.year && (matched.year || matched.graduatingYear)) next.year = matched.year || matched.graduatingYear;
+          if (!next.linkedin && matched.linkedin) next.linkedin = matched.linkedin;
+          if (!next.github && matched.github) next.github = matched.github;
+          if (!next.instagram && matched.instagram) next.instagram = matched.instagram;
+          if (!next.portfolio && (matched.portfolio || matched.website)) next.portfolio = matched.portfolio || matched.website;
+          if (!next.description && (matched.bio || matched.description)) next.description = matched.bio || matched.description;
+          if (!imagePreview && matched.photo) setImagePreview(matched.photo);
+        }
+      }
+      return next;
+    });
+  };
 
   const handleStartEdit = m => {
     setEditingId(m.id);
@@ -212,33 +282,59 @@ function CoreBoardTab({ allMembers }) {
   };
 
   const handleAdd = async () => {
-    if (!form.name || !form.email || !form.role) {
+    const finalName = (form.name || '').trim() || (form.email ? form.email.split('@')[0] : '');
+    if (!finalName || !form.email || !form.role) {
       window.showToast('Missing Fields', 'Name, Email and Role are required.', 'error'); return;
     }
     setUploading(true);
     try {
-      let photoUrl = imagePreview;
+      const matched = (allMembers || []).find(m => m.email && m.email.toLowerCase().trim() === form.email.toLowerCase().trim());
+      let photoUrl = imagePreview || matched?.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=ff5500&color=fff`;
 
       if (imageFile) {
         // Upload image to Supabase
-        const ext = imageFile.name.split('.').pop();
-        const path = `core/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadError } = await supabaseServiceClient.storage.from('member_photos').upload(path, imageFile, { upsert: true });
-        if (uploadError) throw new Error(uploadError.message);
-        const { data: { publicUrl } } = supabaseServiceClient.storage.from('member_photos').getPublicUrl(path);
-        photoUrl = publicUrl;
-      } else if (!photoUrl && !editingId) {
-        window.showToast('No Photo', 'Please select a photo first.', 'error');
-        setUploading(false);
-        return;
+        try {
+          const ext = imageFile.name.split('.').pop();
+          const path = `core/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadError } = await supabaseServiceClient.storage.from('member_photos').upload(path, imageFile, { upsert: true });
+          if (uploadError) {
+            console.warn('Supabase direct upload warning, falling back to data URL:', uploadError.message);
+            photoUrl = await new Promise(res => {
+              const reader = new FileReader();
+              reader.onload = () => res(reader.result);
+              reader.readAsDataURL(imageFile);
+            });
+          } else {
+            const { data: { publicUrl } } = supabaseServiceClient.storage.from('member_photos').getPublicUrl(path);
+            photoUrl = publicUrl;
+          }
+        } catch (uploadErr) {
+          console.warn('Upload error, fallback to data URL:', uploadErr);
+          photoUrl = await new Promise(res => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.readAsDataURL(imageFile);
+          });
+        }
       }
 
+      const payload = {
+        ...form,
+        name: finalName,
+        photo: photoUrl,
+        linkedin: form.linkedin || matched?.linkedin || '',
+        github: form.github || matched?.github || '',
+        instagram: form.instagram || matched?.instagram || '',
+        portfolio: form.portfolio || matched?.portfolio || matched?.website || '',
+        description: form.description || matched?.bio || matched?.description || '',
+      };
+
       if (editingId) {
-        await db.update('CoreMembers', editingId, { ...form, photo: photoUrl });
-        window.showToast('Updated!', `${form.name} updated successfully.`, 'success');
+        await db.update('CoreMembers', editingId, payload);
+        window.showToast('Updated!', `${finalName} updated successfully.`, 'success');
       } else {
-        await db.insert('CoreMembers', { ...form, photo: photoUrl, createdAt: new Date().toISOString() });
-        window.showToast('Added!', `${form.name} added to the Core Board.`, 'success');
+        await db.insert('CoreMembers', { ...payload, createdAt: new Date().toISOString() });
+        window.showToast('Added!', `${finalName} added to the Core Board.`, 'success');
       }
       handleCancelEdit();
       load();
@@ -289,7 +385,16 @@ function CoreBoardTab({ allMembers }) {
           ].map(({ key, placeholder, icon }) => (
             <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '0.5rem 0.85rem', marginBottom: '0.65rem' }}>
               <i className={`fa-${icon.includes('linkedin') || icon.includes('instagram') || icon.includes('github') ? 'brands' : 'solid'} ${icon}`} style={{ color: 'var(--text-muted)', fontSize: '0.82rem', width: 16, textAlign: 'center' }} />
-              <input value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} style={{ border: 'none', background: 'none', fontSize: '0.86rem', color: 'var(--text)', width: '100%' }} />
+              <input
+                value={form[key]}
+                onChange={e => {
+                  if (key === 'email') handleEmailChange(e.target.value);
+                  else if (key === 'name') handleNameChange(e.target.value);
+                  else setForm(p => ({ ...p, [key]: e.target.value }));
+                }}
+                placeholder={placeholder}
+                style={{ border: 'none', background: 'none', fontSize: '0.86rem', color: 'var(--text)', width: '100%' }}
+              />
             </div>
           ))}
 
@@ -1067,20 +1172,36 @@ function MessagesTab() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [viewingMessage, setViewingMessage] = useState(null);
 
   const load = async () => {
-    try { setMessages(await db.find('ContactMessages')); }
-    catch { window.showToast('Error', 'Could not load messages.', 'error'); }
-    finally { setLoading(false); }
+    try {
+      const data = await db.find('ContactMessages');
+      setMessages(data || []);
+    } catch {
+      window.showToast?.('Error', 'Could not load messages.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const unsub = db.subscribe('ContactMessages', (data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setMessages(data);
+      }
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
 
   const handleMarkRead = async (id) => {
     try {
       await db.update('ContactMessages', id, { status: 'read' });
       setMessages(prev => prev.map(m => m.id === id ? { ...m, status: 'read' } : m));
-    } catch (err) { window.showToast('Error', err.message, 'error'); }
+    } catch (err) { window.showToast?.('Error', err.message, 'error'); }
   };
 
   const handleDelete = async (id) => {
@@ -1088,8 +1209,9 @@ function MessagesTab() {
     try {
       await db.delete('ContactMessages', id);
       setMessages(prev => prev.filter(m => m.id !== id));
-      window.showToast('Deleted', 'Message removed.', 'success');
-    } catch (err) { window.showToast('Error', err.message, 'error'); }
+      if (viewingMessage?.id === id) setViewingMessage(null);
+      window.showToast?.('Deleted', 'Message removed.', 'success');
+    } catch (err) { window.showToast?.('Error', err.message, 'error'); }
   };
 
   const filtered = messages.filter(m =>
@@ -1105,7 +1227,12 @@ function MessagesTab() {
           <i className="fa-solid fa-magnifying-glass" style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search messages…" style={{ border: 'none', background: 'none', fontSize: '0.88rem', color: 'var(--text)', width: '100%' }} />
         </div>
-        <Badge color="blue">{filtered.length} total</Badge>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={load} className="btn btn-sm btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
+            <i className="fa-solid fa-rotate-right" style={{ marginRight: '4px' }} /> Refresh
+          </button>
+          <Badge color="blue">{filtered.length} total</Badge>
+        </div>
       </div>
 
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
@@ -1125,12 +1252,38 @@ function MessagesTab() {
                 ) : filtered.map(m => (
                   <tr key={m.id}>
                     <td><span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.88rem' }}>{m.name}</span></td>
-                    <td style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>{m.email}</td>
-                    <td style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.message}</td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '—'}</td>
+                    <td>
+                      <a href={`mailto:${m.email}`} style={{ fontSize: '0.84rem', color: 'var(--orange)', textDecoration: 'none' }}>
+                        {m.email}
+                      </a>
+                    </td>
+                    <td style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', maxWidth: 260 }}>
+                      <div
+                        onClick={() => {
+                          setViewingMessage(m);
+                          if (m.status === 'unread') handleMarkRead(m.id);
+                        }}
+                        title="Click to view full message"
+                        style={{ cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {m.message}
+                      </div>
+                    </td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {m.createdAt ? new Date(m.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                    </td>
                     <td><Badge color={m.status === 'unread' ? 'orange' : 'green'}>{m.status || 'unread'}</Badge></td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => {
+                            setViewingMessage(m);
+                            if (m.status === 'unread') handleMarkRead(m.id);
+                          }}
+                          style={{ background: '#f3f4f6', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#374151', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          View
+                        </button>
                         {m.status === 'unread' && (
                           <button onClick={() => handleMarkRead(m.id)} style={{ background: '#dbeafe', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#1d4ed8', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>
                             Mark Read
@@ -1148,6 +1301,38 @@ function MessagesTab() {
           </div>
         )}
       </div>
+
+      {viewingMessage && (
+        <div
+          className="lightbox-overlay"
+          onClick={() => setViewingMessage(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--card, #fff)', color: 'var(--text, #0f1117)', borderRadius: 16, padding: '1.75rem', maxWidth: 520, width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', border: '1px solid var(--border, #e5e7eb)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Message from {viewingMessage.name}</h3>
+              <button onClick={() => setViewingMessage(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
+            </div>
+            <div style={{ marginBottom: '1rem', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+              <div><strong>Email:</strong> <a href={`mailto:${viewingMessage.email}`} style={{ color: 'var(--orange)' }}>{viewingMessage.email}</a></div>
+              <div><strong>Date:</strong> {viewingMessage.createdAt ? new Date(viewingMessage.createdAt).toLocaleString() : '—'}</div>
+              <div><strong>Status:</strong> <Badge color={viewingMessage.status === 'unread' ? 'orange' : 'green'}>{viewingMessage.status || 'unread'}</Badge></div>
+            </div>
+            <div style={{ background: 'var(--surface, #f8f9fa)', padding: '1rem', borderRadius: 10, border: '1px solid var(--border, #e5e7eb)', fontSize: '0.92rem', whiteSpace: 'pre-wrap', lineHeight: 1.6, maxHeight: '250px', overflowY: 'auto' }}>
+              {viewingMessage.message}
+            </div>
+            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <a href={`mailto:${viewingMessage.email}?subject=Regarding your message on Mindcraft AI`} className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
+                <i className="fa-solid fa-reply" style={{ marginRight: '6px' }} /> Reply by Email
+              </a>
+              <button className="btn btn-outline btn-sm" onClick={() => setViewingMessage(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

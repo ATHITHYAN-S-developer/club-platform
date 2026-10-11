@@ -21,8 +21,43 @@ export default function Members() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await db.find('CoreMembers');
-        setCoreMembers(list);
+        const [list, users] = await Promise.all([
+          db.find('CoreMembers'),
+          db.find('Users')
+        ]);
+        const userMap = new Map();
+        const userNameMap = new Map();
+        (users || []).forEach(u => {
+          if (u.email) {
+            const clean = u.email.toLowerCase().trim();
+            userMap.set(clean, u);
+            userMap.set(clean.replace(/[@.]/g, ''), u);
+            const userPrefix = clean.split('@')[0];
+            if (userPrefix) userMap.set(userPrefix, u);
+          }
+          if (u.name) {
+            userNameMap.set(u.name.toLowerCase().trim(), u);
+          }
+        });
+        const enriched = (list || []).map(m => {
+          const emailKey = m.email ? m.email.toLowerCase().trim() : '';
+          const nameKey = m.name ? m.name.toLowerCase().trim() : '';
+          const emailPrefix = emailKey.split('@')[0];
+          const u = (emailKey ? userMap.get(emailKey) : null) ||
+                    (emailKey ? userMap.get(emailKey.replace(/[@.]/g, '')) : null) ||
+                    (emailPrefix ? userMap.get(emailPrefix) : null) ||
+                    (nameKey ? userNameMap.get(nameKey) : null);
+          return {
+            ...m,
+            photo: m.photo || u?.photo || '',
+            linkedin: m.linkedin || u?.linkedin || '',
+            github: m.github || u?.github || '',
+            instagram: m.instagram || u?.instagram || '',
+            portfolio: m.portfolio || u?.portfolio || u?.website || '',
+            description: m.description || u?.bio || u?.description || ''
+          };
+        });
+        setCoreMembers(enriched);
       } catch (err) {
         console.error(err);
       } finally { setLoading(false); }
@@ -47,17 +82,17 @@ export default function Members() {
     }, 250);
   };
 
-  const seniors = coreMembers.filter(m => (m.category || 'Senior') === 'Senior');
-  const juniors = coreMembers.filter(m => m.category === 'Junior');
+  const seniors = coreMembers.filter(m => (m.category || 'Senior').toLowerCase() !== 'junior');
+  const juniors = coreMembers.filter(m => (m.category || '').toLowerCase() === 'junior');
   const displayMembers = activeTab === 'Senior' ? seniors : juniors;
 
   // Group members by role / position
   const rolePriority = (roleName) => {
-    const r = (roleName || '').toLowerCase();
-    if (r.includes('president') || r.includes('guildmaster') || r.includes('founder') || r.includes('chief')) return 1;
+    const r = (roleName || '').toLowerCase().trim();
+    if (r.includes('president') || r.includes('guild master') || r.includes('guildmaster') || r.includes('guild') || r.includes('founder') || r.includes('chief')) return 1;
     if (r.includes('vice') || r.includes('co-') || r.includes('lead') || r.includes('strategist')) return 2;
     if (r.includes('head') || r.includes('manager') || r.includes('coordinator') || r.includes('secretary') || r.includes('treasurer')) return 3;
-    if (r.includes('member') || r.includes('guildmember')) return 4;
+    if (r.includes('member') || r.includes('guildmember') || r.includes('guild member')) return 4;
     return 5;
   };
 

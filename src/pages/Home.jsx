@@ -27,6 +27,41 @@ export default function Home() {
   const [modal, setModal] = useState({ active: false, name: '', achievement: '' });
   const [wordIndex, setWordIndex] = useState(0);
   const [terminalLines, setTerminalLines] = useState([]);
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [sendingContact, setSendingContact] = useState(false);
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    if (sendingContact) return;
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
+      return;
+    }
+    setSendingContact(true);
+    try {
+      await db.insert('ContactMessages', {
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        message: contactForm.message.trim(),
+        status: 'unread',
+        createdAt: new Date().toISOString(),
+      });
+      if (typeof window.showToast === 'function') {
+        window.showToast('Message Sent', 'Your message has been sent successfully!', 'success');
+      } else {
+        alert('Message sent successfully!');
+      }
+      setContactForm({ name: '', email: '', message: '' });
+    } catch (err) {
+      console.error('Failed to submit contact message:', err);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Error', err.message || 'Failed to send message.', 'error');
+      } else {
+        alert(err.message || 'Failed to send message.');
+      }
+    } finally {
+      setSendingContact(false);
+    }
+  };
 
   useEffect(() => {
     const lines = [
@@ -665,22 +700,55 @@ export default function Home() {
           </div>
           
           <div className="contact-form-container">
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              alert('Message sent successfully!');
-              e.target.reset();
-            }}>
+            <form onSubmit={handleContactSubmit}>
               <div className="form-group">
-                <input type="text" className="form-control-custom" placeholder="YOUR NAME" required />
+                <input
+                  type="text"
+                  className="form-control-custom"
+                  placeholder="YOUR NAME"
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
               </div>
               <div className="form-group">
-                <input type="email" className="form-control-custom" placeholder="YOUR EMAIL" required />
+                <input
+                  type="email"
+                  className="form-control-custom"
+                  placeholder="YOUR EMAIL"
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
               </div>
               <div className="form-group">
-                <textarea className="form-control-custom" rows="4" placeholder="YOUR MESSAGE" required style={{ resize: 'vertical' }} />
+                <textarea
+                  className="form-control-custom"
+                  rows="4"
+                  placeholder="YOUR MESSAGE"
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
+                  required
+                  style={{ resize: 'vertical' }}
+                />
               </div>
-              <button type="submit" className="scroll-btn" style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}>
-                Send Message <i className="fa-solid fa-paper-plane" style={{ marginLeft: '6px' }} />
+              <button
+                type="submit"
+                disabled={sendingContact}
+                className="scroll-btn"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  marginTop: '10px',
+                  opacity: sendingContact ? 0.7 : 1,
+                  cursor: sendingContact ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {sendingContact ? 'Sending...' : (
+                  <>
+                    Send Message <i className="fa-solid fa-paper-plane" style={{ marginLeft: '6px' }} />
+                  </>
+                )}
               </button>
             </form>
           </div>

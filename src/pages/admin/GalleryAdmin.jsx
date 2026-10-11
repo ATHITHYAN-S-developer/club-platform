@@ -20,6 +20,8 @@ export default function GalleryAdmin() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [filterEvent, setFilterEvent] = useState('all');
+  const [previewImage, setPreviewImage] = useState(null);
   const fileRef = useRef();
 
   const isAdminUpload = item => Boolean(item.createdAt) && Boolean(item.image);
@@ -28,15 +30,38 @@ export default function GalleryAdmin() {
     try {
       const [galleryList, eventList] = await Promise.all([db.find('Gallery'), db.find('Events')]);
       setItems((galleryList || []).filter(isAdminUpload).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-      setEvents((eventList || []).sort((a, b) => new Date(b.date) - new Date(a.date)));
+      setEvents((eventList || []).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
     } catch {
-      window.showToast('Error', 'Could not load gallery items.', 'error');
+      window.showToast?.('Error', 'Could not load gallery items.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { load(); }, []);
+
+  const getItemEventId = (item) => {
+    if (item.eventId) return item.eventId;
+    if (item.eventTitle) {
+      const match = events.find(e => e.title && e.title.trim().toLowerCase() === item.eventTitle.trim().toLowerCase());
+      if (match) return match.id;
+    }
+    if (item.title) {
+      const match = events.find(e => e.title && e.title.trim().toLowerCase() === item.title.trim().toLowerCase());
+      if (match) return match.id;
+    }
+    return 'general';
+  };
+
+  const destinationLabel = (item) => {
+    if (item.eventId) {
+      return item.eventTitle || events.find(e => e.id === item.eventId)?.title || 'Event';
+    }
+    if (item.eventTitle) return item.eventTitle;
+    const match = events.find(e => e.title && item.title && e.title.trim().toLowerCase() === item.title.trim().toLowerCase());
+    if (match) return match.title;
+    return 'General';
+  };
 
   const handleFileChange = e => {
     const picked = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
@@ -54,7 +79,7 @@ export default function GalleryAdmin() {
 
   const handleUpload = async () => {
     if (!selectedFiles.length) {
-      window.showToast('No Images', 'Select at least one image to upload.', 'error');
+      window.showToast?.('No Images', 'Select at least one image to upload.', 'error');
       return;
     }
     setSaving(true);
@@ -82,14 +107,17 @@ export default function GalleryAdmin() {
         });
       }
 
-      window.showToast('Uploaded!', `${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''} added to the gallery.`, 'success');
+      window.showToast?.('Uploaded!', `${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''} added to the gallery.`, 'success');
       selectedFiles.forEach(s => URL.revokeObjectURL(s.preview));
       setSelectedFiles([]);
       setTitle('');
       setDescription('');
+      if (!isGeneral) {
+        setFilterEvent(destination);
+      }
       load();
     } catch (err) {
-      window.showToast('Error', err.message, 'error');
+      window.showToast?.('Error', err.message, 'error');
     } finally {
       setSaving(false);
     }
@@ -101,15 +129,18 @@ export default function GalleryAdmin() {
       await db.deleteFile(item.image);
       await db.delete('Gallery', item.id);
       setItems(prev => prev.filter(i => i.id !== item.id));
-      window.showToast('Deleted', 'Image removed from gallery.', 'success');
+      if (previewImage?.id === item.id) setPreviewImage(null);
+      window.showToast?.('Deleted', 'Image removed from gallery.', 'success');
     } catch (err) {
-      window.showToast('Error', err.message, 'error');
+      window.showToast?.('Error', err.message, 'error');
     }
   };
 
-  const destinationLabel = item => item.eventId
-    ? (item.eventTitle || events.find(e => e.id === item.eventId)?.title || 'Event')
-    : 'General';
+  const filteredItems = items.filter(item => {
+    if (filterEvent === 'all') return true;
+    const eventId = getItemEventId(item);
+    return eventId === filterEvent;
+  });
 
   return (
     <div className="admin-grid-layout">
@@ -149,7 +180,16 @@ export default function GalleryAdmin() {
         <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFileChange} style={{ display: 'none' }} />
 
         <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Add to</label>
-        <select value={destination} onChange={e => setDestination(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+        <select
+          value={destination}
+          onChange={e => {
+            setDestination(e.target.value);
+            if (e.target.value !== 'general') {
+              setFilterEvent(e.target.value);
+            }
+          }}
+          style={{ ...inputStyle, appearance: 'none' }}
+        >
           <option value="general">General (standalone)</option>
           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
         </select>
@@ -170,26 +210,65 @@ export default function GalleryAdmin() {
 
       {/* ── Existing images ── */}
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-        <div style={{ padding: '0.9rem 1.2rem', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '0.88rem', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Uploaded Images</span>
-          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{items.length}</span>
+        <div style={{ padding: '0.9rem 1.2rem', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)' }}>Uploaded Images</span>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.82rem' }}>
+              {filteredItems.length} of {items.length} total
+            </span>
+          </div>
+
+          {/* Event Filter Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <select
+              value={filterEvent}
+              onChange={e => setFilterEvent(e.target.value)}
+              style={{
+                ...inputStyle,
+                marginBottom: 0,
+                padding: '0.45rem 0.75rem',
+                fontSize: '0.82rem',
+                appearance: 'none',
+                background: 'var(--surface)',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="all">📁 All Events & Uploads ({items.length})</option>
+              <option value="general">📁 General (standalone) ({items.filter(i => getItemEventId(i) === 'general').length})</option>
+              {events.map(ev => {
+                const count = items.filter(i => getItemEventId(i) === ev.id).length;
+                return (
+                  <option key={ev.id} value={ev.id}>
+                    📁 {ev.title} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
         </div>
+
         {loading ? <div className="loading-spinner" style={{ margin: '2rem auto' }} /> : (
           <div style={{ padding: '0.75rem', maxHeight: 560, overflowY: 'auto' }}>
-            {items.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
                 <i className="fa-regular fa-images" style={{ fontSize: '1.8rem', display: 'block', marginBottom: '0.6rem' }} />
-                No images uploaded yet.
+                {items.length === 0 ? 'No images uploaded yet.' : 'No images found for the selected event.'}
               </div>
-            ) : items.map(item => (
+            ) : filteredItems.map(item => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.7rem', borderRadius: 10, borderBottom: '1px solid var(--border-light)' }}>
-                <img src={item.image} alt={item.title} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0 }} />
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  onClick={() => setPreviewImage(item)}
+                  title="Click to zoom preview"
+                  style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0, cursor: 'pointer' }}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
                   <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'flex', gap: '0.7rem', flexWrap: 'wrap' }}>
                     <span><i className="fa-solid fa-folder" style={{ marginRight: '0.25rem' }} />{destinationLabel(item)}</span>
                     <span><i className="fa-solid fa-tag" style={{ marginRight: '0.25rem' }} />{item.category}</span>
-                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                    <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—'}</span>
                   </div>
                 </div>
                 <button onClick={() => handleDelete(item)} title="Delete"
@@ -201,6 +280,26 @@ export default function GalleryAdmin() {
           </div>
         )}
       </div>
+
+      {/* ── Lightbox Preview ── */}
+      {previewImage && (
+        <div
+          className="lightbox-overlay"
+          onClick={() => setPreviewImage(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '85vw', maxHeight: '85vh', textAlign: 'center' }}>
+            <img src={previewImage.image} alt={previewImage.title} style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: 10, objectFit: 'contain', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} />
+            <div style={{ color: '#fff', marginTop: '0.75rem', fontSize: '0.9rem', fontWeight: 600 }}>{previewImage.title}</div>
+            <button
+              onClick={() => setPreviewImage(null)}
+              style={{ position: 'absolute', top: -35, right: 0, background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

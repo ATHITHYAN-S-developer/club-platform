@@ -44,7 +44,11 @@ export default function Gallery() {
 
           // Snapshots from Firestore Gallery collection uploaded by admin
           const adminSnaps = eventItems
-            .filter(g => (g.eventId === evt.id || (g.eventTitle && evt.title && g.eventTitle.trim().toLowerCase() === evt.title.trim().toLowerCase())))
+            .filter(g => (
+              g.eventId === evt.id ||
+              (g.eventTitle && evt.title && g.eventTitle.trim().toLowerCase() === evt.title.trim().toLowerCase()) ||
+              (g.title && evt.title && g.title.trim().toLowerCase() === evt.title.trim().toLowerCase())
+            ))
             .map(g => g.image);
 
           const snapshots = Array.from(new Set([...adminSnaps, ...legacySnaps]));
@@ -57,9 +61,16 @@ export default function Gallery() {
           };
         }).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-        // General standalone gallery items (if any uploaded by admin without an eventId)
+        // General standalone gallery items (uploaded without any event relation)
+        const eventTitles = (list || []).map(e => (e.title || '').trim().toLowerCase()).filter(Boolean);
+        const eventIds = (list || []).map(e => e.id).filter(Boolean);
         const generalItems = eventItems
-          .filter(g => !g.eventId && !g.eventTitle)
+          .filter(g => {
+            if (g.eventId && eventIds.includes(g.eventId)) return false;
+            if (g.eventTitle && eventTitles.includes(g.eventTitle.trim().toLowerCase())) return false;
+            if (g.title && eventTitles.includes(g.title.trim().toLowerCase())) return false;
+            return true;
+          })
           .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
         if (generalItems.length > 0) {

@@ -183,6 +183,14 @@ const addDeletedId = (id) => {
   } catch { /* ignore */ }
 };
 
+const removeDeletedId = (id) => {
+  if (!id) return;
+  try {
+    const ids = getDeletedIds().filter(i => i !== id);
+    localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(ids));
+  } catch { /* ignore */ }
+};
+
 const DELETED_EMAILS_KEY = 'mindcraft_deleted_emails';
 
 const getDeletedEmails = () => {
@@ -201,6 +209,15 @@ const addDeletedEmail = (email) => {
       emails.push(cleanEmail);
       localStorage.setItem(DELETED_EMAILS_KEY, JSON.stringify(emails));
     }
+  } catch { /* ignore */ }
+};
+
+const removeDeletedEmail = (email) => {
+  if (!email) return;
+  try {
+    const cleanEmail = email.toLowerCase().trim();
+    const emails = getDeletedEmails().filter(e => e !== cleanEmail);
+    localStorage.setItem(DELETED_EMAILS_KEY, JSON.stringify(emails));
   } catch { /* ignore */ }
 };
 
@@ -231,7 +248,6 @@ const DUMMY_SAMPLE_IDS = [
   'qr_1', 'qr_2', 'qr_3',
   'ann_1', 'ann_2',
   'win_1', 'win_2',
-  'core_1',
   'chal_1', 'chal_2', 'chal_3', 'chal_rag_1', 'chal_rag_2', 'chal_rag_3', 'chal_rag_4', 'chal_rag_5', 'chal_rag_6', 'chal_rag_7', 'chal_rag_8', 'chal_rag_9'
 ];
 
@@ -240,7 +256,6 @@ const isDummyItem = (item) => {
   if (DUMMY_SAMPLE_IDS.includes(item.id) || DUMMY_SAMPLE_IDS.includes(item.quizId)) return true;
   const title = (item.title || item.quizTitle || item.name || item.achievement || '').toLowerCase().trim();
   const email = (item.email || '').toLowerCase().trim();
-  const role = (item.role || item.position || '').toLowerCase().trim();
 
   if (
     title.includes('programming fundamentals') ||
@@ -251,8 +266,8 @@ const isDummyItem = (item) => {
     return true;
   }
 
-  // Sample core member Athi President
-  if ((title === 'athi' && role === 'president') || email === 'athi9080@.com' || item.id === 'core_1') {
+  // Sample fake email filter only
+  if (email === 'athi9080@.com') {
     return true;
   }
 
@@ -334,6 +349,7 @@ class FirebaseDatabase {
   isOnline() { return this._online; }
 
   async initFirestore() {
+    if (!firestore) return;
     try {
       const settingsRef = collection(firestore, 'Settings');
       const settingsSnap = await getDocs(settingsRef);
@@ -355,6 +371,7 @@ class FirebaseDatabase {
   }
 
   initFirebaseSync() {
+    if (!auth) return;
     onAuthStateChanged(auth, async (firebaseUser) => {
       let userProfile = null;
       if (firebaseUser) {
@@ -438,9 +455,6 @@ class FirebaseDatabase {
         if (isDummyItem(item)) return false;
         if (!includeDeleted) {
           if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-          if ((collectionName === 'Users' || collectionName === 'CoreMembers') && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
-            return false;
-          }
         }
         return true;
       });
@@ -455,9 +469,6 @@ class FirebaseDatabase {
           if (isDummyItem(item)) return false;
           if (!includeDeleted) {
             if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-            if ((collectionName === 'Users' || collectionName === 'CoreMembers') && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
-              return false;
-            }
           }
           return true;
         });
@@ -474,14 +485,10 @@ class FirebaseDatabase {
       console.warn(`find(${collectionName}) failed, using fallback:`, error.message);
       const localData = getLocalStorageCollection(collectionName);
       const deletedIds = getDeletedIds();
-      const deletedEmails = getDeletedEmails();
       const filtered = localData.filter(item => {
         if (isDummyItem(item)) return false;
         if (!includeDeleted) {
           if (deletedIds.includes(item.id) || item.isDeleted === true) return false;
-          if ((collectionName === 'Users' || collectionName === 'CoreMembers') && item.email && deletedEmails.includes(item.email.toLowerCase().trim())) {
-            return false;
-          }
         }
         return true;
       });
@@ -557,10 +564,22 @@ class FirebaseDatabase {
     record.createdAt = new Date().toISOString();
     const cleanRecord = sanitizeForFirestore(record);
 
+    removeDeletedId(cleanRecord.id);
+    if (cleanRecord.email) {
+      removeDeletedEmail(cleanRecord.email);
+    }
+
     try {
       await retryFirestoreWrite(() =>
         setDoc(doc(firestore, collectionName, cleanRecord.id), cleanRecord)
       );
+      try {
+        const items = getLocalStorageCollection(collectionName);
+        if (!items.some(i => i.id === cleanRecord.id)) {
+          items.unshift(cleanRecord);
+          setLocalStorageCollection(collectionName, items);
+        }
+      } catch { /* ignore */ }
       return { record: cleanRecord, persistedToFirestore: true };
     } catch (error) {
       const errorType = classifyFirestoreError(error);
@@ -583,56 +602,82 @@ class FirebaseDatabase {
     }
     record.createdAt = new Date().toISOString();
 
+    if (!firestore) {
+      const cleanRecord = sanitizeForFirestore(record);
+      const items = getLocalStorageCollection(collectionName);
+      items.unshift(cleanRecord);
+      setLocalStorageCollection(collectionName, items);
+      return { record: cleanRecord, persistedToFirestore: false, status: record.status || 'Registered' };
+    }
+
     try {
-      const result = await retryFirestoreWrite(() =>
-        runTransaction(firestore, async (transaction) => {
-          const annDoc = await transaction.get(doc(firestore, 'Announcements', announcementId));
-          if (!annDoc.exists()) throw new Error('Event not found.');
+      // 1. Fetch announcement capacity limits
+      let seatsLimit = 100;
+      let waitlistLimit = 0;
+      try {
+        const annDocSnap = await getDoc(doc(firestore, 'Announcements', announcementId));
+        if (annDocSnap.exists()) {
+          const annData = annDocSnap.data();
+          seatsLimit = Number(annData.seatsLimit) || 100;
+          waitlistLimit = Number(annData.waitlistLimit) || 0;
+        }
+      } catch (annErr) {
+        console.warn('Could not check announcement capacity, using defaults:', annErr);
+      }
 
-          const annData = annDoc.data();
-          const seatsLimit = annData.seatsLimit || 100;
-          const waitlistLimit = annData.waitlistLimit || 0;
+      // 2. Query existing registrations count
+      let registeredCount = 0;
+      let waitlistedCount = 0;
+      try {
+        const regsQuery = query(
+          collection(firestore, collectionName),
+          where('announcementId', '==', announcementId)
+        );
+        const regsSnapshot = await getDocs(regsQuery);
+        regsSnapshot.forEach((d) => {
+          const data = d.data();
+          if (data.status === 'Registered') registeredCount++;
+          else if (data.status === 'Waitlisted') waitlistedCount++;
+        });
+      } catch (qErr) {
+        console.warn('Could not query existing registrations for capacity check:', qErr);
+      }
 
-          const regsQuery = query(
-            collection(firestore, collectionName),
-            where('announcementId', '==', announcementId),
-            where('status', 'in', ['Registered', 'Waitlisted'])
-          );
-          const regsSnapshot = await getDocs(regsQuery);
+      if (registeredCount < seatsLimit) {
+        record.status = 'Registered';
+      } else if (waitlistedCount < waitlistLimit) {
+        record.status = 'Waitlisted';
+      } else {
+        throw new Error('Event is full. No more seats or waitlist slots available.');
+      }
 
-          let registeredCount = 0;
-          let waitlistedCount = 0;
-          regsSnapshot.forEach((d) => {
-            const data = d.data();
-            if (data.status === 'Registered') registeredCount++;
-            else if (data.status === 'Waitlisted') waitlistedCount++;
-          });
-
-          if (registeredCount < seatsLimit) {
-            record.status = 'Registered';
-          } else if (waitlistedCount < waitlistLimit) {
-            record.status = 'Waitlisted';
-          } else {
-            throw new Error('Event is full. No more seats or waitlist slots available.');
-          }
-
-          const cleanRecord = sanitizeForFirestore(record);
-          transaction.set(doc(firestore, collectionName, cleanRecord.id), cleanRecord);
-          return { record: cleanRecord, status: record.status };
-        })
+      const cleanRecord = sanitizeForFirestore(record);
+      await retryFirestoreWrite(() =>
+        setDoc(doc(firestore, collectionName, cleanRecord.id), cleanRecord)
       );
 
-      return { record: result.record, persistedToFirestore: true, status: result.status };
+      try {
+        const items = getLocalStorageCollection(collectionName);
+        if (!items.some(i => i.id === cleanRecord.id)) {
+          items.unshift(cleanRecord);
+          setLocalStorageCollection(collectionName, items);
+        }
+      } catch { /* ignore */ }
+
+      return { record: cleanRecord, persistedToFirestore: true, status: record.status };
     } catch (error) {
+      if (error.message && error.message.includes('Event is full')) {
+        throw error;
+      }
       const errorType = classifyFirestoreError(error);
       console.error(`insertWithCapacityCheck(${collectionName}) failed [${errorType}]:`, error);
 
-      if (errorType === 'offline') {
+      if (errorType === 'offline' || !firestore) {
         const cleanRecord = sanitizeForFirestore(record);
         const items = getLocalStorageCollection(collectionName);
-        items.push(cleanRecord);
+        items.unshift(cleanRecord);
         setLocalStorageCollection(collectionName, items);
-        return { record: cleanRecord, persistedToFirestore: false, status: record.status };
+        return { record: cleanRecord, persistedToFirestore: false, status: record.status || 'Registered' };
       }
 
       throw describeWriteError(error);
@@ -641,6 +686,10 @@ class FirebaseDatabase {
 
   async update(collectionName, id, updates) {
     let docData = {};
+    removeDeletedId(id);
+    if (updates.email) {
+      removeDeletedEmail(updates.email);
+    }
     try {
       const docRef = doc(firestore, collectionName, id);
       const docSnap = await getDoc(docRef);
