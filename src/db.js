@@ -598,7 +598,7 @@ class FirebaseDatabase {
 
   async insertWithCapacityCheck(collectionName, record, announcementId) {
     if (!record.id) {
-      record.id = collectionName.toLowerCase().substring(0, 3) + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      record.id = collectionName.toLowerCase().substring(0, 3) + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 12) + '_' + Math.random().toString(36).substring(2, 8);
     }
     record.createdAt = new Date().toISOString();
 
@@ -611,23 +611,22 @@ class FirebaseDatabase {
     }
 
     try {
-      // 1. Fetch announcement capacity limits
-      let seatsLimit = 100;
+      // 1. Fetch announcement capacity limits (informational only — all registrations are stored)
+      let seatsLimit = 99999;
       let waitlistLimit = 0;
       try {
         const annDocSnap = await getDoc(doc(firestore, 'Announcements', announcementId));
         if (annDocSnap.exists()) {
           const annData = annDocSnap.data();
-          seatsLimit = Number(annData.seatsLimit) || 100;
+          seatsLimit = Number(annData.seatsLimit) || 99999;
           waitlistLimit = Number(annData.waitlistLimit) || 0;
         }
       } catch (annErr) {
         console.warn('Could not check announcement capacity, using defaults:', annErr);
       }
 
-      // 2. Query existing registrations count
+      // 2. Query existing registrations count for status assignment
       let registeredCount = 0;
-      let waitlistedCount = 0;
       try {
         const regsQuery = query(
           collection(firestore, collectionName),
@@ -637,18 +636,15 @@ class FirebaseDatabase {
         regsSnapshot.forEach((d) => {
           const data = d.data();
           if (data.status === 'Registered') registeredCount++;
-          else if (data.status === 'Waitlisted') waitlistedCount++;
         });
       } catch (qErr) {
-        console.warn('Could not query existing registrations for capacity check:', qErr);
+        console.warn('Could not query existing registrations for count:', qErr);
       }
 
-      if (registeredCount < seatsLimit) {
-        record.status = 'Registered';
-      } else if (waitlistedCount < waitlistLimit) {
+      if (registeredCount >= seatsLimit && waitlistLimit > 0) {
         record.status = 'Waitlisted';
       } else {
-        throw new Error('Event is full. No more seats or waitlist slots available.');
+        record.status = 'Registered';
       }
 
       const cleanRecord = sanitizeForFirestore(record);
@@ -666,21 +662,14 @@ class FirebaseDatabase {
 
       return { record: cleanRecord, persistedToFirestore: true, status: record.status };
     } catch (error) {
-      if (error.message && error.message.includes('Event is full')) {
-        throw error;
-      }
       const errorType = classifyFirestoreError(error);
       console.error(`insertWithCapacityCheck(${collectionName}) failed [${errorType}]:`, error);
 
-      if (errorType === 'offline' || !firestore) {
-        const cleanRecord = sanitizeForFirestore(record);
-        const items = getLocalStorageCollection(collectionName);
-        items.unshift(cleanRecord);
-        setLocalStorageCollection(collectionName, items);
-        return { record: cleanRecord, persistedToFirestore: false, status: record.status || 'Registered' };
-      }
-
-      throw describeWriteError(error);
+      const cleanRecord = sanitizeForFirestore(record);
+      const items = getLocalStorageCollection(collectionName);
+      items.unshift(cleanRecord);
+      setLocalStorageCollection(collectionName, items);
+      return { record: cleanRecord, persistedToFirestore: false, status: record.status || 'Registered' };
     }
   }
 

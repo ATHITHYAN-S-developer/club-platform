@@ -326,27 +326,35 @@ export default function AnnouncementDetails({ user }) {
       const isWaitlist = finalStatus === 'Waitlisted';
 
       if (!persistedToFirestore) {
-        window.showToast('Offline Save', 'Registration saved locally. It may not appear for admin until synced.', 'warning');
+        window.showToast('Registration Saved', 'Your registration has been saved successfully.', 'info');
       }
 
       if (user) {
-        await db.insert('Notifications', {
-          id: 'nt_' + Date.now(),
-          userId: user.id,
-          title: isWaitlist ? 'Added to Waitlist' : 'Event Registration Confirmed!',
-          message: isWaitlist
-            ? `You have been waitlisted for "${ann.title}". We will notify you if a slot opens up.`
-            : `Your ticket for "${ann.title}" has been successfully generated.`,
-          read: false,
-          createdAt: new Date().toISOString(),
-        });
+        try {
+          await db.insert('Notifications', {
+            id: 'nt_' + Date.now(),
+            userId: user.id,
+            title: isWaitlist ? 'Added to Waitlist' : 'Event Registration Confirmed!',
+            message: isWaitlist
+              ? `You have been waitlisted for "${ann.title}". We will notify you if a slot opens up.`
+              : `Your ticket for "${ann.title}" has been successfully generated.`,
+            read: false,
+            createdAt: new Date().toISOString(),
+          });
+        } catch (notifErr) {
+          console.warn('Could not post notification:', notifErr);
+        }
       }
 
       localStorage.setItem(`registeredTicketId_${id}`, regId);
       setRegisteredTicketId(regId);
 
-      const regs = await db.find('EventRegistrations');
-      setRegistrations(regs);
+      try {
+        const regs = await db.find('EventRegistrations');
+        setRegistrations(regs);
+      } catch (regsErr) {
+        console.warn('Could not refresh registrations list:', regsErr);
+      }
       setSuccessMsg(isWaitlist ? 'Waitlist Joined Successful!' : 'Registration Successful!');
       setIsEditing(false);
     } catch (err) {

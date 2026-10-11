@@ -19,7 +19,13 @@ export default function RegistrationDashboard({ announcement, user }) {
     setLoading(true);
     try {
       const all = await db.find('EventRegistrations');
-      const filteredRegs = all.filter(r => r.announcementId === announcement.id);
+      const targetId = announcement.id;
+      const filteredRegs = all.filter(r => 
+        r.announcementId === targetId || 
+        r.quizId === targetId ||
+        r.announcementId === announcement.quizId ||
+        (r.submittedData && (r.submittedData.announcementId === targetId || r.submittedData.quizId === targetId))
+      );
       setRegistrations(filteredRegs.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt)));
     } catch {
       window.showToast('Error', 'Could not load registrations.', 'error');
